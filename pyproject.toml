@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "crac-cloud"
+version = "0.1.0"
+description = "code in cloud for gui web, connecting to crac server via gRPC and FastAPI"
+authors = ["Raniero Albanesi"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+# Client gRPC e Protobuf
+grpcio = "^1.64.1"
+protobuf = "^5.27.1"
+# Per connettersi a un repository GitHub come dipendenza
+crac-protobuf = { git = "https://github.com/ara-astronomia/crac-protobuf", branch="14-implement-contract-for-ups"}
+# Framework web e server
+fastapi = "^0.117.1"
+uvicorn = {extras = ["standard"], version = "^0.34.3"}
+# Per gestire le variabili d'ambiente
+python-dotenv = "^0.20.0"
+jinja2 = "^3.1.6"
+
+[tool.poetry.dev-dependencies]
+# Per generare i file gRPC
+grpcio-tools = "^1.64.1"
+# Per formattare il codice in automatico
+autopep8 = "^1.6.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

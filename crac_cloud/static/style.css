@@ -1,0 +1,158 @@
+#gauge-container {
+    width: 100px;
+    height: 100px;
+    margin: 2px ;
+}
+
+.custom-meter {
+  /*width: 220px;         /* larghezza barra */
+  height: 22px;         /* spessore barra */
+  margin-left: 10px;    /* spazio dopo il testo/valore */
+  vertical-align: middle;  /* allineamento col testo */
+}
+
+/* Personalizzazione grafica (opzionale) */
+.custom-meter::-webkit-meter-bar {
+  background: #ddd;
+  border-radius: 10px;
+}
+.custom-meter::-webkit-meter-optimum-value {
+  background: green;
+  border-radius: 10px;
+}
+.custom-meter::-webkit-meter-suboptimum-value {
+  background: orange;
+}
+.custom-meter::-webkit-meter-even-less-good-value {
+  background: red;
+}
+.custom-meter::-moz-meter-bar {
+  background: green;
+}
+.border-with-text {
+    position: relative;
+    border: 1px solid #73a8da;
+    border-radius:3px;
+    padding: 5px 10px;
+    flex: 1;
+}
+
+.border-with-text-ext {
+    position: relative;
+    border: 2px solid rgb(161, 159, 159);
+    border-radius:3px;
+    padding: 5px;
+    flex: 1;
+}
+
+.border-with-text-ext:before {
+    content: attr(data-text);
+    position: absolute;
+    top: -0.65em;
+    left:20%;
+    transform: translateX(-50%);    
+    background: #313030;        
+    padding: 5 10px;
+    font-size: 10px;
+}
+
+.border-with-text:before {
+    content: attr(data-text);
+    position: absolute;
+    top: -0.65em;
+    left:20%;
+    transform: translateX(-50%);    
+    background: #313030;        
+    padding: 5 10px;
+    font-size: 10px;
+}
+body {
+    background-color: #313030;
+    color: #FFFFFF;
+    font-family: Helvetica, sans-serif;
+}
+.button {
+    background-color: red;
+    color: white;
+    padding: 10px;
+    border:4;
+    border-color: #313030;
+    border-radius:2px;
+    cursor: pointer;
+    height:20px;
+    text-align: center;
+    line-height: 0vmax;
+    font-size:13px;
+}
+.frame {
+    border: 2px solid #C7D5E0;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px;
+    display: inline-block;
+    margin-right: 1px; /* optional: aggiunge spazio tra i frame */
+}
+.iframe {
+    border: 3px solid #d31828;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px;
+
+    height:100%;
+    display: inline-block;
+    margin-right: 1px; /* optional: aggiunge spazio tra i frame */
+}
+.text {
+    font-size: 16px;
+}
+.status-button {    
+    background-color: rgb(156, 160, 156);
+    padding: 2px 2px;
+    font-size: 15px;
+}
+
+.status-button.status-success {
+    background-color: green;
+    color: white;
+}
+
+.status-button.status-failure {
+    background-color: red;
+    color: white;
+}
+
+meter {
+    width:50%;
+    height:5px;
+}
+
+.status-label {
+    border-radius:2px;   
+    background-color: white;
+    color: red;
+    padding: 1px 5px;
+    font-size: 14px;
+
+}
+.status-label-success {
+    background-color: green;
+    color: white;
+
+}
+.status-label-failure {
+    background-color: red ;
+    color: white;
+
+}
+
+.container {
+    display: flex;
+    justify-content: center; /* Per centrare i canvas orizzontalmente */
+    align-items: center; /* Per allineare i canvas verticalmente */
+    gap: 0px; /* Spazio tra i canvas */
+}
+
+canvas {
+    width: 150px; /* Imposta una larghezza fissa per i canvas */
+    height: 150px; /* Imposta un'altezza fissa per i canvas */
+}
