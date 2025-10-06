@@ -9,9 +9,10 @@ class RoofClient:
         self.channel = grpc.insecure_channel(f'{host}:{port}')
         self.stub = roof_pb2_grpc.RoofStub(self.channel)
 
-    def set_action(self, action: roof_pb2.RoofAction):
+    def set_action(self, action_enum): #roof_pb2.RoofAction):
         """Invia un'azione (apri/chiudi) al tetto scorrevole."""
-        request = roof_pb2.RoofRequest(action=action)
+        request = roof_pb2.RoofRequest(action=action_enum)
+        print(f"questa è la  {request}")
         try:
             response = self.stub.SetAction(request)
             return {

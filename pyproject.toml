@@ -1,30 +1,39 @@
-[tool.poetry]
+[project]
 name = "crac-cloud"
 version = "0.1.0"
 description = "code in cloud for gui web, connecting to crac server via gRPC and FastAPI"
-authors = ["Raniero Albanesi"]
-license = "MIT"
+readme = "README.md"
+license =  "MIT"
+requires-python = ">=3.12"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-# Client gRPC e Protobuf
-grpcio = "^1.64.1"
-protobuf = "^5.27.1"
-# Per connettersi a un repository GitHub come dipendenza
-crac-protobuf = { git = "https://github.com/ara-astronomia/crac-protobuf", branch="14-implement-contract-for-ups"}
-# Framework web e server
-fastapi = "^0.117.1"
-uvicorn = {extras = ["standard"], version = "^0.34.3"}
-# Per gestire le variabili d'ambiente
-python-dotenv = "^0.20.0"
-jinja2 = "^3.1.6"
 
-[tool.poetry.dev-dependencies]
-# Per generare i file gRPC
-grpcio-tools = "^1.64.1"
-# Per formattare il codice in automatico
-autopep8 = "^1.6.0"
+dependencies = [
+    # Client gRPC e Protobuf
+    "grpcio >=1.64.1",
+    "protobuf >=5.27.1",
+    # Framework web e server
+    "fastapi >=0.117.1",
+    "uvicorn >=0.37.0",
+    # Per gestire le variabili d'ambiente
+    "python-dotenv >=1.1.1",
+    "jinja2 >=3.1.6",
+    # Per connettersi a un repository GitHub come dipendenza
+    "crac-protobuf @ git+https://github.com/ara-astronomia/crac-protobuf@14-implement-contract-for-ups",
+    ]
+
+[tool.setuptools.packages.find]
+exclude = [
+    "static*",
+    "templates*",
+]
+
+[project.optional-dependencies]
+dev = [
+    "grpcio-tools >=1.64",
+    "autopep8 >=1.6",
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+

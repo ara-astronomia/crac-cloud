@@ -3,6 +3,11 @@ from fastapi import APIRouter
 from crac_cloud.grpc_cloud.roof_cloud import RoofClient
 from crac_protobuf import roof_pb2
 from crac_cloud.config import Config
+from pydantic import BaseModel # ⬅️ Importa BaseModel
+
+# ⬇️ NUOVA CLASSE PYDANTIC ⬇️
+class RoofActionRequest(BaseModel):
+    action: str
 
 router = APIRouter(prefix="/roof")
 config = Config.get_section("server")
@@ -25,9 +30,23 @@ def get_roof_status():
 
 # Aggiungi l'endpoint POST per le azioni
 @router.post("/set_action")
-async def set_action(action: str):
-    if action == "OPEN":
-        return roof_client.set_action(roof_pb2.OPEN)
-    elif action == "CLOSE":
-        return roof_client.set_action(roof_pb2.CLOSE)
-    return {"status": "error", "message": "Azione non valida."}
+async def set_action(request: RoofActionRequest):
+    
+    print(f"Azione richiesta: {request.action}") # Debug utile
+    
+    # Assicurati che il tuo client gRPC (roof_client) usi le costanti enum corrette 
+    # e che il metodo set_action sia definito nello stub gRPC.
+    
+    if request.action == "OPEN":
+        print("Tentativo di apertura tetto...")
+        # Usa l'azione Enum completa per chiarezza
+        return roof_client.set_action(roof_pb2.RoofAction.OPEN) 
+        
+    elif request.action == "CLOSE":
+        print("Tentativo di chiusura tetto...")
+        # Usa l'azione Enum completa per chiarezza
+        return roof_client.set_action(roof_pb2.RoofAction.CLOSE)
+        
+    # Questo return è ESSENZIALE se nessuna delle condizioni è soddisfatta
+    return {"status": "error", "message": f"Azione non valida: {request.action}"}
+    

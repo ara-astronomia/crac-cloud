@@ -52,7 +52,7 @@
     left:20%;
     transform: translateX(-50%);    
     background: #313030;        
-    padding: 5 10px;
+    padding: 5px 10px;
     font-size: 10px;
 }
 
@@ -71,19 +71,7 @@ body {
     color: #FFFFFF;
     font-family: Helvetica, sans-serif;
 }
-.button {
-    background-color: red;
-    color: white;
-    padding: 10px;
-    border:4;
-    border-color: #313030;
-    border-radius:2px;
-    cursor: pointer;
-    height:20px;
-    text-align: center;
-    line-height: 0vmax;
-    font-size:13px;
-}
+
 .frame {
     border: 2px solid #C7D5E0;
     border-radius: 5px;
@@ -104,6 +92,19 @@ body {
 }
 .text {
     font-size: 16px;
+}
+.button {
+    background-color: red;
+    color: white;
+    padding: 10px;
+    border:4;
+    border-color: #313030;
+    border-radius:2px;
+    cursor: pointer;
+    height:20px;
+    text-align: center;
+    line-height: 0vmax;
+    font-size:13px;
 }
 .status-button {    
     background-color: rgb(156, 160, 156);

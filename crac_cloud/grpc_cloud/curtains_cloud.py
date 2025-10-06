@@ -28,9 +28,47 @@ class CurtainsClient:
             return {"error": str(e.details())}
     
     def _parse_response(self, response):
-        status = curtains_pb2.CurtainStatus.Name(response.status)
+    # --- 1. Parsing degli oggetti 'curtains' ---
+        curtains_data = []
+        for curtain in response.curtains:
+            # Il campo 'status' è su 'curtain', NON su 'response'
+            status_name = self._get_enum_name(curtain.status)
+            orientation_name = self._get_enum_name(curtain.orientation)
+            
+            curtains_data.append({
+                "orientation": orientation_name,
+                "status": status_name,
+            })
+
+        # --- 2. Parsing degli oggetti 'buttons_gui' ---
+        buttons_data = []
+        for button in response.buttons_gui:
+            label_name = self._get_enum_name(button.label)
+            key_name = self._get_enum_name(button.key)
+            
+            buttons_data.append({
+                "metadata": button.metadata,
+                "label": label_name,
+                "is_disabled": button.is_disabled,
+                "button_color": {
+                    "text_color": button.button_color.text_color,
+                    "background_color": button.button_color.background_color,
+                },
+                "key": key_name,
+            })
+        
+        # --- 3. Restituisci la struttura completa ---
         return {
-            "status": status,
-            "curtain_east_steps": response.curtain_east.steps,
-            "curtain_west_steps": response.curtain_west.steps,
+            "curtains": curtains_data,
+            "buttons_gui": buttons_data,
         }
+    def _get_enum_name(self, enum_value):
+    # Trasforma i nomi ENUM come CURTAIN_DISABLED in DISABLED
+        try:
+            # Usa il metodo Name() sul campo per ottenere la stringa ENUM completa
+            full_name = enum_value.Name(enum_value)
+            # Se è un nome standard con underscore, restituisci l'ultima parte
+            return full_name.split('_')[-1]
+        except AttributeError:
+            # Se non è un enum, restituisci il valore così com'è
+            return enum_value
