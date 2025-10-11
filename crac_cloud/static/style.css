@@ -158,7 +158,19 @@ meter {
     color: white;
 
 }
-
+.main-container {
+    /* 1. ABILITA FLEXBOX SUL CONTENITORE PADRE */
+    display: flex; 
+    
+    /* 2. FA IN MODO CHE I BLOCCHI SI ALLINEINO SULLA STESSA RIGA */
+    flex-direction: row; 
+    
+    /* 3. DISTRIBUISCE LO SPAZIO IN MODO EQUO */
+    justify-content: space-around; /* O 'space-between' se preferisci bordi toccanti */
+    
+    /* 4. (OPZIONALE) GESTIONE DELLO SPAZIO TRA GLI ELEMENTI */
+    gap: 20px; /* Spazio tra i due blocchi, se necessario */
+}
 .container {
     display: flex;
     justify-content: center; /* Per centrare i canvas orizzontalmente */
