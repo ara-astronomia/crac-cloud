@@ -56,7 +56,11 @@
         <div class="container">
             <div class="border-with-text-ext" data-text="Stato tende" >
                 <div class="container">
-                <img src="/static/images/cielo_stellato.gif" width="480" height="300"></img>
+                    <div class="border-with-text-ext" data-text="">
+                    <div class ="container-img">
+                        
+                    </div>
+                    </div>
                 <p></p>
                 <div class="border-with-text-ext">
                     <div class="border-with-text" data-text="Tende">
@@ -83,25 +87,13 @@
                                 <span id="value4"></span>
                             </div>
                         </div>
-                    <p></p>
-                    <div class="container">
-                        <div class="border-with-text-ext" data-text="Airmass">
-                            <label title="indica il valore dell'airmass alla posizione attuale del telescopio" id="airmass" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Nessun valore</label>
-                            <span id="value5"></span>
-                        </div>
-                        <div class="border-with-text-ext" data-text="Ora del Transito">
-                            <label title="indica l'orario del transito al meridiano" id="transit_time" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Nessun valore</label>
-                        </div>
-                    </div>
-                    <p></p>
-                    <div class="container">
-                        <div class="border-with-text-ext" data-text="Tempo al Transito">
-                            <label title="indica il tempo mancante al transito" id="time_to_transit" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Nessun valore</label>
-                        </div>
-                        <div class="border-with-text-ext" data-text="TSL">
-                            <label title="indica il valore Tempo Siderale Locale" id="TSL" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Nessun valore</label>
-                        </div>
-                    </div>
+                            <p></p>
+                            <div class="container">
+                                <div class="border-with-text-ext" data-text="Airmass">
+                                    <label title="indica il valore dell'airmass alla posizione attuale del telescopio" id="airmass" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Nessun valore</label>
+                                    <span id="value5"></span>
+                                </div>
+                            </div>
                     </div>
                         
                 </div>
@@ -117,21 +109,21 @@
                 <div class="container">
                     <div class="border-with-text" style="display: block; margin: 0 auto; text-align: center;" data-text="Telescopio">
                         <div class="container">
-                            <label title="indica se il telescopio è connesso a CRaC" id="lbl_status_connect" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Disconesso</label>
-                            <label title="indica se il telescopio è connesso a CRaC" id="lbl_status_tracking" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Track Off</label>
-                            <label title="indica se il telescopio è connesso a CRaC" id="lbl_status_slewing" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Slewing Off</label>
+                            <label title="indica se il telescopio è connesso a CRaC" id="lbl_status_connect" class="status-label" >Disconesso</label>
+                            <label title="indica se il telescopio è connesso a CRaC" id="lbl_status_tracking" class="status-label" >Track Off</label>
+                            <label title="indica se il telescopio è connesso a CRaC" id="lbl_status_slewing" class="status-label" >Slewing Off</label>
                         </div>    
                     </div>
-                    <div class="border-with-text" data-text="Tende">
-                        <div class="container">
-                            <div class="border-with-text" data-text="Ovest">
-                                <label title="indica lo stato della tenda ovest" id="lbl_status_tenda_ovest" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Nessun dato</label>
-                            </div>
-                            <div class="border-with-text" data-text="Est">
-                                <label title="indica lo stato della tenda Est" id="lbl_status_tenda_est" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Nessun valore</label>
-                            </div>
-                        </div>
+                    <div class="border-with-text" data-text="Tenda Est">
+                        <label title="indica lo stato della tenda Est" id="lbl_status_tenda_est" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Nessun valore</label>
                     </div>
+                 
+                    <div class="border-with-text" data-text="Tenda Ovest">
+                        <label title="indica lo stato della tenda ovest" id="lbl_status_tenda_ovest" class="status-label" style="display: block; margin: 0 auto; text-align: center;">Nessun dato</label>
+                    </div>   
+                </div>
+            </div>
+        </div>
                 </div>
 
                 <p></p>
@@ -141,36 +133,36 @@
         </div>
         <p></p>
         <div class="border-with-text-ext" data-text="Stato Alimentazione - UPS">
-            <div class="container">
+            <div class="container-ups">
                 <div class="border-with-text" data-text="Cupola">
                     <p>Batterie: 
-                        {{ items.get("percent_batt_dome", "N/D") }} %
-                        <meter class="custom-meter" min="0" max="100" low="50" high="75" optimum="90" id="percent_batt_dome" value="{{ items.get('percent_batt_dome', 'N/D') }}"></meter></p>
+                        {{ items.get("percent_batt_dome", 25) }} %
+                        <meter class="custom-meter" min="0" max="100" low="50" high="75" optimum="90" id="percent_batt_dome" value="{{ items.get('percent_batt_dome', 25) }}"></meter></p>
                     <p>Tensione Rete: 
-                        {{items.get("volt_rete_dome", "N/D")}} V
-                        <meter class="custom-meter" min="0" max="240" low="195" high="215" optimum="220" id="volt_rete_dome" value="{{items.get('volt_rete_dome', 'N/D')}}"></meter></p>
+                        {{items.get("volt_rete_dome", 290)}} V
+                        <meter class="custom-meter" min="0" max="240" low="195" high="215" optimum="220" id="volt_rete_dome" value="{{items.get('volt_rete_dome', 190)}}"></meter></p>
                 </div>
                 <div class="border-with-text" data-text="Control Room">
                     <p>Batterie: 
-                        {{items.get("percent_batt_room", "N/D")}} %
-                        <meter class="custom-meter" min="0" max="100" low="50" high="75" optimum="90" id="percent_batt_room" value="{{items.get('percent_batt_room', 'N/D')}}"></meter></p>
+                        {{items.get("percent_batt_room", 80)}} %
+                        <meter class="custom-meter" min="0" max="100" low="50" high="75" optimum="90" id="percent_batt_room" value="{{items.get('percent_batt_room', 80)}}"></meter></p>
                     <p>Tensione Rete: 
-                        {{items.get("volt_rete_room", "N/D")}} V
-                        <meter class="custom-meter" min="0" max="240" low="200" high="215" optimum="220" id="volt_rete_room" value="{{items.get('volt_rete_room', 'N/D')}}"></meter></p>
+                        {{items.get("volt_rete_room", 215)}} V
+                        <meter class="custom-meter" min="0" max="240" low="200" high="215" optimum="220" id="volt_rete_room" value="{{items.get('volt_rete_room', 215)}}"></meter></p>
                 </div>
             </div>
         </div>
         <p></p>
         <div class="border-with-text-ext" data-text="Dati Meteo" style="display: block; margin: 0 auto; text-align: center;">
                 <div class = 'container'>
-                    <div class="border-with-text" data-text="" padding="1px 1px">
+                    <div class="border-with-text" data-text="" >
                         <p>Tendenza Barometro (3 ore): {{items.get('barometer_trend')}} mmbar</p> 
                     </div>
-                    <div class="border-with-text" data-text="" padding="1px 1px">
+                    <div class="border-with-text" data-text="">
                         <p> Previsioni: {{items.get('barometer-trend-forecast')}}</p>
                     </div>
                 </div>
-            <div class="container">
+            <div class="container-meteo">
                 <svg id="gauge-temperature"></svg>
                 <svg id="gauge-humidity"></svg>
                 <svg id="gauge-wind_speed"></svg>
@@ -178,11 +170,19 @@
                 <svg id="gauge-barometer"></svg>
                 <svg id="gauge-rain_rate"></svg>
             </div>
-            <p></p>
-            <label title="indica lo stato delle condizioni meteo" id="cond_meteo" style="display: block; margin: 0 auto; text-align: center;" class="status-label">Condizioni meteo non conosciute </label>    
+            <div class = 'container'>
+                <label title="indica lo stato delle condizioni meteo" id="cond_meteo" style="display: block; margin: 0 auto; text-align: center;" class="status-label">Condizioni meteo non conosciute </label>    
+            </div>
         </div>
     
+        <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
         <script src="/static/js/script.js"></script>
+        <script type="module" src="/static/js/gui_constants.js"></script>
+        <script type="module" src="/static/js/roof_control.js"></script>
         <script src="/static/js/buttons.js"></script>
+        <script type="module" src="/static/js/telescope_control.js"></script>
+        <script type="module" src="/static/js/chart.js"></script>
+        <script src="/static/js/gauges.js"></script>
+     
 </body>
 </html>

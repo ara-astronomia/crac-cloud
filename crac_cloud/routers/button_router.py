@@ -41,7 +41,6 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
     """
     Gestisce tutte le azioni dei pulsanti in base all'azione richiesta dal frontend.
     """
-    print("set action")
      # 1. Tenta la conversione dell'Action Enum
     try:
         action_enum = button_pb2.ButtonAction.Value(request.action)
@@ -64,7 +63,6 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
         
         # ⚠️ FASE 1 - OTTIENI LO STATO ATTUALE DAL SERVER ⚠️
         try:
-            print("CI SEI????")
             # 💡 CHIAMATA CORRETTA: usa il nome corretto e passa ENTRAMBI gli argomenti
             status_data = service.button_client.get_single_switch_status(request.key, type_enum) 
             current_status = status_data.get("status") # Es: "ON" o "OFF"
@@ -88,7 +86,6 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
         # FASE 3 - INVIO DELL'AZIONE CORRETTA AL SERVER
         
         # 💡 NUOVA STAMPA: Cosa inviamo davvero?
-        print("DEBUG DE CHE???")
         print(f"DEBUG: Invio Azione Finale gRPC: {action_name} su Tipo: {type_name}") 
         
         response_data = service.button_client.set_switch_action(
@@ -119,45 +116,6 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
     # --- ERRORE FINALE ---
     return {"status": "error", "message": f"Action '{request.action}' not handled by this router."}
 
-
-'''
-def get_button_status(service: get_grpc_container = Depends(get_grpc_container)): # <--- Usa il container
-    """
-    Endpoint per ottenere lo stato di tutti i bottoni tramite loop sugli interruttori.
-    """
-    all_statuses = []
-    print(all_statuses )
-    
-    # Itera sulle chiavi della mappa (KEY_TELE_SWITCH, KEY_CCD_SWITCH, etc.)
-    for button_key_str, button_type_str in KEY_TO_TYPE_MAP.items():
-        
-        # ⚠️ IGNORE PARK e FLAT dalla lettura dello stato per non causare errori nel proto
-        if button_key_str not in ["KEY_PARK", "KEY_FLAT"]: 
-            
-            print(f"Controllo lo stato per: {button_key_str} (type: {button_type_str})") 
-            
-            try:
-                type_enum = button_pb2.ButtonType.Value(button_type_str)
-                
-                # Chiama il client con la chiave stringa e il tipo Enum
-                status_data = service.button_client.get_single_switch_status( # <--- NUOVO NOME
-                    button_key_str, 
-                    type_enum
-                )
-                print(f"✅ Stato ottenuto per {button_key_str}: {status_data}")
-                
-                all_statuses.append(status_data)
-
-            except Exception as e:
-                print(f"❌ Errore in get_button_status per {button_key_str}: {e}")
-                all_statuses.append({
-                    "key": button_key_str,
-                    "status": "ERROR",
-                    "detail": str(e)
-                })
-            
-    return {"buttons": all_statuses} # Ritorna un dizionario con la chiave "buttons"
-'''
 @router.get("/status")
 async def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc_container)):
     """
@@ -184,7 +142,7 @@ async def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc
             status_data = service.button_client.get_single_switch_status(key_str, type_enum)
             
             all_statuses.append(status_data)
-            print (all_statuses)
+            #print (all_statuses)
         except Exception as e:
             # Gestisce l'errore per un singolo pulsante senza bloccare il resto
             print(f"❌ Errore nel recupero stato per {key_str}: {e}")

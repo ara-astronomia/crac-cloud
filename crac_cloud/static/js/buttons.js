@@ -6,7 +6,7 @@
 // (Funzione per applicare i dati della risposta gRPC al pulsante HTML)
 function applyButtonGui(buttonElement, guiData) {
     if (buttonElement && guiData) {
-        console.log(`Aggiornamento GUI per ${buttonElement.id}:`, guiData);
+        //console.log(`Aggiornamento GUI per ${buttonElement.id}:`, guiData);
         // Aggiorna l'Etichetta (traduzione da ENUM a italiano)
         if (guiData.label === 'LABEL_ON') {
             buttonElement.textContent = 'Acceso';
@@ -17,7 +17,7 @@ function applyButtonGui(buttonElement, guiData) {
         
         // Aggiorna i Colori
         if (guiData.button_color) {
-            console.log(`Aggiornamento colori per ${buttonElement.id}:`, guiData.button_color);
+            //console.log(`Aggiornamento colori per ${buttonElement.id}:`, guiData.button_color);
             buttonElement.style.setProperty(
                 'background-color', 
                 guiData.button_color.background_color, 
@@ -52,11 +52,11 @@ function setupButtonListeners() {
 
     buttonMap.forEach(buttonInfo => {
         const btn = document.getElementById(buttonInfo.id);
-        console.log(`Setup listener per ${buttonInfo.id}`);
+        //console.log(`Setup listener per ${buttonInfo.id}`);
         if (btn) {
             btn.addEventListener('click', async () => {
                 // VERIFICA DI SICUREZZA: Controlla che sendPostRequest esista!
-                console.log(`[JS DEBUG] Invia POST per Key: ${buttonInfo.key}, Action: ${buttonInfo.action}`);
+                //console.log(`[JS DEBUG] Invia POST per Key: ${buttonInfo.key}, Action: ${buttonInfo.action}`);
                 if (typeof sendPostRequest !== 'function') {
                     console.error("sendPostRequest non è definito. Controlla l'ordine degli script.");
                     return; // Blocca l'esecuzione del listener in caso di errore
@@ -88,12 +88,12 @@ async function updateButtonStatuses() {
         console.error("fetchStatus non è definito.");
         return;
     }
-    console.log("Aggiornamento stato pulsanti in corso...");
+    //console.log("Aggiornamento stato pulsanti in corso...");
     // ⚠️ L'endpoint ora restituisce {buttons: [{key:..., status:...}]}
     const response = await fetchStatus('/buttons/status');
-    console.log("Aggiornamento stato pulsanti in corso...");
+    //console.log("Aggiornamento stato pulsanti in corso...");
     const buttonsStatus = response ? response.buttons : null; // Estrai la lista
-    console.log("Stato pulsanti ricevuto:", buttonsStatus);
+    //console.log("Stato pulsanti ricevuto:", buttonsStatus);
 
     if (buttonsStatus && Array.isArray(buttonsStatus)) {
         buttonsStatus.forEach(button => {
@@ -109,7 +109,7 @@ async function updateButtonStatuses() {
             let cleanKey = rawKey.replace('key_', '').replace(/_/g, '-'); 
             let btnId = 'btn-' + cleanKey; 
             const btn = document.getElementById(btnId);
-            console.log(`Aggiornamento stato per ${btnId}:`, button);
+            //console.log(`Aggiornamento stato per ${btnId}:`, button);
             
             if (btn) {                
                 if (button.button_gui) { 

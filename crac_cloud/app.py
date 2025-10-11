@@ -34,4 +34,4 @@ app.include_router(ups_router.router)
 async def get_root(request: Request):
     # Passa un dizionario vuoto per 'items' al template per prevenire l'errore
     items = {}
-    return templates.TemplateResponse("index.html", {"request": request, "result": "Benvenuto in CRaC!", "items": items})
+    return templates.TemplateResponse("index.html", {"request": request, "items": items})

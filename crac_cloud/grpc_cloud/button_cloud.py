@@ -20,7 +20,7 @@ class ButtonClient:
             )
         try:
             response = self.stub.SetAction(request) 
-            print(response)
+            #print(response)
             # Qui usiamo un parser specifico per ButtonResponse
             return self._parse_button_response(response) 
         except grpc.RpcError as e:
@@ -38,8 +38,8 @@ class ButtonClient:
         print(f"richiesta :{request} per il button_key_str: {button_key_str} e button_type: {button_type}")
         try:
             response = self.stub.SetAction(request)
-            print(f"response :{response} per il button_key_str: {button_key_str} e button_type: {button_type}")
-            print("Response from get_button_status:", response.status, button_key_str)
+            #print(f"response :{response} per il button_key_str: {button_key_str} e button_type: {button_type}")
+            #print("Response from get_button_status:", response.status, button_key_str)
             parsed_response = self._parse_button_response(response)
             parsed_response["key"] = button_key_str # Aggiungi la chiave alla radice per il router
             return parsed_response
