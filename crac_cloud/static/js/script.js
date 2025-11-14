@@ -1,7 +1,10 @@
 // Funzione per inviare una richiesta POST al server
+// Assicurati che queste funzioni siano importate o esposte a livello globale
 
 async function sendPostRequest(endpoint, data = {}) {
-    // console.log(`[POST] Invio dati a ${endpoint}:`, data);
+    console.log(`[POST] Invio dati a ${endpoint}`);
+    console.log("Dati inviati:", data);
+    // 1. Tenta di inviare la richiesta POST
     try {
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -9,7 +12,10 @@ async function sendPostRequest(endpoint, data = {}) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data),
+            
+            
         });
+        console.log(`[POST] Risposta ricevuta da ${endpoint}:`, response);
         if (!response.ok) {
             // Se lo stato è un errore HTTP (es. 404), lancia un errore esplicito
             const errorText = await response.text();
@@ -58,91 +64,88 @@ async function fetchStatus(endpoint) {
 }
 window.sendPostRequest = sendPostRequest; 
 window.fetchStatus = fetchStatus; 
+
+//import { initTelescopeControl } from './telescope_control.js';
+import { initRoofControl } from './roof_control.js'; // 🛑 NECESSARIO: Presumo che sia un modulo
+
+
 // Associa i listener ai pulsanti
 document.addEventListener('DOMContentLoaded', () => {
     // Listener per il pulsante del tetto
     if (typeof setupButtonListeners === 'function') {
-        // Questa riga esegue tutto il codice in buttons.js, 
-        // inclusi i console.log e i listener per tele-switch, ccd-switch, ecc.
         setupButtonListeners(); 
     }
-    if (typeof window.initTelescopeControl === 'function') { 
-    window.initTelescopeControl(); // ✅ Usa la versione globale
-    }
 
+    if (typeof initRoofControl === 'function') { 
+        initRoofControl(); 
+    } 
+ 
+    if (typeof window.initTelescopeControl === 'function') { 
+        window.initTelescopeControl(); 
+    }
     // Funzione per aggiornare l'interfaccia utente
     async function updateUI() {
         try {
-        const telescopeStatus = await fetchStatus('/telescope/status'); // ✅ CORRETTO: Chiamata diretta
-
-        // 2. CHIAMATA A updateTelescopeUI:
-        // updateTelescopeUI è definita nel modulo telescope_control.js, 
-        // ma è stata resa globale tramite window, quindi l'accesso è tramite window.
-        if (typeof window.updateTelescopeUI === 'function') {
-            window.updateTelescopeUI(telescopeStatus); // ✅ CORRETTO: Accesso via window
-        } 
-        
-    } catch (e) {
-        console.error("Errore nel polling stato telescopio.", e);
-    }
-        // Aggiorna lo stato dei bottoni
-        // 💡 NUOVA LOGICA: Chiama la funzione corretta da buttons.js
-        if (typeof updateButtonStatuses === 'function') {
-            await updateButtonStatuses();
-        }
-        const chartStatus = await fetchStatus('/charts/status');
-        if (chartStatus && chartStatus.charts) {
-    
-        // Aggiorna la condizione meteo generale (testo)
-        document.getElementById('cond_meteo').textContent = chartStatus.status;
-        // console.log("Aggiornamento condizione meteo:", chartStatus.status);
-        
-        chartStatus.charts.forEach(chart => {
-        
-        // 1. Logica per gli INPUT Standard (Volt, Batterie, ecc.)
-        // (Lascia la tua logica esistente qui per gli elementi HTML semplici)
-        let elementId = null;
-
-
-        if (elementId) {
-            const element = document.getElementById(elementId);
-            if (element && element.tagName === 'INPUT') {
-                 element.value = chart.value;
-            } else if (element) {
-                 element.textContent = chart.value;
+            if (typeof window.updateButtonStatuses === 'function') {
+                await window.updateButtonStatuses();
             }
-        }
+            else {
+                console.warn("updateButtonStatuses non è definito.");
+            }
+            const chartStatus = await fetchStatus('/charts/status');
+            if (chartStatus && chartStatus.charts) {
+        
+            // Aggiorna la condizione meteo generale (testo)
+            document.getElementById('cond_meteo').textContent = chartStatus.status;
+            // console.log("Aggiornamento condizione meteo:", chartStatus.status);
+            
+            chartStatus.charts.forEach(chart => {
+            
+            // 1. Logica per gli INPUT Standard (Volt, Batterie, ecc.)
+            // (Lascia la tua logica esistente qui per gli elementi HTML semplici)
+            let elementId = null;
 
-        // 2. Logica per i GAUGE (Indicatori D3.js)
-        // I gauge sono identificati da una "key" nel gauges.js.
-        // Dobbiamo estrarre la chiave (es. "temperature", "humidity") dal chart.urn o chart.title
-        
-        const gaugeKey = chart.urn.split('/').pop(); // Esempio: "crac:weather/temperature" -> "temperature"
-        const gaugeId = `gauge-${gaugeKey}`; // Es: "gauge-temperature"
-        
-        // Controlla se l'oggetto gauge esiste nella collezione globale
-        if (window.gauges && window.gauges[gaugeId]) {
-            const gauge = window.gauges[gaugeId];
-            // console.log(`[Gauge Update] Trovato gauge ${gaugeId} con valore: ${chart.value}`);
-            const roundedValue = parseFloat(chart.value).toFixed(1);
-            // Aggiorna il valore interno dell'oggetto gauge
-            gauge.value = chart.value; 
+
+            if (elementId) {
+                const element = document.getElementById(elementId);
+                if (element && element.tagName === 'INPUT') {
+                    element.value = chart.value;
+                } else if (element) {
+                    element.textContent = chart.value;
+                }
+            }
+
+            // 2. Logica per i GAUGE (Indicatori D3.js)
+            // I gauge sono identificati da una "key" nel gauges.js.
+            // Dobbiamo estrarre la chiave (es. "temperature", "humidity") dal chart.urn o chart.title
             
-            // Chiama la funzione di rendering di D3.js per muovere l'ago
-            gauge.update(); 
-            //console.log(`[Gauge Update] Aggiornato ${gaugeId} con valore: ${roundedValue}`);
+            const gaugeKey = chart.urn.split('/').pop(); // Esempio: "crac:weather/temperature" -> "temperature"
+            const gaugeId = `gauge-${gaugeKey}`; // Es: "gauge-temperature"
             
-            // 💡 Aggiorna anche l'unità di misura se necessario (la logica è in gauges.js)
-            document.getElementById(`unit-${gaugeId}`).textContent = chart.unit_of_measurement;
-        }
-    });
-    
+            // Controlla se l'oggetto gauge esiste nella collezione globale
+            if (window.gauges && window.gauges[gaugeId]) {
+                const gauge = window.gauges[gaugeId];
+                // console.log(`[Gauge Update] Trovato gauge ${gaugeId} con valore: ${chart.value}`);
+                const roundedValue = parseFloat(chart.value).toFixed(1);
+                // Aggiorna il valore interno dell'oggetto gauge
+                gauge.value = chart.value; 
+                
+                // Chiama la funzione di rendering di D3.js per muovere l'ago
+                gauge.update(); 
+                //console.log(`[Gauge Update] Aggiornato ${gaugeId} con valore: ${roundedValue}`);
+                
+                // 💡 Aggiorna anche l'unità di misura se necessario (la logica è in gauges.js)
+                document.getElementById(`unit-${gaugeId}`).textContent = chart.unit_of_measurement;
+            }
+            });    
     // ... (Fine della funzione)
     }               
+    } catch (e) {
+        console.error("Errore nell'aggiornamento dell'UI:", e);
     }
-    //initButtonControl();
-    //initRoofControl();
-    //initTelescopeControl(); 
-    // Esegue l'aggiornamento dell'UI ogni 2 secondi
-    setInterval(updateUI, 2000);
+}
+updateUI(); // Chiamata iniziale
+setInterval(updateUI, 500);
 });
+
+

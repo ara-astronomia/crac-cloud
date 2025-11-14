@@ -14,17 +14,17 @@ class GrpcServiceContainer:
     
     def __init__(self):
         config = Config.get_section("server")
-        grpc_host = config.get("ip", "127.0.0.1")
+        grpc_host = config.get("ip")
         grpc_port = int(config.get("port", "50051"))
         
         # Inizializza tutti i client una sola volta
         # N.B.: Ho forzato '127.0.0.1' qui per testare il loopback, come suggerito
-        self.button_client = ButtonClient(host="127.0.0.1", port=grpc_port)
-        self.curtains_client = CurtainsClient(host="127.0.0.1", port=grpc_port)
-        self.telescope_client = TelescopeClient(host="127.0.0.1", port=grpc_port)
-        self.roof_client = RoofClient(host="127.0.0.1", port=grpc_port)
-        self.ups_client = UpsClient(host="127.0.0.1", port=grpc_port)
-        self.chart_client = ChartClient(host="127.0.0.1", port=grpc_port)
+        self.button_client = ButtonClient(host=grpc_host, port=grpc_port)
+        self.curtains_client = CurtainsClient(host=grpc_host, port=grpc_port)
+        self.telescope_client = TelescopeClient(host=grpc_host, port=grpc_port)
+        self.roof_client = RoofClient(host=grpc_host, port=grpc_port)
+        self.ups_client = UpsClient(host=grpc_host, port=grpc_port)
+        self.chart_client = ChartClient(host=grpc_host, port=grpc_port)
 
 # Istanza singola (Singleton) del container
 grpc_container = GrpcServiceContainer()

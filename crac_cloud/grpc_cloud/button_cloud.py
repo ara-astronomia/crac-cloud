@@ -2,6 +2,8 @@
 import grpc
 from crac_protobuf import button_pb2
 from crac_protobuf import button_pb2_grpc
+from crac_protobuf import telescope_pb2
+from crac_protobuf import telescope_pb2_grpc
 
 class ButtonClient:
     def __init__(self, host: str, port: int):
@@ -22,6 +24,7 @@ class ButtonClient:
             response = self.stub.SetAction(request) 
             #print(response)
             # Qui usiamo un parser specifico per ButtonResponse
+            print(f"questa è la response: {response}")
             return self._parse_button_response(response) 
         except grpc.RpcError as e:
             print(f"❌ Errore RPC (Scrittura) per Tipo {button_type.name}: {e.details()}")
@@ -73,4 +76,40 @@ class ButtonClient:
                 "button_color": color_data 
             }
         }
+    '''
+    def get_autolight_status(autolight_value: bool,telescope_stub):
+        """
+        Invia una richiesta di stato al TelescopeService per recuperare il flag Autolight.
+        """
+        # Usiamo un'azione di sola lettura (READ_STATUS, se esiste) o CHECK_TELESCOPE
+        ACTION_FOR_AUTOLIGHT = 'CHECK_TELESCOPE' 
+        print(f" valore di autolight: {autolight_value}")
+        # Crea la richiesta (senza payload 'autolight', vogliamo solo lo stato)
+        request = telescope_pb2.TelescopeRequest(
+        action=telescope_pb2.TelescopeAction.Value(ACTION_FOR_AUTOLIGHT),
+        autolight=autolight_value  # ✅ Il campo booleano essenziale
+        )
+        print(f"questo è il valore di request :{request}")
+
+        try:
+            # Chiama il metodo GetStatus sullo stub del Telescopio (o SetAction se usi un solo endpoint)
+            # Assumiamo SetAction restituisca lo stato del telescopio (come hai visto con NORTHWEST)
+            response = telescope_stub.SetAction(request) 
+            
+            # 🛑 QUI DEVI VEDERE SE IL TUO MESSAGGIO DI RISPOSTA HA UN CAMPO PER AUTOLIGHT 🛑
+            
+            # Esempio: Se TelescopeResponse ha un campo 'autolight_status: bool'
+            is_autolight_on = response.autolight_status
+            
+            # In questo esempio, restituiamo un formato JSON consistente con i tuoi switch
+            return {
+                "key": "KEY_AUTOLIGHT",
+                "status": "ON" if is_autolight_on else "OFF",
+                "is_checkbox": True # Aggiungi un flag per il frontend
+            }
+            
+        except Exception as e:
+            print(f"❌ Errore durante il recupero dello stato Autolight: {e}")
+            return {"key": "KEY_AUTOLIGHT", "status": "UNKNOWN"}
+    '''
     

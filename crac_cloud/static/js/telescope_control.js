@@ -1,4 +1,8 @@
 // telescope_control.js
+
+import { updateSingleButtonUI } from './ui_utils.js'; // ✅ Importazione
+
+let isCommandPending = false; 
 let lastKnownTelescopeState = 'DISCONNECTED'; // Stato globale
 import { 
     STATUS_LABELS_MAP, 
@@ -18,6 +22,44 @@ function sendTelescopeCommand(actionCommand) {
 function getTelescopeStatus() {
     return window.fetchStatus('/telescope/status');
 }
+let pollingTimer = null;
+const POLLING_INTERVAL = 2000; // Aggiornamento ogni 3 secondi (o il tuo valore preferito)
+
+/**
+ * Avvia il ciclo di polling per lo stato del telescopio.
+ * Usa try...catch per evitare che errori di rete o API blocchino il timer.
+ */
+export function startTelescopePolling() {
+    console.log("Avvio del polling telescopio...");
+    
+    const poll = async () => {
+        try {
+            // 🎯 PUNTO CHIAVE: Chiama l'API per ottenere lo stato
+            const statusData = await getTelescopeStatus(); 
+            
+            // Se ha successo: Aggiorna l'interfaccia con i dati reali
+            updateTelescopeUI(statusData); 
+
+        } catch (error) {
+            // 🛑 GESTIONE DELL'ERRORE: Se l'API fallisce (timeout, 500, ecc.)
+            console.error("Errore durante il polling dello stato del telescopio. Il server potrebbe essere irraggiungibile.", error);
+        }
+
+        // 🎯 Riavvia il timer SEMPRE, anche in caso di fallimento del 'try'
+        pollingTimer = setTimeout(poll, POLLING_INTERVAL);
+    };
+
+    // Avvia il ciclo per la prima volta
+    pollingTimer = setTimeout(poll, POLLING_INTERVAL);
+}
+
+/**
+ * Ferma il ciclo di polling.
+ */
+export function stopTelescopePolling() {
+    clearTimeout(pollingTimer);
+    console.log("Polling telescopio interrotto.");
+}
 
 // telescope_control.js (Modifica di initTelescopeControl)
 
@@ -27,31 +69,79 @@ export function initTelescopeControl() {
     
     buttonIds.forEach(buttonId => {
         const button = document.getElementById(buttonId);
+        console.log(`[INIT T] Configuro listener per pulsante: ${buttonId}`, button);
         
-        if (!button) {
-            console.error(`Pulsante ID:${buttonId} non trovato per l'inizializzazione.`);
-            return;
-        }
+        if (buttonId === 'btn-park') {
+        // Assegna l'azione fissa all'avvio
+        button.dataset.action = TELESCOPE_ACTION_MAP['PARK_ACTION']; 
+        } else if (buttonId === 'btn-flat') {
+            // Assegna l'azione fissa all'avvio
+            button.dataset.action = TELESCOPE_ACTION_MAP['FLAT_ACTION'];
+        } 
 
         button.addEventListener('click', () => {
-            const actionCommand = button.dataset.action; // Legge l'azione popolata in updateTelescopeUI
+        const actionCommand = button.dataset.action;
+        console.log(actionCommand) 
+        
+        // La logica di controllo qui
+        if (!actionCommand) {
+            // Questo ora si verificherà SOLO per 'btn-conn-telescopio' prima del primo polling
+            console.warn(`[Telescope] Pulsante ${buttonId} cliccato ma actionCommand mancante.`);
+            return;
+        }
+        
+        console.log(`[CLICK DEBUG] Comando bypassato e inviato: ${actionCommand}`);
+        sendAndDisable(button, actionCommand);
+    });
+    });
+    // ✅ NUOVA SEZIONE: GESTIONE CHECKBOX AUTOLIGHT
+    // -----------------------------------------------------
+    const autolightCheckbox = document.getElementById('Autolight');
+    const ACTION_CHECK_TELESCOPE = 'CHECK_TELESCOPE'; // Azione placeholder
+
+    if (autolightCheckbox) {
+        autolightCheckbox.addEventListener('change', () => {
+            const autolightValue = autolightCheckbox.checked; // true o false
+            const actionCommand = ACTION_CHECK_TELESCOPE;
             
-            if (button.disabled) {
-                console.warn(`BLOCCO: Pulsante ${buttonId} disabilitato. Stato corrente: ${lastKnownTelescopeState}.`);
-                return;
-            }
+            console.log(`[AUTOLIGHT] Inviata azione: ${actionCommand}, Valore: ${autolightValue}`);
+
+            // Richiama la funzione di invio, ma DEVI MODIFICARE sendAndDisable
+            // per accettare anche il payload 'autolight'. 
             
-            if (!actionCommand) {
-                console.warn(`[Telescope] Pulsante ${buttonId} cliccato ma actionCommand mancante dal server/mappa.`);
+            // Dato che sendAndDisable non accetta parametri extra, dobbiamo
+            // usare una nuova funzione o inviare direttamente il POST qui.
+            
+            // Usiamo una funzione diretta per semplicità, replicando l'invio corretto:
+            
+            // 🛑 Necessiti della funzione sendPostRequest che accetta il payload:
+            if (typeof sendPostRequest !== 'function') {
+                console.error("sendPostRequest non è definito.");
                 return;
             }
 
-            // Esegue l'azione letta da button.dataset.action
-            sendAndDisable(button, actionCommand);
+            // Invio POST all'endpoint del telescopio!
+            sendPostRequest('/telescope/set_action', {
+                action: actionCommand,
+                autolight: autolightValue // ✅ Payload corretto per l'endpoint /telescope/set_action
+            })
+            .then(response => {
+                console.log(`[AUTOLIGHT] Comando inviato con successo.`);
+                // Il polling aggiornerà lo switch Luce Cupola
+            })
+            .catch(error => {
+                console.error("[AUTOLIGHT] Errore POST:", error);
+                // Ripristino visivo in caso di fallimento della comunicazione
+                autolightCheckbox.checked = !autolightValue; 
+            });
         });
+    }
+
+
+    console.log("Listener dei pulsanti del telescopio configurati.");
     const connButton = document.getElementById('btn-conn-telescopio');
-    const parkButton = document.getElementById(BUTTON_KEY_MAP['KEY_PARK']); // Esempio: se KEY_PARK è la chiave
-    const flatButton = document.getElementById(BUTTON_KEY_MAP['KEY_FLAT']); // Esempio: se KEY_FLAT è la chiave 
+    const parkButton = document.getElementById('btn-park'); 
+    const flatButton = document.getElementById('btn-flat'); 
     if (connButton) {
         // 🎯 Stato di default: ROSSO / Disconnesso / Abilitato
         connButton.disabled = false; // ABILITA il pulsante (pronto al click)
@@ -59,7 +149,6 @@ export function initTelescopeControl() {
         connButton.textContent = 'Disconnesso';
         
         // 🎯 Imposta l'azione iniziale per risolvere il 422 al primo click
-        // lastKnownTelescopeState è 'DISCONNECTED' per default
         connButton.dataset.action = TELESCOPE_ACTION_MAP['DISCONNECTED']; 
     }
     
@@ -70,23 +159,31 @@ export function initTelescopeControl() {
     if (flatButton) {
         flatButton.disabled = true; // PARK è disabilitato se DISCONNECTED
     }
-    });
-    
-    // 🛑 AVVIA IL POLLING QUI 🛑
-    //startTelescopePolling(); 
+
+    startTelescopePolling(); 
 }
 // 🎯 NUOVA FUNZIONE HELPER: Per gestire l'invio e il blocco in modo pulito
-function sendAndDisable(button, actionCommand) {
+export function sendAndDisable(button, actionCommand) {
     console.log(`[CLICK T] Eseguo l'azione: ${actionCommand}`);
+    console.log(`[TRANSITION] Pulsante ${button.id} -> ARANCIONE/TRANSITION`);
     button.disabled = true; 
-    
+    button.classList.remove('status-success', 'status-failure');
+    button.className = 'status-button status-transition'; // Classe di transizione
+    isCommandPending = true;
     sendTelescopeCommand(actionCommand) // QUESTA FUNZIONE È CORRETTA NELLA SUA DEFINIZIONE
         .then(response => {
             console.log("Comando Telescopio inviato con successo:", actionCommand);
+            // Aggiorna UI e riabilita
+            updateTelescopeUI(response);
+            button.disabled = false; // ✅ Riabilitazione in caso di successo
         })
         .catch(error => {
-            alert(`Errore nell'azione ${actionCommand}. Controlla la console.`);
             console.error("Errore POST Telescopio:", error);
+            // 🎯 FIX CRITICO: Riabilita il pulsante anche in caso di errore
+            isCommandPending = false; 
+            button.disabled = false; 
+            // Mostra un errore chiaro (l'utente deve sapere che la disconnessione è fallita)
+            alert(`Impossibile disconnettere (Errore: ${error.message}).`);
         })
         .finally(() => {
             // L'UI si affida al polling per riabilitare
@@ -98,6 +195,7 @@ const applyLabelStatus = (elementId, statusKey) => {
     if (!label) return;
 
     const statusData = STATUS_LABELS_MAP[statusKey];
+    console.log(`[LABEL] Aggiorno ${elementId} con stato ${statusKey}:`, statusData);
     if (!statusData) return;
     
     // Aggiorna testo e colore
@@ -108,119 +206,148 @@ const applyLabelStatus = (elementId, statusKey) => {
 
 /** Aggiorna l'interfaccia utente in base alla risposta completa del server. */
 function updateTelescopeUI(serverStatusData) { 
-    if (!serverStatusData) return; 
     
-    lastKnownTelescopeState = serverStatusData.status; 
+    // 🛑 1. PROTEZIONE INIZIALE E DEFINIZIONE VARIABILI GLOBALI 🛑
+    if (!serverStatusData || Object.keys(serverStatusData).length === 0) {
+        console.warn("Dati di stato del server mancanti o vuoti.");
+        return; 
+    } else {
+        console.log("[UI T] Dati di stato ricevuti:", serverStatusData);
+    }
+    const telescopeStatus = serverStatusData.status; 
+    lastKnownTelescopeState = serverStatusData.status; // Aggiorna lo stato globale
+    const stableStates = ['PARKED', 'TRACKING', 'FLATTER']; 
+    if (isCommandPending && stableStates.includes(telescopeStatus)) {
+        isCommandPending = false;
+        console.log('[DEBUG] Comando completato. Rilevato stato stabile: ' + telescopeStatus);
+    }
+    
+    const serverState = serverStatusData.status || 'DISCONNECTED'; // STATO REALE
+    console.log(`[UI T] Stato telescopio attuale: ${serverState}`);
     const guiList = serverStatusData.buttons_gui || []; 
+   
+    // Riferimenti ai pulsanti e alle label (Definizione all'inizio!)
+    const connButton = document.getElementById(BUTTON_KEY_MAP['KEY_TELESCOPE_CONNECTION_TOGGLE']);
+    const parkButton = document.getElementById(BUTTON_KEY_MAP['KEY_PARK']);
+    const flatButton = document.getElementById(BUTTON_KEY_MAP['KEY_FLAT']);
+    
     const ALT_LABEL_ID = 'lbl_status_altezza_telescopio';
     const AZ_LABEL_ID = 'lbl_status_azimuth_telescopio';
-
-    // A. AGGIORNAMENTO PULSANTI
-    guiList.forEach(guiItem => {
-        
-        // 🎯 USA LA MAPPA IMPORTATA BUTTON_KEY_MAP
-        const buttonId = BUTTON_KEY_MAP[guiItem.key]; 
-        const button = document.getElementById(buttonId);
-        
-        if (!button) return; 
-
-        // Testo del Pulsante (Recupero da STATUS_LABELS_MAP)
-        const enumLabel = guiItem.label || "LABEL_DEFAULT"; 
-        const buttonTextData = STATUS_LABELS_MAP[enumLabel];
-        
-        button.textContent = buttonTextData ? buttonTextData.text : enumLabel;
-        
-        // STATO DISABLED
-        const isDisabled = guiItem.is_disabled !== undefined ? guiItem.is_disabled : true; 
-        button.disabled = isDisabled;
-        
-        // Colori del Pulsante (Guida da Server)
-        if (guiItem.button_color) {
-            button.style.backgroundColor = guiItem.button_color.background_color;
-            button.style.color = guiItem.button_color.text_color;
-        } else {
-            button.style.backgroundColor = '';
-            button.style.color = '';
-        }
-        
-        if (guiItem.key === "KEY_TELESCOPE_CONNECTION_TOGGLE") {
-            // Forza l'uso della mappa locale per garantire che l'azione non sia mai vuota
-            button.dataset.action = TELESCOPE_ACTION_MAP[lastKnownTelescopeState]; 
-            
-        } else if (guiItem.metadata) {
-            // Per gli altri pulsanti (Park/Flat), usiamo l'azione fornita dal server
-            button.dataset.action = guiItem.metadata; 
-        } else {
-            // Fallback: Se non c'è azione, usiamo la chiave per non inviare un payload vuoto
-            button.dataset.action = guiItem.key; 
-        }; 
-    });
-
-    // B. AGGIORNAMENTO TRACKING e SLEWING (Sostituisce la logica STATUS_COLORS)
-    const currentSpeed = serverStatusData.speed || 'SPEED_NOT_TRACKING';
-    let trackingKey; 
-    let slewingKey;
     
-    if (currentSpeed === 'SPEED_TRACKING') {
-        trackingKey = 'TELESCOPE_TRACKING_ON';
-        slewingKey = 'TELESCOPE_SLEWING_OFF';
-    } else if (currentSpeed === 'SPEED_SLEWING') {
-        trackingKey = 'TELESCOPE_TRACKING_OFF';
-        slewingKey = 'TELESCOPE_SLEWING_ON';
-    } else {
-        trackingKey = 'TELESCOPE_TRACKING_OFF';
-        slewingKey = 'TELESCOPE_SLEWING_OFF';
+    // Determina se il telescopio è in uno stato operativo (Cruciale per i pulsanti)
+    const isTelescopeConnected = (
+        serverState !== 'DISCONNECTED' && 
+        serverState !== 'ERROR' && 
+        serverState !== 'CRITICAL_ERROR' &&
+        serverState !== 'LOST'
+        // Aggiungi qui altri stati non-operativi se necessario
+    );
+    console.log(`[UI T] isTelescopeConnected: ${isTelescopeConnected}`);
+
+    
+    // ----------------------------------------------------------------------
+    // A. GESTIONE ESCLUSIVA DEL PULSANTE DI CONNESSIONE (VERDE/ROSSO/ABILITATO)
+    // ----------------------------------------------------------------------
+    
+    if (connButton) {
+        connButton.disabled = false; // 🎯 RIABILITA SEMPRE
+                // 🎯 NUOVA LOGICA DI PULIZIA AGGRESSIVA:
+        connButton.classList.remove(
+            'status-failure', 
+            'status-stopped',
+            'status-transition', 
+            'status-success', 
+            'status-closed');
+        
+            console.log(`[UI T] Pulsante connessione pulito. Stato attuale: ${serverState}`);
+        
+        if (isTelescopeConnected) {
+            // console.log(`[DEBUG UI] ENTRO in isTelescopeConnected. Stato: ${serverState}`); 
+            connButton.classList.add('status-success'); 
+            connButton.textContent = 'Disconnetti'; 
+            connButton.dataset.action = TELESCOPE_ACTION_MAP['CONNECTED'];
+            
+            // Abilita Park/Flat (Se connesso, sono operativi)
+            if (parkButton) parkButton.disabled = false;
+            if (flatButton) flatButton.disabled = false;
+            
+        } else {
+            // ROSSO / Disconnesso o Errore
+            connButton.classList.add('status-failure'); 
+            connButton.textContent = 'Connetti'; 
+            connButton.dataset.action = TELESCOPE_ACTION_MAP['DISCONNECTED'];
+            
+            // Disabilita Park/Flat
+            if (parkButton) parkButton.disabled = true;
+            if (flatButton) flatButton.disabled = true;
+        }
+    }
+    // --- AGGIORNAMENTO STATO FLAT (Usa updateSingleButtonUI) ---
+    if (parkButton) {
+        const parkGuiItem = {
+            label: 'LABEL_PARK',
+            is_disabled: parkButton.disabled 
+        };
+        
+        // ✅ CHIAMATA ALLA FUNZIONE MODULARE
+        updateSingleButtonUI(parkGuiItem, parkButton, telescopeStatus);
     }
 
-    // --- 🎯 INIZIO AGGIORNAMENTO COORDINATE ALT/AZ 🎯 ---
+    // --- AGGIORNAMENTO STATO FLAT (Usa updateSingleButtonUI) ---
+    if (flatButton) {
+            const flatGuiItem = {
+            label: 'LABEL_FLAT',
+            is_disabled: flatButton.disabled
+        };
+        
+        // ✅ CHIAMATA ALLA FUNZIONE MODULARE
+        updateSingleButtonUI(flatGuiItem, flatButton, telescopeStatus);
+    }
+    // ----------------------------------------------------
+    // C. AGGIORNAMENTO ETICHETTE (LABELS: Coordinate, Tracking)
+    // ----------------------------------------------------
 
-    const altLabel = document.getElementById(ALT_LABEL_ID);
-    const azLabel = document.getElementById(AZ_LABEL_ID);
+    // 1. Dati Tracking/Slewing/Status
+    const currentSpeed = serverStatusData.speed || 'SPEED_NOT_TRACKING';
     
-    // 1. Estrazione dei dati
-    const altCoords = serverStatusData.aa_coords; 
-    // Usa la funzione helper basata su STATUS_LABELS_MAP
+    let trackingKey = 'TELESCOPE_TRACKING_OFF';
+    let slewingKey = 'TELESCOPE_SLEWING_OFF';
+
+    if (currentSpeed === 'SPEED_TRACKING') {
+        trackingKey = 'TELESCOPE_TRACKING_ON';
+    } else if (currentSpeed === 'SPEED_SLEWING') {
+        slewingKey = 'TELESCOPE_SLEWING_ON';
+    }
+    
+    // Applicazione dello Stato
     applyLabelStatus('lbl_status_tracking', trackingKey);
     applyLabelStatus('lbl_status_slewing', slewingKey);
+    applyLabelStatus('lbl_status_connect', `TELESCOPE_${serverState}`); // Stato generale (es. TELESCOPE_WEST)
+
     
-    // C. AGGIORNAMENTO STATO GENERALE
-    const currentStatus = serverStatusData.status || 'DISCONNECTED';
-    const statusKey = `TELESCOPE_${currentStatus}`; 
-    
-    
-    // Usa la funzione helper basata su STATUS_LABELS_MAP
-    applyLabelStatus('lbl_status_connect', statusKey); 
+    // 2. Dati di Coordinate (Alt/Az) - RISOLVE L'ERRORE DELLE LABEL
+    const altLabel = document.getElementById(ALT_LABEL_ID);
+    const azLabel = document.getElementById(AZ_LABEL_ID);
+    const altCoords = serverStatusData.aa_coords; 
+
     if (altCoords && altLabel && azLabel) {
-        
         const altValue = altCoords.alt;
         const azValue = altCoords.az;
 
-        // 2. Formattazione e Visualizzazione (Usando 2 cifre decimali)
-        // L'operatore .toFixed() converte il numero in una stringa con il numero di cifre specificato.
-        
         altLabel.textContent = altValue !== undefined 
             ? `${altValue.toFixed(2)}°` 
-            : 'N/A'; // Se il valore è mancante
+            : 'N/A';
 
         azLabel.textContent = azValue !== undefined 
             ? `${azValue.toFixed(2)}°` 
-            : 'N/A'; // Se il valore è mancante
+            : 'N/A';
             
-        // Opzionale: Se vuoi distinguere l'azimut cardinale, potresti aggiungere:
-        // azLabel.title = translateAzimuthToCardinal(azValue); // Richiede una funzione helper
-
     } else {
-        // Se i dati non sono presenti (es. telescopio disconnesso), mostra N/A
         if (altLabel) altLabel.textContent = 'N/A';
         if (azLabel) azLabel.textContent = 'N/A';
     }
-
-    // --- FINE AGGIORNAMENTO COORDINATE ALT/AZ ---
-
-    // ... (il resto della funzione, come il loop per i pulsanti) ...
- 
 }
+
 window.updateTelescopeUI = updateTelescopeUI;
 window.getTelescopeStatus = getTelescopeStatus;
-// Assegna anche la funzione principale di inizializzazione, se non lo fai già
 window.initTelescopeControl = initTelescopeControl;

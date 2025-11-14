@@ -1,7 +1,8 @@
 from fastapi import APIRouter,Depends, HTTPException
 from pydantic import BaseModel
+from typing import Optional 
 from crac_cloud.grpc_cloud.button_cloud import ButtonClient
-from crac_protobuf import button_pb2
+from crac_protobuf import button_pb2, telescope_pb2
 from crac_cloud.config import Config
 from crac_cloud.grpc_service import get_grpc_container
 from crac_cloud.grpc_cloud.telescope_cloud import TelescopeClient
@@ -12,6 +13,7 @@ class ButtonActionRequest(BaseModel):
     action: str
     key: str | None = None
     type: str = None
+    value: Optional[bool] = None  # Aggiungi questo campo opzionale
 
 # Inizializza il router e il client gRPC
 router = APIRouter(
@@ -34,6 +36,34 @@ def get_buttons_client() -> ButtonsClient:
     GRPC_HOST = "localhost"  
     GRPC_PORT = 50051        # Usa la stessa porta se i servizi sono sullo stesso server
     return ButtonsClient(host=GRPC_HOST, port=GRPC_PORT) # Assumendo la stessa porta gRPC
+
+def set_autolight_action(autolight_value: bool, telescope_stub):
+    """
+    Crea e invia la richiesta gRPC per l'Autolight al TelescopeService,
+    utilizzando CHECK_TELESCOPE come azione placeholder.
+    """
+    
+    # 1. Definisci l'azione placeholder (dal tuo Enum)
+    ACTION_FOR_AUTOLIGHT = 'CHECK_TELESCOPE' 
+    
+    # 2. Crea il messaggio di richiesta del Telescopio
+    request = telescope_pb2.TelescopeRequest(
+        action=telescope_pb2.TelescopeAction.Value(ACTION_FOR_AUTOLIGHT),
+        autolight=autolight_value  # ✅ Il campo booleano essenziale
+    )
+    print(f" questa è la request: {request}")
+    try:
+        # 3. Chiama il metodo SetAction sullo stub del Telescopio
+        print(f"Invio Autolight con azione {ACTION_FOR_AUTOLIGHT}: {autolight_value}")
+        response = telescope_stub.SetAction(request) 
+        print(f"questa è la response dell'autolight: {response}")
+        # ... (Logica di parsing della risposta) ...
+        return {"status": "ok", "message": "Autolight impostato"}
+        
+    except grpc.RpcError as e:
+        print(f"❌ Errore RPC (Autolight): {e.details()}")
+        return {"status": "error", "message": f"Errore gRPC Autolight: {e.details()}"}
+
 
 @router.post("/set_action")
 async def set_action(request: ButtonActionRequest, service: get_grpc_container = Depends(get_grpc_container)):
@@ -70,8 +100,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to check current status on server: {e}")
         
-        # ... (omissis: FASE 2 - Logica di Commutazione e FASE 3 - Invio) ...
-        
+        # ... (omissis: FASE 2 - Logica di Commutazione e FASE 3 - Invio) ...       
 
         action_to_send_enum = None
         if current_status == "ON":
@@ -96,9 +125,44 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
         # 💡 NUOVA STAMPA: Cosa è tornato dal server CRAC?
         print(f"DEBUG: Risposta Finale gRPC: {response_data}") 
         return response_data
-# ------------------------------------------------------------------
 
-    # --- BLOCCO 2: BUTTON_DEFAULT_ACTION (Azioni Singole come PARK, FLAT, ecc.) ---
+# ------------------------------------------------------------------
+    # --- BLOCCO 2: CHECKBOX Autolight ---
+    elif request.action == "CHECK_BUTTON": 
+        print(f"ENTRO IN CHECK_BUTTON per chiave: {request.key}")
+        
+        # 1. Verifica la Chiave
+        if request.key != 'KEY_AUTOLIGHT':             
+             return {"status": "error", "message": f"SET_VALUE non supportato per la chiave: {request.key}"}
+        else:
+            print(f"valore della key: {request.key}")
+        
+        # 2. Estrazione del Valore Booleano
+        # La richiesta FastAPI (Pydantic model) deve includere 'value: Optional[bool]'
+        # Assumendo che 'request' abbia un campo 'value'
+        
+        if request.value is None:
+            return {"status": "error", "message": "Il campo 'value' (boolean) è mancante per SET_VALUE."}
+            
+        autolight_value = request.value # ✅ Questo è il true/false
+        print (f"valore autolight in set/action:{autolight_value}")
+        
+        # 3. Chiamata al servizio gRPC corretto (TelescopeRetriever)
+        try:
+        # Chiama la funzione proxy con lo stub del Telescopio e il valore
+            response_data = set_autolight_action(
+            request.value,
+            service.telescope_client.stub # Passa lo stub gRPC corretto
+            )
+            print(f"DEBUG: Risposta Finale gRPC Autolight: {response_data}")
+            return response_data
+            
+        except Exception as e:
+            # Cattura qualsiasi errore durante la comunicazione gRPC
+            raise HTTPException(status_code=500, detail=f"Failed to set Autolight status: {e}")
+
+# ------------------------------------------------------------------
+    # --- BLOCCO 3: BUTTON_DEFAULT_ACTION (Azioni Singole come PARK, FLAT, ecc.) ---
     # Questa sezione si attiva se il frontend invia BUTTON_DEFAULT_ACTION.
     if request.action == "BUTTON_DEFAULT_ACTION":
         try:
@@ -142,13 +206,24 @@ async def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc
             status_data = service.button_client.get_single_switch_status(key_str, type_enum)
             
             all_statuses.append(status_data)
-            #print (all_statuses)
+            print(status_data)
+            
         except Exception as e:
             # Gestisce l'errore per un singolo pulsante senza bloccare il resto
             print(f"❌ Errore nel recupero stato per {key_str}: {e}")
             # Invia uno stato di errore (grigio predefinito)
             all_statuses.append({"key": key_str, "status": "ERROR", "button_gui": {}})
-            
+
+        try:
+            # Assumiamo che il TelescopeClient sia esposto via service.telescope_client
+            autolight_status = service.telescope_client.get_autolight_status() 
+            all_statuses.append(autolight_status)
+            print(f"questo è il return di autolight: {autolight_status}")
+        except Exception as e:
+            print(f"Errore nel recupero Autolight: {e}")
+            # Gestisci l'errore per non bloccare il polling    
+
+        #print (all_statuses)   
 
     # Restituisce un JSON con la lista di tutti gli stati
     return {"buttons": all_statuses}

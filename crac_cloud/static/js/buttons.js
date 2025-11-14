@@ -37,6 +37,10 @@ function applyButtonGui(buttonElement, guiData) {
 }
 
 // === 2. GESTIONE DEI LISTENER (CLICK) ===
+
+// const KEY_AUTOLIGHT = 'KEY_AUTOLIGHT'; 
+const ACTION_SET_VALUE = 'CHECK_BUTTON';
+
 function setupButtonListeners() {
     
     // Elenco degli interruttori e dei loro ID HTML
@@ -45,9 +49,7 @@ function setupButtonListeners() {
         { id: 'btn-ccd-switch', key: 'KEY_CCD_SWITCH', action: 'TURN_ON' },
         { id: 'btn-flat-light', key: 'KEY_FLAT_LIGHT', action: 'TURN_ON' },
         { id: 'btn-dome-light', key: 'KEY_DOME_LIGHT', action: 'TURN_ON' },
-        { id: 'btn-park', key: 'KEY_PARK', action: 'BUTTON_DEFAULT_ACTION' },
-        { id: 'btn-flat', key: 'KEY_FLAT', action: 'BUTTON_DEFAULT_ACTION' }
-        // Aggiungi qui 'btn-conn-telescopio' con type 'TELESCOPE_CONNECT' se gestito qui
+
     ];
 
     buttonMap.forEach(buttonInfo => {
@@ -79,16 +81,49 @@ function setupButtonListeners() {
                 }
             });
         }
-    });    
+    });
+    
+    // Sezione checkbox Autolight
+    /* const autolightCheckbox = document.getElementById('Autolight');
+    
+    if (autolightCheckbox) {
+        
+        autolightCheckbox.addEventListener('change', () => {
+            
+            const actionKey = KEY_AUTOLIGHT; 
+            const actionCommand = ACTION_SET_VALUE;
+            const autolightValue = autolightCheckbox.checked; // true o false
+            console.log(`Comando Autolight letto: ${autolightValue}`)
+
+            // ✅ CHIAMATA FINALE NEL FRONDEND
+            sendPostRequest('/buttons/set_action', {
+                key: actionKey,       
+                action: actionCommand,
+                value: autolightValue // Payload booleano per lo stato
+            })
+            .then(response => {
+                console.log(`Comando Autolight inviato: ${autolightValue}`);
+            })
+            .catch(error => {
+                console.error("Errore POST Autolight:", error);
+                // Ripristino visivo in caso di fallimento della comunicazione
+                autolightCheckbox.checked = !autolightValue; 
+                alert(`Impossibile impostare Autolight.`);
+            });
+        });
+    }
+        */
 }
 
 // === 3. AGGIORNAMENTO DI STATO NEL LOOP ===
 async function updateButtonStatuses() {
+    console.log("[JS] Aggiornamento stato switch in corso...");
     if (typeof fetchStatus !== 'function') {
         console.error("fetchStatus non è definito.");
         return;
     }
     //console.log("Aggiornamento stato pulsanti in corso...");
+    try {
     // ⚠️ L'endpoint ora restituisce {buttons: [{key:..., status:...}]}
     const response = await fetchStatus('/buttons/status');
     //console.log("Aggiornamento stato pulsanti in corso...");
@@ -97,12 +132,7 @@ async function updateButtonStatuses() {
 
     if (buttonsStatus && Array.isArray(buttonsStatus)) {
         buttonsStatus.forEach(button => {
-            
-            // 💡 Trova l'ID HTML usando la CHIAVE (non il TIPO)
             console.log("Stato pulsanti ricevuto:", buttonsStatus);
-
-    if (buttonsStatus && Array.isArray(buttonsStatus)) {
-        buttonsStatus.forEach(button => {
             
             // 💡 Trova l'ID HTML usando la CHIAVE (non il TIPO)
             let rawKey = button.key.toLowerCase(); 
@@ -118,6 +148,11 @@ async function updateButtonStatuses() {
             }
         });
     }
-        });
+}catch (error) {
+        // 🎯 GESTISCI L'ERRORE QUI PER EVITARE CHE L'AWAIT FALLISCA
+        console.error("Errore fatale in updateButtonStatuses:", error);
     }
+
 }
+window.setupButtonListeners = setupButtonListeners;
+window.updateButtonStatuses = updateButtonStatuses;

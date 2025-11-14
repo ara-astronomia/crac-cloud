@@ -1,6 +1,6 @@
 #gauge-container {
     width: 100px;
-    height: 100px;
+    height: 60px;
     margin: 2px ;
 }
 
@@ -31,7 +31,7 @@
 }
 .border-with-text {
     position: relative;
-    border: 1px solid #73a8da;
+    border: 2px solid #73a8da;
     border-radius:3px;
     padding: 5px;
     flex: 1;
@@ -44,15 +44,14 @@
     border-radius:3px;
     padding: 5px;
     flex: 1;
-    font-size: 1.5vmin;
+    font-size: 1.5vmin; 
 }
 
 .border-with-text-ext:before {
     content: attr(data-text);
     position: absolute;
-    top: -0.65em;
-    left:20%;
-    transform: translateX(-50%);    
+    top: -0.75em;
+    left:10px;
     background: #313030;        
     padding: 0px ;
     font-size: 1.5vmin;
@@ -62,11 +61,10 @@
     content: attr(data-text);
     position: absolute;
     top: -0.65em;
-    left:20%;
-    transform: translateX(-50%);    
+    left:10px;
     background: #313030;        
     padding: 0px;
-    font-size: 1.5vmin;
+    font-size: 1.2vmin;
 }
 body {
     background-color: #313030;
@@ -107,6 +105,7 @@ body {
     text-align: center;
     line-height: 0vmax;
     font-size:13px;
+    flex: 1;
 }
 .status-button {    
     background-color: rgb(156, 160, 156);
@@ -118,15 +117,15 @@ body {
     color: rgb(196, 15, 15);
 }
 .status-button.status-success {
-    background-color: green;
-    color: white;
+    background-color: green !important;
+    color: white !important;
 }
 
 .status-button.status-failure {
     background-color: rgb(61, 4, 4);
     color: white;
 }
-.status-button.status-moving {
+.status-button.status-transition {
     background-color: rgb(235, 160, 47);
     color: white;
 }
@@ -178,6 +177,7 @@ meter {
     gap: 0px; /* Spazio tra i canvas */
     padding-top: 0px;   /* Riduci lo spazio sopra */
     padding-bottom: 0px; /* Riduci lo spazio sotto */
+    font-size: 1.5vmin;
 }
 .container-meteo {
     display: flex;
@@ -197,7 +197,32 @@ meter {
     padding-top: 0px;   /* Riduci lo spazio sopra */
     padding-bottom: 0px; /* Riduci lo spazio sotto */
 }
-.container-img {
+.container-tende-telescopio {
+    display: flex;
+    justify-content: center; /* Per centrare i canvas orizzontalmente */
+    flex-direction: row;
+    gap: 2px; /* Spazio tra i canvas */
+    position: relative;
+    align-items: row;
+    border: 0px solid rgb(14, 37, 211);
+    border-radius:3px;
+    padding: 0px;
+}
+.container-tende {
+    position: relative;
+    border: 0px solid rgb(76, 211, 14);
+    border-radius:0px;
+    padding: 5px;
+    flex:1;
+}
+.container-telescopio {
+    position: relative;
+    border: 0px solid rgb(154, 15, 209);
+    border-radius:3px;
+    padding: 5px;
+    flex:2;
+}
+.container-img-tende {
     /* Proprietà di adattamento dell'immagine di sfondo */
     background-image: url('/static/images/cielo_stellato.gif'); 
     background-size: cover;          /* Regola l'immagine per coprire tutto il container */
@@ -209,6 +234,58 @@ meter {
     justify-content: center; 
     align-items: center; 
     aspect-ratio: 16 / 9;
+    flex:1;
+}
+
+.container-chart {
+    /* ABILITA FLEXBOX: Affianca i figli */
+    display: flex; 
+    
+    /* Dispone i blocchi in riga */
+    flex-direction: row; 
+    align-items: center;
+    
+    /* Distribuisce lo spazio tra i due grafici */
+    justify-content: center; 
+    
+    /* Permette ai grafici di adattarsi alla larghezza disponibile */
+    height: 100%; 
+    
+    /* Aggiungi padding o margini se necessario */
+    gap: 10px; 
+    flex:2;
+}
+
+.container-img-chart-sky {
+    /* Proprietà di adattamento dell'immagine di sfondo */
+    background-image: url('/static/images/chart_astroplan.png'); 
+    background-size: cover;          /* Regola l'immagine per coprire tutto il container */
+    background-repeat: no-repeat;    /* Evita la ripetizione */
+    background-position: center center; /* Centra l'immagine */
+
+    /* Proprietà Flexbox non necessarie per l'adattamento, ma utili se ha contenuti interni */
+    display: flex;
+    justify-content: center; 
+    align-items: center; 
+    aspect-ratio: 16 / 9;
+    width: 49%; /* Usa meno del 50% per lasciare un piccolo spazio tra i due */
+    flex-shrink: 0; /* Impedisce che si rimpiccioliscano troppo se lo spazio è limitato */
+    }
+.container-img-chart-telescopio {
+    /* Proprietà di adattamento dell'immagine di sfondo */
+    background-image: url('/static/images/chart_tele_position_astroplan.png'); 
+    background-size: cover;          /* Regola l'immagine per coprire tutto il container */
+    background-repeat: no-repeat;    /* Evita la ripetizione */
+    background-position: center center; /* Centra l'immagine */
+
+    /* Proprietà Flexbox non necessarie per l'adattamento, ma utili se ha contenuti interni */
+    display: flex;
+    justify-content: center; 
+    align-items: center; 
+    aspect-ratio: 16 / 9;
+    width: 49%; /* Usa meno del 50% per lasciare un piccolo spazio tra i due */
+    flex-shrink: 0; /* Impedisce che si rimpiccioliscano troppo se lo spazio è limitato */
+    
     
 }
 canvas {

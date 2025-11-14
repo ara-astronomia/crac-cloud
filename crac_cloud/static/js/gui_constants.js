@@ -20,7 +20,7 @@ export const STATUS_LABELS_MAP = {
     "CURTAIN_DISABLING":{text: "Disattivazione", text_color: "black", background_color: "white"},
     "TELESCOPE_PARKED":{text: "Parked", text_color: "green", background_color: "white"},
     "TELESCOPE_FLATTER":{text: "Flatter", text_color: "green", background_color: "white"},
-    "TELESCOPE_SECURED":{text: "In Sicurezza", text_color: "green", background_color: "white"},
+    "TELESCOPE_SECURE":{text: "In Sicurezza", text_color: "green", background_color: "white"},
     "TELESCOPE_SYNC_OFF":{text: "No Sync", text_color: "black", background_color: "white"},
     "TELESCOPE_SYNC_ON":{text: "Sync On", text_color: "green", background_color: "white"},
     "TELESCOPE_NORTHEAST":{text: "NordEst", text_color: "green", background_color: "white"},
@@ -65,8 +65,12 @@ export const ROOF_STATE_TO_ACTION_MAP ={
 export const TELESCOPE_ACTION_MAP = {
     "DISCONNECTED": "TELESCOPE_CONNECT", 
     "CONNECTED": "TELESCOPE_DISCONNECT",
-    "PARKED": "PARK_POSITION", 
-    "FLATTER": "FLAT_POSITION", 
+    "PARK_ACTION": "PARK_POSITION", 
+    "FLAT_ACTION": "FLAT_POSITION", 
+    // ✅ Stati di Ritorno (non sono azioni, ma li terremo qui se il tuo codice li usa)
+    "PARKED": "PARKED", 
+    "FLATTER": "FLATTER", 
+    
     // Stati di transizione o errore
     "CONNECTING": null, 
     "DISCONNECTING": null,

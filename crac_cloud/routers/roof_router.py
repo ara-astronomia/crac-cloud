@@ -22,14 +22,14 @@ roof_client = RoofClient(host=grpc_host, port=grpc_port)
 # Aggiungi l'endpoint GET per lo stato
 @router.get("/status")
 def get_roof_status():
-    print("Ottenimento stato tetto...")
+    #print("Ottenimento stato tetto...")
     """Endpoint per ottenere lo stato attuale del tetto."""
     try:
         # L'azione CHECK_ROOF è definita nel tuo roof.proto
         request = roof_pb2.RoofRequest(action=roof_pb2.RoofAction.CHECK_ROOF)
         response = roof_client.stub.SetAction(request)
         parsed_data = roof_client._parse_roof_response(response)
-        print (f"Risposta completa inviata al frontend: {parsed_data}") 
+        #print (f"Risposta completa inviata al frontend: {parsed_data}") 
         return roof_client._parse_roof_response(response) 
         #return {"status": roof_pb2.RoofStatus.Name(response.status)}
     except Exception as e:
@@ -48,8 +48,7 @@ def get_roof_status():
 # Aggiungi l'endpoint POST per le azioni
 @router.post("/set_action")
 async def set_action(request: RoofActionRequest):
-    print("provo a vedere se printa")
-    print(f"Azione richiesta: {request.action}") # Debug utile
+    #print(f"Azione richiesta: {request.action}") # Debug utile
     
     # ... logica per OPEN/CLOSE ...
     if request.action == "ROOF_OPEN":
@@ -60,26 +59,3 @@ async def set_action(request: RoofActionRequest):
         return roof_client.set_action(roof_pb2.RoofAction.CLOSE)
         
     return {"status": "error", "message": f"Azione non valida: {request.action}"} 
-
-'''
-@router.post("/set_action")
-async def set_action(request: RoofActionRequest):
-    
-    print(f"Azione richiesta: {request.action}") # Debug utile
-    
-    # Assicurati che il tuo client gRPC (roof_client) usi le costanti enum corrette 
-    # e che il metodo set_action sia definito nello stub gRPC.
-    
-    if request.action == "OPEN":
-        print("Tentativo di apertura tetto...")
-        # Usa l'azione Enum completa per chiarezza
-        return roof_client.set_action(roof_pb2.RoofAction.OPEN) 
-        
-    elif request.action == "CLOSE":
-        print("Tentativo di chiusura tetto...")
-        # Usa l'azione Enum completa per chiarezza
-        return roof_client.set_action(roof_pb2.RoofAction.CLOSE)
-        
-    # Questo return è ESSENZIALE se nessuna delle condizioni è soddisfatta
-    return {"status": "error", "message": f"Azione non valida: {request.action}"}
-'''   

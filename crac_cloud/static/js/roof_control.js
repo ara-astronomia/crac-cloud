@@ -92,30 +92,32 @@ function updateRoofUI(serverStatusData, button) {
     // e il codice non dovrebbe bloccarsi qui sotto:
     
     // 2. Logica di determinazione della classe
-    console.log(serverState);
+    //console.log(serverState);
     let newClass = 'status-default';
     if (serverState === 'ROOF_CLOSED') newClass = 'status-closed';
     else if (serverState === 'ROOF_OPENED') newClass = 'status-open';
     // ✅ ORA serverState è una stringa, e includes() funziona    
-    else if (serverState.includes('ROOF_CLOSING') || serverState.includes('ROOF_OPENING')) newClass = 'status-moving';
+    else if (serverState.includes('ROOF_CLOSING') || serverState.includes('ROOF_OPENING')) newClass = 'status-transition';
     else if (serverState === 'ROOF_ERROR' || serverState === 'ROOF_DANGER' || serverState === 'ERROR') newClass = 'status-error';
 
 
     // Rimuovi TUTTE le classi di stato precedenti
-    button.classList.remove('status-closed', 'status-open', 'status-moving', 'status-error', 'status-default');
+    button.classList.remove('status-closed', 'status-open', 'status-error', 'status-default');
 
     // 4. Aggiornamento UI
     button.textContent = buttonText;
+    console.log(`[UI] Aggiornamento UI: Testo='${buttonText}', Classe='${newClass}', Disabilitato=${isDisabled}`);
     button.classList.add(newClass);
     button.disabled = isDisabled;
     
     button.style.backgroundColor = '';
     button.style.color = ''; 
     // 🎯 Stile guidato dal server (se implementato)
-    if (newClass !== 'status-moving' && gui.button_color) {
+    if (newClass !== 'status-transition' && gui.button_color) {
         button.style.backgroundColor = gui.button_color.background_color;
         button.style.color = gui.button_color.text_color;
     }
+    console.log("[UI] Aggiornamento UI tetto completato.");
 }
 
 
