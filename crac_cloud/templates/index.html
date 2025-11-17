@@ -86,8 +86,19 @@
             <div class="border-with-text-ext" data-text="Stato telescopio" >
                 <div class="container">
                     <div class ="container-chart">
-                        <div class ="container-img-chart-telescopio"></div>
-                        <div class ="container-img-chart-sky"></div>
+                        <div class ="container-img-chart-sky">
+                            <img id="fixed_sky_map" 
+                                src="/maps/sky_map_fixed" 
+                                alt="Mappa del Cielo a Campo Fisso" 
+                                class="map-image-style" />
+                        </div>
+        
+                        <div class ="container-img-chart-telescopio">
+                            <img id="tracking_chart" 
+                                src="/maps/tracking_chart" 
+                                alt="Grafico di Tracciato Alt-Az" 
+                                class="map-image-style" />
+                        </div>
                     </div>
                 </div>
                 <p></p>
@@ -173,6 +184,7 @@
         <script type="module" src="/static/js/telescope_control.js"></script>
         <script type="module" src="/static/js/ups.js"></script>
         <script type="module" src="/static/js/chart.js"></script>
+        <script type="module" src="/static/js/maps.js"></script>
         <script src="/static/js/gauges.js"></script>
      
 </body>
