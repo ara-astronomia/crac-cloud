@@ -34,7 +34,7 @@ class UpsClient:
                 battery_statuses_list = [
                     ups_pb2.BatteryStatus.Name(status) for status in chart.battery_statuses
                 ]
-                print(f"questo è lo strus_list delle batterie:{battery_statuses_list}")
+                print(f"questo è lo status_list delle batterie:{battery_statuses_list}")
                 charts_list.append({
                     "chart": chart_data,
                     "battery_statuses": battery_statuses_list

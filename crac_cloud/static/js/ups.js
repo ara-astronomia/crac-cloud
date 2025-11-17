@@ -17,6 +17,7 @@ async function fetchUpsStatus() {
         }
         
         const data = await response.json();
+        console.log("[UPS] Data fetched:", data);
         
         // Chiamiamo la funzione che aggiorna l'interfaccia utente
         updateUpsUI(data);
@@ -34,38 +35,60 @@ async function fetchUpsStatus() {
 function updateUpsUI(data) {
     if (data.error) {
         console.error(`[UPS API Error]: ${data.error}`);
-        // Aggiorna un elemento di stato generale se l'API ha restituito un errore
         return;
     }
-    
-    console.log("[UPS] Data received successfully:", data);
 
-    // Esempio di come potresti iterare sui grafici
+    // 1. Mappa i dati per un accesso rapido usando l'URN come chiave
+    const chartsMap = {};
     data.charts.forEach(item => {
-        const chart = item.chart;
-        
-        // Cerchiamo l'elemento HTML dove mostrare il valore
-        // Ad esempio, usiamo l'URN per creare un ID DOM unico (es: 'ups-apc-3000-battery')
-        const elementId = chart.urn.replace(/\./g, '-'); 
-        
-        let elementValue = document.getElementById(elementId + '-value');
-        let elementTitle = document.getElementById(elementId + '-title');
-
-        if (elementValue) {
-            elementValue.textContent = `${chart.value.toFixed(1)} ${chart.unit_of_measurement}`;
-        }
-        if (elementTitle) {
-            elementTitle.textContent = `${chart.title} - ${chart.urn.split('.')[1]}`;
-        }
-        
-        // Qui dovresti implementare la logica per aggiornare barre di progresso e colori
-        // (Simile a quanto facevi nel tuo UpsConverter Python)
+        chartsMap[item.chart.urn] = item.chart;
     });
+
+    // 2. MAPPATURA ESPLICITA E AGGIORNAMENTO
+
+    // --- UTILITY FUNCTION ---
+    // Funzione per aggiornare sia lo span del valore che la barra <meter>
+    function updateElement(urn, valueElementId, meterElementId, decimals) {
+        const chart = chartsMap[urn];
+        if (chart) {
+            // Prepara il valore formattato
+            const value = chart.value.toFixed(decimals); 
+            
+            // Aggiorna lo SPAN del valore (es: 220.5)
+            const valueEl = document.getElementById(valueElementId);
+            if (valueEl) valueEl.textContent = value;
+
+            // Aggiorna la barra METER
+            const meterEl = document.getElementById(meterElementId);
+            if (meterEl) meterEl.value = value;
+            
+            // Log per debug (assicurati che questo sia corretto)
+            // console.log(`[UPS] Updated ${valueElementId} to: ${value}`);
+        }
+    }
+
+    // --- AGGIORNAMENTO CONTROL ROOM (apc-3000) ---
     
-    // Aggiorna l'orario dell'ultimo aggiornamento
+    // Batteria Room (%): toFixed(0)
+    updateElement('ups.apc-3000.chart.battery', 'value_batt_room', 'percent_batt_room', 0);
+
+    // Voltaggio Room (V): toFixed(1)
+    updateElement('ups.apc-3000.chart.voltage', 'value_volt_room', 'volt_rete_room', 1);
+
+
+    // --- AGGIORNAMENTO CUPOLA (atlantis-HP4003P) ---
+    
+    // Batteria Cupola (%): toFixed(0)
+    updateElement('ups.atlantis-HP4003P.chart.battery', 'value_batt_dome', 'percent_batt_dome', 0);
+
+    // Voltaggio Cupola (V): toFixed(1)
+    updateElement('ups.atlantis-HP4003P.chart.voltage', 'value_volt_dome', 'volt_rete_dome', 1);
+
+    // 3. Aggiorna l'orario dell'ultimo aggiornamento (se l'ID esiste)
     const updatedAtElement = document.getElementById('ups-updated-at');
     if (updatedAtElement) {
-        updatedAtElement.textContent = new Date(data.updated_at * 1000).toLocaleTimeString();
+        // updated_at è un timestamp (secondi)
+        updatedAtElement.textContent = new Date(data.updated_at * 1000).toLocaleTimeString(); 
     }
 }
 
