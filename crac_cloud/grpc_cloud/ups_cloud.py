@@ -12,10 +12,12 @@ class UpsClient:
     def get_status(self):
         """Ottiene lo stato degli UPS e i dati per i grafici."""
         request = ups_pb2.UpsRequest()
+        print(f"questo è il request di ups {request}")
         try:
             response = self.stub.GetStatus(request)
             
             charts_list = []
+            print(response)
             for chart in response.charts:
                 # Parsing della chart
                 chart_data = {
@@ -32,7 +34,7 @@ class UpsClient:
                 battery_statuses_list = [
                     ups_pb2.BatteryStatus.Name(status) for status in chart.battery_statuses
                 ]
-                
+                print(f"questo è lo strus_list delle batterie:{battery_statuses_list}")
                 charts_list.append({
                     "chart": chart_data,
                     "battery_statuses": battery_statuses_list

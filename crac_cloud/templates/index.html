@@ -125,19 +125,19 @@
         <div class="container-ups">
             <div class="border-with-text" data-text="Cupola">
                 <p>Batterie: 
-                    {{ items.get("percent_batt_dome", 25) }} %
-                    <meter class="custom-meter" min="0" max="100" low="50" high="75" optimum="90" id="percent_batt_dome" value="{{ items.get('percent_batt_dome', 25) }}"></meter></p>
+                    <span id="value_batt_dome"></span> %
+                <meter class="custom-meter" min="0" max="100" low="50" high="75" optimum="90" id="percent_batt_dome" value="0"></meter></p>
                 <p>Tensione Rete: 
-                    {{items.get("volt_rete_dome", 290)}} V
-                    <meter class="custom-meter" min="0" max="240" low="195" high="215" optimum="220" id="volt_rete_dome" value="{{items.get('volt_rete_dome', 190)}}"></meter></p>
+                    <span id="value_volt_dome"></span> V
+                <meter class="custom-meter" min="0" max="240" low="195" high="215" optimum="220" id="volt_rete_dome" value="0"></meter></p>
             </div>
             <div class="border-with-text" data-text="Control Room">
                 <p>Batterie: 
-                    {{items.get("percent_batt_room", 80)}} %
-                    <meter class="custom-meter" min="0" max="100" low="50" high="75" optimum="90" id="percent_batt_room" value="{{items.get('percent_batt_room', 80)}}"></meter></p>
+                    <span id="value_batt_room"></span> %
+                <meter class="custom-meter" min="0" max="100" low="50" high="75" optimum="90" id="percent_batt_room" value="0"></meter></p>
                 <p>Tensione Rete: 
-                    {{items.get("volt_rete_room", 215)}} V
-                    <meter class="custom-meter" min="0" max="240" low="200" high="215" optimum="220" id="volt_rete_room" value="{{items.get('volt_rete_room', 215)}}"></meter></p>
+                    <span id="value_volt_room"></span> V
+                <meter class="custom-meter" min="0" max="240" low="200" high="215" optimum="220" id="volt_rete_room" value="0"></meter></p>
             </div>
         </div>
     </div>
@@ -171,6 +171,7 @@
         <script type="module" src="/static/js/roof_control.js"></script>
         <script src="/static/js/buttons.js"></script>
         <script type="module" src="/static/js/telescope_control.js"></script>
+        <script type="module" src="/static/js/ups.js"></script>
         <script type="module" src="/static/js/chart.js"></script>
         <script src="/static/js/gauges.js"></script>
      

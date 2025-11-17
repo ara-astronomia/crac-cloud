@@ -4,6 +4,8 @@ from ..grpc_cloud.ups_cloud import UpsClient
 from crac_cloud.config import Config
 
 router = APIRouter(prefix="/ups", tags=["UPS"])
+print("Ups router initialized")
+print(router)
 
 # Ottiene i dati di configurazione
 config = Config.get_section("server")
