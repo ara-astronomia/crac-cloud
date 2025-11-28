@@ -1,40 +1,77 @@
 // crac_cloud/static/js/map.js
 
-// Intervallo di aggiornamento: 30 minuti (1,800,000 millisecondi)
-const MAP_REFRESH_INTERVAL_MS = 1800000; 
+const MAP_REFRESH_INTERVAL_MS = 30000; // 30 secondi
 
 /**
- * Aggiorna gli elementi img delle mappe aggiungendo un timestamp
- * per bypassare la cache del browser e forzare la rigenerazione.
+ * Aggiorna un singolo elemento immagine solo se l'endpoint restituisce un'immagine valida.
+ */
+async function refreshMap(mapId, url, fallbackUrl) {
+    try {
+        const response = await fetch(`${url}?t=${new Date().getTime()}`);
+
+        // Controllo MIME TYPE prima ancora del blob()
+        const contentType = response.headers.get("content-type") || "";
+
+        if (!response.ok || !contentType.includes("image")) {
+            throw new Error(`Contenuto non immagine: ${contentType}`);
+        }
+
+        const blob = await response.blob();
+        const imgElem = document.getElementById(mapId);
+        if (imgElem) {
+            imgElem.src = URL.createObjectURL(blob);
+        }
+    } catch (err) {
+        console.warn(`[MAPS] Impossibile aggiornare ${mapId}:`, err);
+
+        if (fallbackUrl) {
+            document.getElementById(mapId).src = fallbackUrl;
+        }
+    }
+}
+
+
+/**
+ * Aggiorna entrambe le mappe.
  */
 function refreshMaps() {
-    console.log(`[MAPS] Forcing refresh of generated maps every ${MAP_REFRESH_INTERVAL_MS / 60000} minutes.`);
-    const timestamp = new Date().getTime();
+    refreshMap(
+        'tracking_chart',
+        '/maps/tracking_chart',
+        '/static/maps/tracking_error.png'  // fallback diverso
+    );
+    refreshMap(
+        'fixed_sky_map',
+        '/maps/sky_map_fixed',
+        '/static/maps/backup_map.png'    // fallback SOLO per la mappa fissa
+    );
+
     
-    // Mappa 1: Campo Visivo Fisso
-    const fixedMap = document.getElementById('fixed_sky_map');
-    if (fixedMap) {
-        fixedMap.src = `/maps/sky_map_fixed?t=${timestamp}`;
-    }
-    
-    // Mappa 2: Grafico di Tracciato Alt-Az
-    const trackingChart = document.getElementById('tracking_chart');
-    if (trackingChart) {
-        trackingChart.src = `/maps/tracking_chart?t=${timestamp}`;
+    refreshAirmass();
+}
+/**
+ * Recupera l'airmass dall'endpoint backend e aggiorna la label HTML.
+ */
+async function refreshAirmass() {
+    try {
+        const response = await fetch("/maps/airmass?t=" + Date.now());
+        if (!response.ok) throw new Error("Errore fetch air mass");
+        const data = await response.json();
+        const airmassLabel = document.getElementById("airmass");
+        if (airmassLabel) {
+            airmassLabel.innerText = data.airmass ?? "No data";
+        }
+    } catch (err) {
+        console.error("Errore aggiornamento airmass:", err);
     }
 }
 
 /**
- * Inizializza il ciclo di ricaricamento delle mappe.
- * Si assicura che il DOM sia caricato prima di eseguire.
+ * Inizializza il ciclo di aggiornamento delle mappe.
  */
 function initMapRefresh() {
-    // Esegue la prima ricarica immediatamente
-    refreshMaps(); 
-    
-    // Imposta l'aggiornamento a intervalli regolari
+    refreshMaps(); // Prima ricarica immediata
     setInterval(refreshMaps, MAP_REFRESH_INTERVAL_MS);
 }
 
-// Avvia l'inizializzazione quando la pagina è completamente caricata
 window.addEventListener('load', initMapRefresh);

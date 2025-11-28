@@ -23,7 +23,7 @@ function getTelescopeStatus() {
     return window.fetchStatus('/telescope/status');
 }
 let pollingTimer = null;
-const POLLING_INTERVAL = 2000; // Aggiornamento ogni 3 secondi (o il tuo valore preferito)
+const POLLING_INTERVAL = 2000; // Aggiornamento ogni 2 secondi (o il tuo valore preferito)
 
 /**
  * Avvia il ciclo di polling per lo stato del telescopio.
@@ -252,30 +252,28 @@ function updateTelescopeUI(serverStatusData) {
     if (connButton) {
         connButton.disabled = false; // 🎯 RIABILITA SEMPRE
                 // 🎯 NUOVA LOGICA DI PULIZIA AGGRESSIVA:
-        connButton.classList.remove(
-            'status-failure', 
-            'status-stopped',
-            'status-transition', 
-            'status-success', 
-            'status-closed');
-        
-            console.log(`[UI T] Pulsante connessione pulito. Stato attuale: ${serverState}`);
-        
-        if (isTelescopeConnected) {
-            // console.log(`[DEBUG UI] ENTRO in isTelescopeConnected. Stato: ${serverState}`); 
-            connButton.classList.add('status-success'); 
-            connButton.textContent = 'Disconnetti'; 
-            connButton.dataset.action = TELESCOPE_ACTION_MAP['CONNECTED'];
-            
-            // Abilita Park/Flat (Se connesso, sono operativi)
-            if (parkButton) parkButton.disabled = false;
-            if (flatButton) flatButton.disabled = false;
-            
-        } else {
-            // ROSSO / Disconnesso o Errore
-            connButton.classList.add('status-failure'); 
-            connButton.textContent = 'Connetti'; 
-            connButton.dataset.action = TELESCOPE_ACTION_MAP['DISCONNECTED'];
+        // Aggiorna solo se è cambiato
+            if (!connButton.classList.contains(isTelescopeConnected ? 'status-success' : 'status-failure')) {
+                connButton.classList.remove('status-success', 'status-failure');
+                connButton.classList.add(isTelescopeConnected ? 'status-success' : 'status-failure');
+            }
+
+            // Aggiorna testo SOLO se realmente necessario
+            const newText = isTelescopeConnected ? 'Disconnetti' : 'Connetti';
+            if (connButton.textContent !== newText) {
+                connButton.textContent = newText;
+            }
+
+            // Aggiorna dataset SOLO se cambia
+            const newAction = isTelescopeConnected 
+                ? TELESCOPE_ACTION_MAP['CONNECTED']
+                : TELESCOPE_ACTION_MAP['DISCONNECTED'];
+
+            if (connButton.dataset.action !== newAction) {
+                connButton.dataset.action = newAction;       
+
+
+
             
             // Disabilita Park/Flat
             if (parkButton) parkButton.disabled = true;
@@ -329,6 +327,16 @@ function updateTelescopeUI(serverStatusData) {
     const altLabel = document.getElementById(ALT_LABEL_ID);
     const azLabel = document.getElementById(AZ_LABEL_ID);
     const altCoords = serverStatusData.aa_coords; 
+    const eqCoords = serverStatusData.eq_coords;
+
+    if (window.forceMapRefresh && eqCoords && 
+        eqCoords.ra !== undefined && eqCoords.dec !== undefined) 
+    {
+         // Questo trigger è efficiente perché si basa su RA/Dec stabili.
+         // Il backend si occuperà del caching (solo rigenerazione se RA/Dec sono diversi).
+         console.log("[UI T] Coordinate RA/Dec ricevute. Chiamo forceMapRefresh.");
+         window.forceMapRefresh();
+    }
 
     if (altCoords && altLabel && azLabel) {
         const altValue = altCoords.alt;

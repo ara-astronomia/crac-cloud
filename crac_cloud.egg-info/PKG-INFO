@@ -16,7 +16,7 @@ Requires-Dist: astropy
 Requires-Dist: astroplan
 Requires-Dist: matplotlib
 Requires-Dist: numpy
-Requires-Dist: crac-protobuf@ file:///home/raniero/Documenti/GitHub/crac-protobuf
+Requires-Dist: crac-protobuf@ git+https://github.com/ara-astronomia/crac-protobuf@16-create-new-proto-geographic-and-data_image
 Provides-Extra: dev
 Requires-Dist: grpcio-tools>=1.64; extra == "dev"
 Requires-Dist: autopep8>=1.6; extra == "dev"

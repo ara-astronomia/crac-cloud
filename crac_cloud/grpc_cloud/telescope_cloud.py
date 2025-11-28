@@ -26,11 +26,11 @@ class TelescopeClient:
             action=telescope_pb2.TelescopeAction.Value(ACTION_FOR_STATUS),
             autolight=current_autolight_flag
         )
-        print(f" questa è la request in telescope_cloud: {request}")
+        #print(f" questa è la request in telescope_cloud: {request}")
         try:
             # Chiama il metodo SetAction (o GetStatus se esiste)
             response = self.stub.SetAction(request) 
-            print(f" questa è la response in telescope_cloud: {response}")
+            #print(f" questa è la response in telescope_cloud: {response}")
             
             # 🛑 QUI DEVI VEDERE SE response CONTIENE IL CAMPO AUTOLIGHT 🛑
             
@@ -58,20 +58,20 @@ class TelescopeClient:
     def set_action(self, action: telescope_pb2.TelescopeAction, autolight: bool = False):
         try:
             action_value = int(action.value) 
-            print(f"siamo in set/action di Telescope_cloud:{action_value}")
+            #print(f"siamo in set/action di Telescope_cloud:{action_value}")
         except AttributeError:
         # Se non ha .value (vecchia versione Python/Protobuf), basta la conversione
             action_value = int(action)
         """Sends an action (PARK or FLAT) to the telescope."""
         request = telescope_pb2.TelescopeRequest(action=action_value, autolight=autolight)
-        print(f"Invio SetAction in telescope_cloud con azione: {action_value}, autolight: {autolight}")
-        print(f"Request details: {request}")
+        #print(f"Invio SetAction in telescope_cloud con azione: {action_value}, autolight: {autolight}")
+        #print(f"Request details: {request}")
         response = self.stub.SetAction(request)
-        print (f"questa è la response: {response}")
+        #print (f"questa è la response: {response}")
         try:
-            print("prova il try")
+            #print("prova il try")
             response = self.stub.SetAction(request)
-            print (f"questa è la response: {response}")
+            #print (f"questa è la response: {response}")
             return self._parse_response(response)
         except grpc.RpcError as e:
         # 1. ✅ LOGGA L'ERRORE nel terminale Python

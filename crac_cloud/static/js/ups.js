@@ -76,13 +76,13 @@ function updateUpsUI(data) {
     updateElement('ups.apc-3000.chart.voltage', 'value_volt_room', 'volt_rete_room', 1);
 
 
-    // --- AGGIORNAMENTO CUPOLA (atlantis-HP4003P) ---
+    // --- AGGIORNAMENTO CUPOLA (cyberpower) ---
     
     // Batteria Cupola (%): toFixed(0)
-    updateElement('ups.atlantis-HP4003P.chart.battery', 'value_batt_dome', 'percent_batt_dome', 0);
+    updateElement('ups.cyberpower.chart.battery', 'value_batt_dome', 'percent_batt_dome', 0);
 
     // Voltaggio Cupola (V): toFixed(1)
-    updateElement('ups.atlantis-HP4003P.chart.voltage', 'value_volt_dome', 'volt_rete_dome', 1);
+    updateElement('ups.cyberpower.chart.voltage', 'value_volt_dome', 'volt_rete_dome', 1);
 
     // 3. Aggiorna l'orario dell'ultimo aggiornamento (se l'ID esiste)
     const updatedAtElement = document.getElementById('ups-updated-at');

@@ -210,7 +210,7 @@ requires-dist = [
     { name = "astroplan" },
     { name = "astropy" },
     { name = "autopep8", marker = "extra == 'dev'", specifier = ">=1.6" },
-    { name = "crac-protobuf", directory = "../crac-protobuf" },
+    { name = "crac-protobuf", git = "https://github.com/ara-astronomia/crac-protobuf?rev=16-create-new-proto-geographic-and-data_image" },
     { name = "fastapi", specifier = ">=0.117.1" },
     { name = "grpcio", specifier = ">=1.64.1" },
     { name = "grpcio-tools", marker = "extra == 'dev'", specifier = ">=1.64" },
@@ -226,7 +226,7 @@ provides-extras = ["dev"]
 [[package]]
 name = "crac-protobuf"
 version = "0.1.21.0"
-source = { directory = "../crac-protobuf" }
+source = { git = "https://github.com/ara-astronomia/crac-protobuf?rev=16-create-new-proto-geographic-and-data_image#40503be9d84fca446422d5036ed8d461325b99f5" }
 
 [[package]]
 name = "cycler"
