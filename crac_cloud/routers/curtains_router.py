@@ -19,27 +19,16 @@ def get_curtains_status():
     """Endpoint per ottenere lo stato attuale delle tende."""
     return curtains_client.get_status()
 
-@router.post("/set_action")
-async def set_action(action: str):
-    # La tua logica per i comandi di apertura/chiusura
-    pass
-
-'''
-
 class CurtainsActionModel(BaseModel):
     action: str
 
-@router.post("/set_action")
+@router.post("/control")
 def set_curtains_action(data: CurtainsActionModel):
     """Endpoint per abilitare o disabilitare le paratie."""
+    print(f"Ricevuta richiesta di azione tende: {data.action}")
     try:
         action_enum = getattr(curtains_pb2, data.action)
         return curtains_client.set_action(action=action_enum)
     except AttributeError:
         return {"error": "Invalid curtains action"}, 400
 
-@router.get("/status")
-def get_curtains_status():
-    """Endpoint per ottenere lo stato attuale delle paratie."""
-    return curtains_client.get_status()
-    '''

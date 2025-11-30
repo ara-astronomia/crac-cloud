@@ -33,7 +33,6 @@
                 
                 <div class="border-with-text" data-text="Tende">
                     <button id="btn-curtains" name="button_id" title="attiva e disattiva i motori delle tende" class="status-button" value="attiva_tende">Disattive</button>
-                    <button id="btn-calibra" name="button_id" title="calibra le tende" class="status-button" value="calibra_tende">Calibra Tende</button>
                 </div>
             </div>
         </div>
@@ -61,25 +60,30 @@
     <div class="container-tende-telescopio">
         <div class="container-tende">
             <div class="border-with-text-ext" data-text="Stato tende">                    
-                <div class ="container-img-tende"></div>
-                    <p></p>
-                    <div class="container">
-                        <div class="border-with-text-ext" data-text="Alt Ovest">
-                            <label title="indica l'altezza della tenda ovest" id="lbl_altezza_tenda_ovest" class="status-label" style="display: block; margin: 0 auto; text-align: center;">0</label>
-                            <span id="value2"></span>
-                        </div>
-                        <div class="border-with-text-ext" data-text="Alt Est">
-                            <label title="indica l'altezza della tenda Est" id="lbl_altezza_tenda_est" class="status-label" style="display: block; margin: 0 auto; text-align: center;">0</label>
-                            <span id="value1"></span>
-                        </div>                                        
-                        <div class="border-with-text-ext" data-text="Tenda Est">
-                            <label title="indica lo stato della tenda Est" id="lbl_status_tenda_est" class="status-label" style="display: block; margin: 0 auto; text-align: center;">No data</label>
-                        </div>
+                <div class ="container-img-tende" style="position: relative;"> 
+                    <canvas id="curtainsCanvas" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 2;"></canvas>
                     
-                        <div class="border-with-text-ext" data-text="Tenda Ovest">
-                            <label title="indica lo stato della tenda ovest" id="lbl_status_tenda_ovest" class="status-label" style="display: block; margin: 0 auto; text-align: center;">No data</label>
-                        </div> 
+                    <img id="background" src="/static/img/cielo_stellato.png" alt="Sfondo cupola" style="width: 100%; height: 100%; object-fit: cover; z-index: 1;">
+                </div>
+                
+                <p></p>
+                <div class="container">
+                    <div class="border-with-text-ext" data-text="Alt Ovest">
+                        <label title="indica l'altezza della tenda ovest" id="lbl_altezza_tenda_ovest" class="status-label" style="display: block; margin: 0 auto; text-align: center;">0°</label>
+                        <span id="value2"></span>
                     </div>
+                    <div class="border-with-text-ext" data-text="Alt Est">
+                        <label title="indica l'altezza della tenda Est" id="lbl_altezza_tenda_est" class="status-label" style="display: block; margin: 0 auto; text-align: center;">0°</label>
+                        <span id="value1"></span>
+                    </div>                                        
+                    <div class="border-with-text-ext" data-text="Tenda Est">
+                        <label title="indica lo stato della tenda Est" id="lbl_status_tenda_est" class="status-label" style="display: block; margin: 0 auto; text-align: center;">CHIUSA</label>
+                    </div>
+                
+                    <div class="border-with-text-ext" data-text="Tenda Ovest">
+                        <label title="indica lo stato della tenda ovest" id="lbl_status_tenda_ovest" class="status-label" style="display: block; margin: 0 auto; text-align: center;">CHIUSA</label>
+                    </div> 
+                </div>
             </div>
         </div>
         <div class="container-telescopio">
@@ -186,6 +190,7 @@
         <script type="module" src="/static/js/ups.js"></script>
         <script type="module" src="/static/js/chart.js"></script>
         <script src="/static/js/gauges.js"></script>
+        <script src="/static/js/curtains.js"></script>
      
 </body>
 </html>
