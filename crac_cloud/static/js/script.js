@@ -92,7 +92,22 @@ document.addEventListener('DOMContentLoaded', () => {
             else {
                 console.warn("updateButtonStatuses non è definito.");
             }
+            if (typeof fetchCurtainsStatus === 'function') {
+                await fetchCurtainsStatus(); // Aggiungi questa chiamata!
+            } else {
+                // In un ambiente modulare, potresti dover importare esplicitamente fetchCurtainsStatus
+                console.warn("fetchCurtainsStatus non è definito o non è nel global scope.");
+            }
+            
+            // 2. Aggiorna lo stato dei button (Tetto, ecc.)
+            if (typeof window.updateButtonStatuses === 'function') {
+                await window.updateButtonStatuses();
+            } else {
+                console.warn("updateButtonStatuses non è definito.");
+            }
             const chartStatus = await fetchStatus('/charts/status');
+
+
             if (chartStatus && chartStatus.charts) {
         
             // Aggiorna la condizione meteo generale (testo)
@@ -139,7 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             });    
     // ... (Fine della funzione)
-    }               
+    }  
+
     } catch (e) {
         console.error("Errore nell'aggiornamento dell'UI:", e);
     }

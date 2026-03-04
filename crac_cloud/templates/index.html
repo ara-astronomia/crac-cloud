@@ -61,9 +61,10 @@
         <div class="container-tende">
             <div class="border-with-text-ext" data-text="Stato tende">                    
                 <div class ="container-img-tende" style="position: relative;"> 
-                    <canvas id="curtainsCanvas" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 2;"></canvas>
-                    
-                    <img id="background" src="/static/img/cielo_stellato.png" alt="Sfondo cupola" style="width: 100%; height: 100%; object-fit: cover; z-index: 1;">
+                    <img id="roof-background" src="/static/images/background_curtains_close.png" 
+                        alt="Sfondo cupola" 
+                        style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1;">
+                        <canvas id="curtainsCanvas" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 2;"></canvas>
                 </div>
                 
                 <p></p>
@@ -181,16 +182,8 @@
     </div>
     
         <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-        <script type="module" src="/static/js/script.js"></script>
-        <script type="module" src="/static/js/gui_constants.js"></script>
-        <script type="module" src="/static/js/roof_control.js"></script>
-        <script src="/static/js/buttons.js"></script>
-        <script type="module" src="/static/js/maps.js"></script>
-        <script type="module" src="/static/js/telescope_control.js"></script>
-        <script type="module" src="/static/js/ups.js"></script>
-        <script type="module" src="/static/js/chart.js"></script>
-        <script src="/static/js/gauges.js"></script>
-        <script src="/static/js/curtains.js"></script>
+        <script type="module" src="/static/js/coordinator.js"></script>
+        
      
 </body>
 </html>

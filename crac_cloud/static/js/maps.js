@@ -1,77 +1,37 @@
-// crac_cloud/static/js/map.js
+// =============================================================================
+// maps.js - Modulo puro per il refresh delle mappe astronomiche
+// =============================================================================
 
-const MAP_REFRESH_INTERVAL_MS = 30000; // 30 secondi
+import { mapsApi } from './api.js';
 
-/**
- * Aggiorna un singolo elemento immagine solo se l'endpoint restituisce un'immagine valida.
- */
-async function refreshMap(mapId, url, fallbackUrl) {
-    try {
-        const response = await fetch(`${url}?t=${new Date().getTime()}`);
+let trackingImg = null;
+let skyMapImg   = null;
 
-        // Controllo MIME TYPE prima ancora del blob()
-        const contentType = response.headers.get("content-type") || "";
-
-        if (!response.ok || !contentType.includes("image")) {
-            throw new Error(`Contenuto non immagine: ${contentType}`);
-        }
-
-        const blob = await response.blob();
-        const imgElem = document.getElementById(mapId);
-        if (imgElem) {
-            imgElem.src = URL.createObjectURL(blob);
-        }
-    } catch (err) {
-        console.warn(`[MAPS] Impossibile aggiornare ${mapId}:`, err);
-
-        if (fallbackUrl) {
-            document.getElementById(mapId).src = fallbackUrl;
-        }
-    }
+export function initMaps() {
+    trackingImg = document.getElementById('tracking_chart');
+    skyMapImg   = document.getElementById('fixed_sky_map');
+    console.log('[Maps] Inizializzato.');
 }
 
-
 /**
- * Aggiorna entrambe le mappe.
+ * Aggiorna il grafico di tracking (chiamato dal coordinator ogni 30s).
+ * Usa un cache-buster nell'URL per forzare il reload dell'<img>.
  */
-function refreshMaps() {
-    refreshMap(
-        'tracking_chart',
-        '/maps/tracking_chart',
-        '/static/maps/tracking_error.png'  // fallback diverso
-    );
-    refreshMap(
-        'fixed_sky_map',
-        '/maps/sky_map_fixed',
-        '/static/maps/backup_map.png'    // fallback SOLO per la mappa fissa
-    );
-
-    
-    refreshAirmass();
-}
-/**
- * Recupera l'airmass dall'endpoint backend e aggiorna la label HTML.
- */
-async function refreshAirmass() {
-    try {
-        const response = await fetch("/maps/airmass?t=" + Date.now());
-        if (!response.ok) throw new Error("Errore fetch air mass");
-        const data = await response.json();
-        const airmassLabel = document.getElementById("airmass");
-        if (airmassLabel) {
-            airmassLabel.innerText = data.airmass ?? "No data";
-        }
-    } catch (err) {
-        console.error("Errore aggiornamento airmass:", err);
+export function refreshTrackingChart() {
+    if (!trackingImg) return;
+    const newUrl = mapsApi.trackingChartUrl();
+    // Cambia src solo se l'URL è diverso (evita reload inutili)
+    if (!trackingImg.src.startsWith(window.location.origin + '/maps/tracking_chart')) {
+        trackingImg.src = newUrl;
+    } else {
+        trackingImg.src = newUrl; // il cache-buster assicura il reload
     }
 }
 
 /**
- * Inizializza il ciclo di aggiornamento delle mappe.
+ * Aggiorna la sky map — chiamato dal coordinator solo se le coordinate sono cambiate.
  */
-function initMapRefresh() {
-    refreshMaps(); // Prima ricarica immediata
-    setInterval(refreshMaps, MAP_REFRESH_INTERVAL_MS);
+export function refreshSkyMap() {
+    if (!skyMapImg) return;
+    skyMapImg.src = mapsApi.skyMapUrl();
 }
-
-window.addEventListener('load', initMapRefresh);

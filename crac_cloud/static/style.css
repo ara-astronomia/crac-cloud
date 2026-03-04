@@ -223,12 +223,6 @@ meter {
     flex:2;
 }
 .container-img-tende {
-    /* Proprietà di adattamento dell'immagine di sfondo */
-    background-image: url('/static/images/cielo_stellato.gif'); 
-    background-size: cover;          /* Regola l'immagine per coprire tutto il container */
-    background-repeat: no-repeat;    /* Evita la ripetizione */
-    background-position: center center; /* Centra l'immagine */
-
     /* Proprietà Flexbox non necessarie per l'adattamento, ma utili se ha contenuti interni */
     display: flex;
     justify-content: center; 
