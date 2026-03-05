@@ -15,7 +15,7 @@ class ButtonClient:
     def set_switch_action(self, button_type, action):
         """Invia un'azione (TURN_ON/TURN_OFF) al ButtonService per un interruttore."""
         # Crea il messaggio di richiesta usando le classi generate da protobuf
-        print(f"Invio SetAction con tipo: {button_type}, azione: {action}")
+        #print(f"Invio SetAction con tipo: {button_type}, azione: {action}")
         request = button_pb2.ButtonRequest(
             type=button_type,
             action=action,
@@ -38,7 +38,7 @@ class ButtonClient:
             type=button_type, #pb2.ButtonType.Value(button_type),
             action=button_pb2.ButtonAction.CHECK_BUTTON,
         )
-        print(f"richiesta :{request} per il button_key_str: {button_key_str} e button_type: {button_type}")
+        #print(f"richiesta :{request} per il button_key_str: {button_key_str} e button_type: {button_type}")
         try:
             response = self.stub.SetAction(request)
             #print(f"response :{response} per il button_key_str: {button_key_str} e button_type: {button_type}")

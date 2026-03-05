@@ -12,7 +12,11 @@ Requires-Dist: fastapi>=0.117.1
 Requires-Dist: uvicorn>=0.37.0
 Requires-Dist: python-dotenv>=1.1.1
 Requires-Dist: jinja2>=3.1.6
-Requires-Dist: crac-protobuf@ git+https://github.com/ara-astronomia/crac-protobuf@14-implement-contract-for-ups
+Requires-Dist: astropy
+Requires-Dist: astroplan
+Requires-Dist: matplotlib
+Requires-Dist: numpy
+Requires-Dist: crac-protobuf@ git+https://github.com/ara-astronomia/crac-protobuf@16-create-new-proto-geographic-and-data_image
 Provides-Extra: dev
 Requires-Dist: grpcio-tools>=1.64; extra == "dev"
 Requires-Dist: autopep8>=1.6; extra == "dev"

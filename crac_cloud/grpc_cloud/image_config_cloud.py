@@ -1,0 +1,35 @@
+# crac_cloud/grpc_cloud/image_config_cloud.py
+
+import grpc.aio
+from crac_protobuf import data_image_pb2
+from crac_protobuf import data_image_pb2_grpc
+
+class ImageConfigClient:
+    def __init__(self, host: str, port: int):
+        # Usa il canale ASINCRONO
+        self.channel = grpc.aio.insecure_channel(f"{host}:{port}")
+        print(f"ImageConfigClient: Canale gRPC asincrono creato per {host}:{port}")
+        self.stub = data_image_pb2_grpc.ImageConfigServiceStub(self.channel)
+
+    async def get_ccd_image_data(self):
+        request = data_image_pb2.ImageConfigRequest()
+
+        print("Requesting CCD image config data from server...")
+
+        try:
+            # CHIAMATA ASINCRONA
+            response = await self.stub.GetCCDImageData(request)
+
+            print(
+                f"Image config data received: width={response.field_of_view_width}, height={response.field_of_view_height}"
+            )
+
+            return {
+                "width": response.field_of_view_width,
+                "height": response.field_of_view_height
+            }
+
+        except grpc.RpcError as e:
+            print(f"GRPC Error fetching image config: {e.details()}")
+            return None
+

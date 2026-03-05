@@ -10,7 +10,8 @@ from .routers import (
     chart_router,
     curtains_router,
     telescope_router,
-    ups_router
+    ups_router,
+    map_router
 )
 from fastapi.responses import HTMLResponse
 
@@ -29,6 +30,7 @@ app.include_router(chart_router.router)
 app.include_router(curtains_router.router)
 app.include_router(telescope_router.router)
 app.include_router(ups_router.router)
+app.include_router(map_router.router) #, prefix="/maps", tags=["maps"])
 
 @app.get("/")
 async def get_root(request: Request):

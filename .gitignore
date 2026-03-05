@@ -1,0 +1,30 @@
+# --- Python Bytecode e Cache ---
+# Ignora le cartelle __pycache__ ovunque si trovino nel progetto
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Ambienti Virtuali ---
+# Ignora la cartella del virtual environment
+.venv/
+venv/
+env/
+
+# --- Distribuzione e Metadati ---
+# Ignora i metadati generati da setuptools/pip
+*.egg-info/
+.eggs/
+
+# --- File e Cartelle Specifici del Progetto ---
+# Cartella astroplan specifica
+crac_cloud/astroplan/
+# Cartella delle mappe generate all'avvio dell'app
+crac_cloud/static/maps/
+
+# --- File Scaricati e Archivi ---
+# Ignora l'archivio grpcurl e futuri file .tar.gz
+*.tar.gz
+
+# --- File di Sistema (Opzionale ma consigliato) ---
+.DS_Store
+Thumbs.db

@@ -46,30 +46,30 @@ def get_telescope_status():
 @router.post("/set_action")
 def set_telescope_action(data: TelescopeActionModel):
     """Endpoint per inviare un'azione (CONNECT, DISCONNECT, PARK, FLAT) al telescopio."""
-    print(f"Azione telescopio richiesta: {data.action}, Autolight: {data.autolight}")
+    #print(f"Azione telescopio richiesta: {data.action}, Autolight: {data.autolight}")
     try:
         action = data.action
         
         # 1. Gestione CONNECT/DISCONNECT
         if action == "TELESCOPE_CONNECT":
-            print(f"Connessione al telescopio... {telescope_client}")
+            #print(f"Connessione al telescopio... {telescope_client}")
             return telescope_client.connect()
         elif action == "TELESCOPE_DISCONNECT":
-            print(f"Disconnetto il telescopio... {telescope_client}")
+            #print(f"Disconnetto il telescopio... {telescope_client}")
             return telescope_client.disconnect()
             
         # 2. Gestione PARK/FLAT
         elif action in ["PARK_POSITION", "FLAT_POSITION", "CHECK_TELESCOPE"]:
             GLOBAL_CLIENT_STATE.autolight_status = data.autolight
-            print(f" siamo nella elif pork o flat:   {action}")
+            #print(f" siamo nella elif pork o flat:   {action}")
             try:
                 action_name_in_pb2 = action 
                 action_enum = getattr(telescope_pb2, action_name_in_pb2)
-                print(f"action enum: {action_enum}, {action_name_in_pb2}")
+                #print(f"action enum: {action_enum}, {action_name_in_pb2}")
             except AttributeError:
                 # 🎯 TENTA 2: Se fallisce, tenta l'accesso diretto alla classe ENUM (la tua versione)
                 action_enum = getattr(telescope_pb2.TelescopeAction, action)#autolight1=data.autolight
-                print(f'questa è la action_enum: {action_enum}')            
+                #print(f'questa è la action_enum: {action_enum}')            
             return telescope_client.set_action(action=action_enum, autolight=data.autolight)
         else:
             raise HTTPException(status_code=400, detail="Invalid action. Supported: CONNECT, DISCONNECT, PARK_POSITION, FLAT_POSITION.")
@@ -84,7 +84,7 @@ def set_telescope_action(data: TelescopeActionModel):
     
 @router.post("/telescope/power_on")
 async def power_on_telescope():
-    print(f"Powering on the telescope...{response_data}")
+    #print(f"Powering on the telescope...{response_data}")
     # Chiama la logica del client/simulatore
     try:
         response_data = await telescope_client.power_on()

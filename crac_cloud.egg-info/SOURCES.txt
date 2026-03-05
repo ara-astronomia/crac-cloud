@@ -4,6 +4,8 @@ pyproject.toml
 crac_cloud/app.py
 crac_cloud/config.py
 crac_cloud/grpc_service.py
+crac_cloud/image_generator.py
+crac_cloud/state.py
 crac_cloud.egg-info/PKG-INFO
 crac_cloud.egg-info/SOURCES.txt
 crac_cloud.egg-info/dependency_links.txt
@@ -13,6 +15,8 @@ crac_cloud/grpc_cloud/__init__.py
 crac_cloud/grpc_cloud/button_cloud.py
 crac_cloud/grpc_cloud/chart_cloud.py
 crac_cloud/grpc_cloud/curtains_cloud.py
+crac_cloud/grpc_cloud/geographic_cloud.py
+crac_cloud/grpc_cloud/image_config_cloud.py
 crac_cloud/grpc_cloud/roof_cloud.py
 crac_cloud/grpc_cloud/telescope_cloud.py
 crac_cloud/grpc_cloud/ups_cloud.py
@@ -20,6 +24,7 @@ crac_cloud/routers/__init__.py
 crac_cloud/routers/button_router.py
 crac_cloud/routers/chart_router.py
 crac_cloud/routers/curtains_router.py
+crac_cloud/routers/map_router.py
 crac_cloud/routers/roof_router.py
 crac_cloud/routers/telescope_router.py
 crac_cloud/routers/ups_router.py
