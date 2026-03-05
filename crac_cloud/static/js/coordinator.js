@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { initRoofControl, updateRoofUI }             from './roof_control.js';
-import { initCurtains, updateCurtainsUI }             from './curtains.js';
+import { initCurtains, updateCurtainsUI, updateRoofBackground } from './curtains.js';
 import { initTelescopeControl, updateTelescopeUI }    from './telescope_control.js';
 import { initButtons, updateButtonsUI }               from './buttons.js';
 import { initUps, updateUpsUI }                       from './ups.js';
@@ -66,6 +66,7 @@ async function pollRoof() {
     const data = await roofApi.getStatus();
     if (data && Object.keys(data).length > 0) {
         updateRoofUI(data);
+        updateRoofBackground(data.status);
     }
 }
 

@@ -26,6 +26,7 @@ let curtainsEnabled = false;
 // =============================================================================
 export function initCurtains() {
     curtainButton = document.getElementById('btn-curtains');
+    console.log('[Curtains] btn-curtains trovato:', curtainButton);
     canvas = document.getElementById('curtainsCanvas');
     ctx = canvas ? canvas.getContext('2d') : null;
 
@@ -50,6 +51,7 @@ export function initCurtains() {
 // UPDATE — chiamato dal coordinator
 // =============================================================================
 export function updateCurtainsUI(data) {
+    console.log('[Curtains] updateCurtainsUI data:', JSON.stringify(data));
     if (!data || !data.curtains) return;
 
     const curtains = data.curtains;
@@ -70,42 +72,48 @@ export function updateCurtainsUI(data) {
 
     // Aggiorna label per ogni tenda
     curtains.forEach(curtain => {
-        const angle  = _stepsToAngle(curtain.steps || 0);
+        const angle = curtain.angle ?? 0;  // usa direttamente l'angolo dal server
         const status = curtain.status || '';
-        const statusData = STATUS_LABELS_MAP[status] || { text: status };
 
-        if (curtain.orientation === 'CURTAIN_EAST') {
-            _setText('lbl_altezza_tenda_est',   `${angle.toFixed(1)}°`);
-            _setStatus('lbl_status_tenda_est',  statusData);
-        } else if (curtain.orientation === 'CURTAIN_WEST') {
+        if (curtain.orientation === 'East') {        // ← corretto
+            _setText('lbl_altezza_tenda_est',  `${angle.toFixed(1)}°`);
+            _setStatus('lbl_status_tenda_est', { text: status });
+        } else if (curtain.orientation === 'West') { // ← corretto
             _setText('lbl_altezza_tenda_ovest',  `${angle.toFixed(1)}°`);
-            _setStatus('lbl_status_tenda_ovest', statusData);
+            _setStatus('lbl_status_tenda_ovest', { text: status });
         }
     });
 
     // Aggiorna grafica canvas
     if (ctx) {
-        const eastCurtain = curtains.find(c => c.orientation === 'CURTAIN_EAST');
-        const westCurtain = curtains.find(c => c.orientation === 'CURTAIN_WEST');
-        const alphaEast = eastCurtain ? _stepsToAngle(eastCurtain.steps || 0) : config.alpha_min_conf;
-        const alphaWest = westCurtain ? _stepsToAngle(westCurtain.steps || 0) : config.alpha_min_conf;
+        const eastCurtain = curtains.find(c => c.orientation === 'East');
+        const westCurtain = curtains.find(c => c.orientation === 'West');
+        const alphaEast = eastCurtain ? eastCurtain.angle : config.alpha_min_conf;
+        const alphaWest = westCurtain ? westCurtain.angle : config.alpha_min_conf;
         _drawCurtains(alphaEast, alphaWest);
     }
 
-    // Aggiorna sfondo
-    _updateRoofBackground(curtainsEnabled);
+
 }
 
+export function updateRoofBackground(roofStatus) {
+    const bg = document.getElementById('roof-background');
+    if (!bg) return;
+    bg.src = roofStatus === 'ROOF_OPENED'
+        ? '/static/images/background_curtains_open.png'
+        : '/static/images/background_curtains_close.png';
+}
 // =============================================================================
 // CLICK HANDLER
 // =============================================================================
 async function handleCurtainClick() {
+    console.log('[Curtains] Click ricevuto, curtainsEnabled:', curtainsEnabled);
     if (!curtainButton || curtainButton.disabled) return;
 
     curtainButton.disabled = true;
     curtainButton.textContent = 'Invio...';
 
-    const fn = curtainsEnabled ? curtainsApi.disable : curtainsApi.enable;
+    const fn = curtainsEnabled ? curtainsApi.enable : curtainsApi.disable;
     const response = await fn();
     if (response && response.curtains) {
         updateCurtainsUI(response);
