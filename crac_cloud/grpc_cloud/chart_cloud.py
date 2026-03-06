@@ -1,8 +1,10 @@
 # grpc_cloud/chart_cloud.py
+import logging
 import grpc
 from crac_protobuf import chart_pb2
 from crac_protobuf import chart_pb2_grpc
 
+logger = logging.getLogger(__name__)
 # Dizionario di traduzione per gli stati meteo (Enum di Protobuf)
 WEATHER_STATUS_TRANSLATIONS = {
     "WEATHER_STATUS_NORMAL": "CONDIZIONI METEO ADEGUATE",
@@ -31,7 +33,6 @@ class ChartClient:
                         "upper_bound": threshold.upper_bound,
                         "lower_bound": threshold.lower_bound
                     })
-                    # print (thresholds_list )
                 # Estrae le soglie di WARNING e ERROR per i gauge
                 
                 # Inizializza min/max/warning/error con i valori di base
@@ -66,7 +67,6 @@ class ChartClient:
                             chart_data["error"] = threshold.lower_bound
                                     
                 charts_list.append(chart_data)
-                #print(charts_list)
 
             # Traduce lo stato meteo da ENUM in Italiano
             weather_status_name = chart_pb2.WeatherStatus.Name(response.status)
@@ -80,5 +80,5 @@ class ChartClient:
             }
         except grpc.RpcError as e:
             # Gestione errore gRPC, fondamentale per il debug
-            print(f"❌ Errore RPC (ChartStatus): {e.details()}")
+            logger.error(f" ❌ Errore RPC (ChartStatus): {e.details()}")
             return {"error": str(e.details()), "status": "SCONOSCIUTO"}

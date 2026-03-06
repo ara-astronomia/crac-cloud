@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter,Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional 
@@ -7,6 +8,8 @@ from crac_cloud.config import Config
 from crac_cloud.grpc_service import get_grpc_container
 from crac_cloud.grpc_cloud.telescope_cloud import TelescopeClient
 from crac_cloud.grpc_cloud.button_cloud import ButtonClient as ButtonsClient
+
+logger = logging.getLogger(__name__)
 
 # Definisci la classe Pydantic prima di usarla
 class ButtonActionRequest(BaseModel):
@@ -51,37 +54,33 @@ def set_autolight_action(autolight_value: bool, telescope_stub):
         action=telescope_pb2.TelescopeAction.Value(ACTION_FOR_AUTOLIGHT),
         autolight=autolight_value  # ✅ Il campo booleano essenziale
     )
-    #print(f" questa è la request: {request}")
+
     try:
         # 3. Chiama il metodo SetAction sullo stub del Telescopio
-        #print(f"Invio Autolight con azione {ACTION_FOR_AUTOLIGHT}: {autolight_value}")
+        logger.debug(f"Invio Autolight con azione {ACTION_FOR_AUTOLIGHT}: {autolight_value}")
         response = telescope_stub.SetAction(request) 
-        #print(f"questa è la response dell'autolight: {response}")
         # ... (Logica di parsing della risposta) ...
         return {"status": "ok", "message": "Autolight impostato"}
         
     except grpc.RpcError as e:
-        print(f"❌ Errore RPC (Autolight): {e.details()}")
+        logger.error(f"❌ Errore RPC (Autolight): {e.details()}")
         return {"status": "error", "message": f"Errore gRPC Autolight: {e.details()}"}
 
 
 @router.post("/set_action")
 async def set_action(request: ButtonActionRequest, service: get_grpc_container = Depends(get_grpc_container)):
-    #print(f"Azione richiesta: {request.action}") # Debug utile
+    logger.debug(f"DEBUG: Azione richiesta: {request.action}") # Debug utile
     """
     Gestisce tutte le azioni dei pulsanti in base all'azione richiesta dal frontend.
     """
      # 1. Tenta la conversione dell'Action Enum
     try:
         action_enum = button_pb2.ButtonAction.Value(request.action)
-        #print(f"Converted action '{request.action}' to enum value {action_enum}")   
     except ValueError:
         return {"status": "error", "message": f"Unknown action: {request.action}"}
 
     # --- BLOCCO 1: TURN_ON / TURN_OFF (Interruttori e Luci) ---
-    if request.action in ["TURN_ON", "TURN_OFF"]:
-        #print("ENTRO IN TURN_ON / TURN_OFF")       
-       
+    if request.action in ["TURN_ON", "TURN_OFF"]:  
         try:
             button_type_str = KEY_TO_TYPE_MAP[request.key] # Es: 'TELE_SWITCH'
             type_enum = button_pb2.ButtonType.Value(button_type_str)
@@ -89,14 +88,13 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             return {"status": "error", "message": f"Unknown key '{request.key}' in KEY_TO_TYPE_MAP."}
         except ValueError:
             return {"status": "error", "message": f"Type '{button_type_str}' not found in ButtonType enum."}
-        # FINE INSERIMENTO
-        
+
         # ⚠️ FASE 1 - OTTIENI LO STATO ATTUALE DAL SERVER ⚠️
         try:
             # 💡 CHIAMATA CORRETTA: usa il nome corretto e passa ENTRAMBI gli argomenti
             status_data = service.button_client.get_single_switch_status(request.key, type_enum) 
             current_status = status_data.get("status") # Es: "ON" o "OFF"
-            #print(f"Current status for {request.key} is {current_status}")
+            logger.debug(f"DEBUG: Current status for {request.key} is {current_status}")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to check current status on server: {e}")
         
@@ -115,27 +113,26 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
         # FASE 3 - INVIO DELL'AZIONE CORRETTA AL SERVER
         
         # 💡 NUOVA STAMPA: Cosa inviamo davvero?
-        #print(f"DEBUG: Invio Azione Finale gRPC: {action_name} su Tipo: {type_name}") 
+        logger.debug(f"DEBUG: Invio Azione Finale gRPC: {action_name} su Tipo: {type_name}") 
         
         response_data = service.button_client.set_switch_action(
             action=action_to_send_enum, # Azione corretta per la commutazione
             button_type=type_enum 
-        )
-        
+        )        
         # 💡 NUOVA STAMPA: Cosa è tornato dal server CRAC?
-        #print(f"DEBUG: Risposta Finale gRPC: {response_data}") 
+        logger.debug(f"DEBUG: Risposta Finale gRPC: {response_data}") 
         return response_data
 
 # ------------------------------------------------------------------
     # --- BLOCCO 2: CHECKBOX Autolight ---
     elif request.action == "CHECK_BUTTON": 
-        #print(f"ENTRO IN CHECK_BUTTON per chiave: {request.key}")
         
         # 1. Verifica la Chiave
-        if request.key != 'KEY_AUTOLIGHT':             
+        if request.key != 'KEY_AUTOLIGHT':
+             logger.warning(f"Attenzione: Ricevuta azione CHECK_BUTTON per chiave non supportata: {request.key}")          
              return {"status": "error", "message": f"SET_VALUE non supportato per la chiave: {request.key}"}
         else:
-            print(f"valore della key: {request.key}")
+            logger.debug(f"DEBUG: Chiave valida per CHECK_BUTTON: {request.key}")
         
         # 2. Estrazione del Valore Booleano
         # La richiesta FastAPI (Pydantic model) deve includere 'value: Optional[bool]'
@@ -145,8 +142,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             return {"status": "error", "message": "Il campo 'value' (boolean) è mancante per SET_VALUE."}
             
         autolight_value = request.value # ✅ Questo è il true/false
-        #print (f"valore autolight in set/action:{autolight_value}")
-        
+        logger.debug(f"DEBUG: Valore Autolight ricevuto: {autolight_value}")        
         # 3. Chiamata al servizio gRPC corretto (TelescopeRetriever)
         try:
         # Chiama la funzione proxy con lo stub del Telescopio e il valore
@@ -154,7 +150,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             request.value,
             service.telescope_client.stub # Passa lo stub gRPC corretto
             )
-            #print(f"DEBUG: Risposta Finale gRPC Autolight: {response_data}")
+            logger.debug(f"DEBUG: Risposta Finale gRPC Autolight: {response_data}")
             return response_data
             
         except Exception as e:
@@ -206,11 +202,11 @@ async def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc
             status_data = service.button_client.get_single_switch_status(key_str, type_enum)
             
             all_statuses.append(status_data)
-            #print(status_data)
-            
+            logger.debug(f"DEBUG: Stato ottenuto per {key_str}: {status_data}")
+
         except Exception as e:
             # Gestisce l'errore per un singolo pulsante senza bloccare il resto
-            print(f"❌ Errore nel recupero stato per {key_str}: {e}")
+            logger.error(f"❌ Errore nel recupero stato per {key_str}: {e}")
             # Invia uno stato di errore (grigio predefinito)
             all_statuses.append({"key": key_str, "status": "ERROR", "button_gui": {}})
 
@@ -218,12 +214,10 @@ async def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc
             # Assumiamo che il TelescopeClient sia esposto via service.telescope_client
             autolight_status = service.telescope_client.get_autolight_status() 
             all_statuses.append(autolight_status)
-            #print(f"questo è il return di autolight: {autolight_status}")
-        except Exception as e:
-            print(f"Errore nel recupero Autolight: {e}")
-            # Gestisci l'errore per non bloccare il polling    
 
-        #print (all_statuses)   
+        except Exception as e:
+            logger.error(f"❌ Errore nel recupero Autolight: {e}")
+            # Gestisci l'errore per non bloccare il polling    
 
     # Restituisce un JSON con la lista di tutti gli stati
     return {"buttons": all_statuses}

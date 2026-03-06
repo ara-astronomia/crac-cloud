@@ -24,7 +24,6 @@ class RoofClient:
                 "text_color": gui.button_color.text_color, 
                 "background_color": gui.button_color.background_color,
             }
-        #print(f"Parsed roof response: status={roof_pb2.RoofStatus.Name(response.status)}, gui={gui}, color_data={color_data}")
         return {
             "status": roof_pb2.RoofStatus.Name(response.status),
             "gui": { # Usiamo "gui" per coerenza con il JS

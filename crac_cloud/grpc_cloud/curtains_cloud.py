@@ -1,9 +1,12 @@
 # grpc_cloud/curtains_cloud.py
+import logging
 import grpc
 from crac_protobuf import curtains_pb2
 from crac_protobuf import curtains_pb2_grpc
 from crac_protobuf import button_pb2
 from crac_cloud.config import Config
+
+logger = logging.getLogger(__name__)
 
 STATUS_LABEL_MAP = {
     "CURTAIN_DISABLED": "Disattivata", 
@@ -37,7 +40,7 @@ class CurtainsClient:
         else:
             self.DEGREE_PER_STEP = 0.0
             
-        print(f"DEGREE_PER_STEP calculated: {self.DEGREE_PER_STEP}")
+        logger.info(f"DEGREE_PER_STEP calculated: {self.DEGREE_PER_STEP}")
 
     def _steps_to_angle(self, steps):
         """
@@ -63,18 +66,15 @@ class CurtainsClient:
             return {"error": str(e.details())}
     
     def get_status(self):
-        print("ENTRO IN GET STATUS - curtains_cloud.py")
         """Ottiene lo stato delle tende inviando l'azione CHECK_CURTAIN."""
         request = curtains_pb2.CurtainsRequest(action=curtains_pb2.CurtainsAction.CHECK_CURTAIN)
         try:
             response = self.stub.SetAction(request)
-            print("Received response from gRPC server for get_status")  
-            print(response)  # Stampa l'intero oggetto di risposta per il debug
+            logger.debug(f"DEBUG stato tende: {response}")  # Stampa l'intero oggetto di risposta per il debug
             try:
                 return self._parse_response(response) # 🛑 Il crash avviene qui
             except Exception as parse_error:
-                # 🚨 STAMPA IL VERO ERRORE DI PARSING
-                print(f"ERRORE DI PARSING in _parse_response: {parse_error}")
+                logger.error(f" ❌ ERRORE DI PARSING in _parse_response: {parse_error}")
                 return {"error": f"Parsing failed: {parse_error}", "curtains": []}
         except grpc.RpcError as e:
             return {"error": str(e.details())}
@@ -83,21 +83,15 @@ class CurtainsClient:
     # --- 1. Parsing degli oggetti 'curtains' ---
         curtains_data = []
         for curtain in response.curtains:
-            status_enum_name = self._get_enum_name(curtain.status, curtains_pb2.CurtainStatus) 
-        
-            print(f"Parsing curtain: orientation={curtain.orientation}, status={status_enum_name}, steps={curtain.steps}")
-            
+            status_enum_name = self._get_enum_name(curtain.status, curtains_pb2.CurtainStatus)         
+                        
             # 2. Mappatura dell'ORIENTAMENTO
             # 🛑 CORREZIONE: Passa la classe CurtainOrientation
-            orientation_enum_name = self._get_enum_name(curtain.orientation, curtains_pb2.CurtainOrientation)
-            print(f"Orientation enum name: {orientation_enum_name}") 
-            
-            steps_value = curtain.steps 
-            print(f"Steps value: {steps_value}")
-            
+            orientation_enum_name = self._get_enum_name(curtain.orientation, curtains_pb2.CurtainOrientation)           
+            steps_value = curtain.steps             
             # 3. Mappa il nome ENUM completo alla label UI (ad esempio, 'CURTAIN_CLOSED' -> 'Chiusa')
             status_ui_label = STATUS_LABEL_MAP.get(status_enum_name, status_enum_name)
-            print(f"Mapped status label: {status_ui_label}")
+            logger.debug(f"Status curtain:{orientation_enum_name}, {steps_value}, {status_ui_label}")
             
             # 4. Pulisci la stringa dell'orientamento per la risposta finale
             # Se orientation_enum_name è 'CURTAIN_EAST', la sostituzione lo rende 'EAST'
@@ -125,7 +119,7 @@ class CurtainsClient:
                 },
                 "key": key_name,
             })
-        print(f"Parsed buttons data: {buttons_data}")
+        #logger.debug(f"Parsed buttons data: {buttons_data}")
         # --- 3. Restituisci la struttura completa ---
         return {
             "curtains": curtains_data,
@@ -153,5 +147,5 @@ class CurtainsClient:
             return str(enum_value) 
                 
         except Exception as e:
-            print(f"ERRORE di conversione ENUM {enum_class.__name__}: {e}")
+            logger.error(f" ❌ ERRORE di conversione ENUM {enum_class.__name__}: {e}")
             return str(enum_value)
