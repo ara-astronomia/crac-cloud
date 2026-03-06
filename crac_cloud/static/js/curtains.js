@@ -14,7 +14,7 @@ const config = {
     alpha_min_conf: -12,
     t_base: 340 / 4.25,
     delta_pt_base: 1.9 * (340 / 4.25),
-    tenda_raggio: 110,
+    tenda_raggio: 100,
     ROOF_ANGLE: 20,
 };
 
@@ -26,7 +26,6 @@ let curtainsEnabled = false;
 // =============================================================================
 export function initCurtains() {
     curtainButton = document.getElementById('btn-curtains');
-    console.log('[Curtains] btn-curtains trovato:', curtainButton);
     canvas = document.getElementById('curtainsCanvas');
     ctx = canvas ? canvas.getContext('2d') : null;
 
@@ -51,7 +50,6 @@ export function initCurtains() {
 // UPDATE — chiamato dal coordinator
 // =============================================================================
 export function updateCurtainsUI(data) {
-    console.log('[Curtains] updateCurtainsUI data:', JSON.stringify(data));
     if (!data || !data.curtains) return;
 
     const curtains = data.curtains;
@@ -72,48 +70,39 @@ export function updateCurtainsUI(data) {
 
     // Aggiorna label per ogni tenda
     curtains.forEach(curtain => {
-        const angle = curtain.angle ?? 0;  // usa direttamente l'angolo dal server
+        const angle = curtain.angle ?? 0;
         const status = curtain.status || '';
+        const statusData = STATUS_LABELS_MAP[status] || { text: status };
 
-        if (curtain.orientation === 'East') {        // ← corretto
-            _setText('lbl_altezza_tenda_est',  `${angle.toFixed(1)}°`);
-            _setStatus('lbl_status_tenda_est', { text: status });
-        } else if (curtain.orientation === 'West') { // ← corretto
+        if (curtain.orientation === 'CURTAIN_EAST') {
+            _setText('lbl_altezza_tenda_est',   `${angle.toFixed(1)}°`);
+            _setStatus('lbl_status_tenda_est',  statusData);
+        } else if (curtain.orientation === 'CURTAIN_WEST') {
             _setText('lbl_altezza_tenda_ovest',  `${angle.toFixed(1)}°`);
-            _setStatus('lbl_status_tenda_ovest', { text: status });
+            _setStatus('lbl_status_tenda_ovest', statusData);
         }
     });
 
     // Aggiorna grafica canvas
     if (ctx) {
-        const eastCurtain = curtains.find(c => c.orientation === 'East');
-        const westCurtain = curtains.find(c => c.orientation === 'West');
-        const alphaEast = eastCurtain ? eastCurtain.angle : config.alpha_min_conf;
-        const alphaWest = westCurtain ? westCurtain.angle : config.alpha_min_conf;
+        const eastCurtain = curtains.find(c => c.orientation === 'CURTAIN_EAST');
+        const westCurtain = curtains.find(c => c.orientation === 'CURTAIN_WEST');
+        const alphaEast  = eastCurtain ? (eastCurtain.angle ?? config.alpha_min_conf) : config.alpha_min_conf;
+        const alphaWest  = westCurtain ? (westCurtain.angle ?? config.alpha_min_conf) : config.alpha_min_conf;
         _drawCurtains(alphaEast, alphaWest);
     }
-
-
 }
 
-export function updateRoofBackground(roofStatus) {
-    const bg = document.getElementById('roof-background');
-    if (!bg) return;
-    bg.src = roofStatus === 'ROOF_OPENED'
-        ? '/static/images/background_curtains_open.png'
-        : '/static/images/background_curtains_close.png';
-}
 // =============================================================================
 // CLICK HANDLER
 // =============================================================================
 async function handleCurtainClick() {
-    console.log('[Curtains] Click ricevuto, curtainsEnabled:', curtainsEnabled);
     if (!curtainButton || curtainButton.disabled) return;
 
     curtainButton.disabled = true;
     curtainButton.textContent = 'Invio...';
 
-    const fn = curtainsEnabled ? curtainsApi.enable : curtainsApi.disable;
+    const fn = curtainsEnabled ? curtainsApi.disable : curtainsApi.enable;
     const response = await fn();
     if (response && response.curtains) {
         updateCurtainsUI(response);
@@ -125,28 +114,21 @@ async function handleCurtainClick() {
 // =============================================================================
 // DISEGNO CANVAS (logica invariata, solo refactored)
 // =============================================================================
-function _stepsToAngle(steps) {
-    // Conversione steps → gradi (basata su n_step_corsa=205, max_est=70)
-    const n_step_corsa = 205;
-    const max_alt = 70;
-    const park_alt = 0;
-    const angle = park_alt + (steps / n_step_corsa) * (max_alt - park_alt) + config.alpha_min_conf;
-    return Math.max(config.alpha_min_conf, Math.min(90, angle));
-}
 
 function _drawCurtains(alphaEast, alphaWest) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const leftPoints  = _createPolygon(alphaWest, 'W');
     const rightPoints = _createPolygon(alphaEast, 'E');
-    _drawPolygon(leftPoints,  '#151617ff');
-    _drawPolygon(rightPoints, '#151617ff');
+    _drawPolygon(leftPoints,  'rgb(22, 23, 24)', 'rgb(236, 239, 243)');
+    _drawPolygon(rightPoints, 'rgb(22, 23, 24)', 'rgb(236, 239, 243)');
 }
 
 function _createPolygon(alpha, orientation) {
     const { conv, alpha_min_conf, tenda_raggio: t, delta_pt_base: delta_pt, h, l, ROOF_ANGLE: roofAngle } = config;
-    const i = orientation === 'W' ? 1 : -1;
-    const startAngleOffset = orientation === 'E' ? 180 : 0;
-    const baseAngleSign    = orientation === 'E' ? 1 : -1;
+    const isEast           = orientation === 'E';
+    const i                = isEast ? -1 : 1;
+    const startAngleOffset = isEast ? 180 : 0;
+    const baseAngleSign    = isEast ? 1 : -1;
     const y = Math.round((h / 3) * 1.8);
     const x = Math.round((l / 2) + (i * delta_pt / 2));
     const pt = [x, y];
@@ -167,15 +149,15 @@ function _createPolygon(alpha, orientation) {
     return points;
 }
 
-function _drawPolygon(points, color) {
+function _drawPolygon(points, fillColor, strokeColor = 'white') {
     ctx.beginPath();
     ctx.moveTo(points[0][0], points[0][1]);
     for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
     ctx.closePath();
-    ctx.fillStyle = color;
+    ctx.fillStyle = fillColor;
     ctx.fill();
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 2;
     ctx.stroke();
 }
 
@@ -197,4 +179,12 @@ function _setStatus(id, statusData) {
     el.textContent = statusData.text || '';
     el.style.color = statusData.text_color || '';
     el.style.backgroundColor = statusData.background_color || '';
+}
+
+export function updateRoofBackground(roofStatus) {
+    const bg = document.getElementById('roof-background');
+    if (!bg) return;
+    bg.src = roofStatus === 'ROOF_OPENED'
+        ? '/static/images/background_curtains_open.png'
+        : '/static/images/background_curtains_close.png';
 }
