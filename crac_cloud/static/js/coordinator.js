@@ -106,7 +106,7 @@ async function pollAirmass() {
     const data = await mapsApi.getAirmass();
     if (data && data.airmass !== undefined) {
         const el = document.getElementById('airmass');
-        if (el) el.textContent = data.airmass;
+        if (el) el.textContent = data.airmass === 'HIGH Airmass' ? 'HIGH Airmass' : data.airmass;
     }
 }
 

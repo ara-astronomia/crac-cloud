@@ -195,6 +195,8 @@ async def get_airmass():
             data["eq_coords"]
         )
 
+        if airmass_now > 4 or airmass_now < 0:
+            return {"airmass": "HIGH Airmass"}
         return {"airmass": f"{airmass_now:.3f}"}
 
 
