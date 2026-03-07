@@ -1,3 +1,4 @@
+import os
 import logging
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
@@ -61,7 +62,8 @@ async def _get_all_required_data() -> dict:
         return {
             "geo_data": geo_data,
             "ccd_data": ccd_data,
-            "eq_coords": None
+            "eq_coords": None,
+            "tel_status": tel_state,
         }
 
     eq_coords = telescope_status.get("eq_coords", None)
@@ -72,7 +74,8 @@ async def _get_all_required_data() -> dict:
     return {
         "geo_data": geo_data,
         "ccd_data": ccd_data,
-        "eq_coords": eq_coords
+        "eq_coords": eq_coords,
+        "tel_status": tel_state,
     }
 
 #---------------------------------------------------------------
@@ -137,6 +140,18 @@ async def get_fixed_sky_map(t: float = None):
                 "error": "TELESCOPE_NOT_CONNECTED",
                 "message": "Connetti il telescopio per generare la mappa del campo."
             }
+        tel_status = data.get("tel_status", "")
+        if tel_status in ("PARKED", "FLATTER"):
+            image_name = "tele_in_park.png" if tel_status == "PARKED" else "tele_in_flat.png"
+            image_path = os.path.join(OUTPUT_DIR, image_name)
+            with open(image_path, 'rb') as f:
+                image_data = f.read()
+            return Response(
+                content=image_data,
+                media_type="image/png",
+                headers={"Content-Disposition": f"inline; filename={image_name}"}
+            )
+
         coords_have_changed = eq_coords_changed(data["eq_coords"])
         logger.info(f"Coordinate eq cambiate? {coords_have_changed}")  
 
