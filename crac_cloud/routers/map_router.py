@@ -1,6 +1,6 @@
 import logging
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from typing import Dict
 import asyncio
 import re
@@ -10,7 +10,7 @@ from crac_cloud.config import Config
 from crac_cloud.grpc_cloud.geographic_cloud import GeographicClient
 from crac_cloud.grpc_cloud.image_config_cloud import ImageConfigClient
 from crac_cloud.grpc_cloud.telescope_cloud import TelescopeClient
-from crac_cloud.image_generator import generate_telescope_maps, compute_airmass, MAP1_FILENAME, MAP2_FILENAME 
+from crac_cloud.image_generator import generate_telescope_maps, compute_airmass, MAP1_FILENAME, MAP2_FILENAME, OUTPUT_DIR
 import astroplan
 import sys
 
@@ -101,7 +101,6 @@ def eq_coords_changed(new_coords: dict) -> bool:
 async def get_tracking_chart(t: float = None):
     try:
         data = await _get_all_required_data()
-
         # Se il telescopio è OFFLINE → niente tracking chart
         if data["eq_coords"] is None:
             return {
@@ -114,14 +113,17 @@ async def get_tracking_chart(t: float = None):
             data["eq_coords"],
             data["ccd_data"]
         )
+        with open(map2_path, 'rb') as f:
+            image_data = f.read()
 
-        return FileResponse(
-            path=map2_path,
+        return Response(
+            content=image_data,
             media_type="image/png",
-            filename=MAP2_FILENAME
+            headers={"Content-Disposition": f"inline; filename={MAP2_FILENAME}"}
         )
 
     except Exception as e:
+        logger.error(" ❌ ERRORE NELL'ENDPOINT TRACKING CHART:", e)
         raise HTTPException(status_code=500, detail=f"Errore interno: {e}")
 # --------------------------------------------------------------
 # ENDPOINT 2 – Sky map
@@ -138,26 +140,24 @@ async def get_fixed_sky_map(t: float = None):
         coords_have_changed = eq_coords_changed(data["eq_coords"])
         logger.info(f"Coordinate eq cambiate? {coords_have_changed}")  
 
-        map1_path, _ = generate_telescope_maps(
+        if coords_have_changed:
+            map1_path, _ = generate_telescope_maps(
             data["geo_data"],
             data["eq_coords"],
             data["ccd_data"]
-        )   
-
-        if not coords_have_changed:
+            )
+        else:
             logger.info("Coordinate eq non cambiate, riuso l'ultima mappa generata.")
-            return FileResponse(
-                path=map1_path,
-                media_type="image/png",
-                filename=MAP1_FILENAME
-            )   
-        
-        return FileResponse(
-            path=map1_path,
-            media_type="image/png",
-            filename=MAP1_FILENAME
-        )
+            map1_path = os.path.join(OUTPUT_DIR, MAP1_FILENAME)
 
+        with open(map1_path, 'rb') as f:
+            image_data = f.read()
+
+        return Response(
+            content=image_data,
+            media_type="image/png",
+            headers={"Content-Disposition": f"inline; filename={MAP1_FILENAME}"}
+        )
     except Exception as e:
         logger.error(" ❌ ERRORE NELL'ENDPOINT:", e)
         raise
