@@ -8,7 +8,8 @@ astropy
 astroplan
 matplotlib
 numpy
-crac-protobuf@ git+https://github.com/ara-astronomia/crac-protobuf@16-create-new-proto-geographic-and-data_image
+crac-protobuf @ git+https://github.com/ara-astronomia/crac-protobuf@16-create-new-proto-geographic-and-data_image
+astroquery>=0.4.11
 
 [dev]
 grpcio-tools>=1.64

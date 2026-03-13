@@ -65,7 +65,7 @@ export function updateCurtainsUI(data) {
             curtainButton.style.backgroundColor = enableGui.button_color.background_color || '';
             curtainButton.style.color = enableGui.button_color.text_color || '';
         }
-        curtainsEnabled = enableGui.label === 'LABEL_DISABLE'; // "Disattiva" = tende attive
+        curtainsEnabled = enableGui.label === 'LABEL_ENABLE'; // "Disattiva" = tende attive
     }
 
     // Aggiorna label per ogni tenda
@@ -97,6 +97,7 @@ export function updateCurtainsUI(data) {
 // CLICK HANDLER
 // =============================================================================
 async function handleCurtainClick() {
+    console.log('[Curtains] Click - curtainsEnabled:', curtainsEnabled, '- label:', curtainButton.textContent);
     if (!curtainButton || curtainButton.disabled) return;
 
     curtainButton.disabled = true;
