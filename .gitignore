@@ -28,3 +28,6 @@ crac_cloud/static/maps/
 # --- File di Sistema (Opzionale ma consigliato) ---
 .DS_Store
 Thumbs.db
+
+**/__pycache__/**
+**/*.egg-info/**

@@ -25,8 +25,8 @@ uv sync
 
 ### Execution
 ```bash
-# Start the FastAPI server with auto-reload
-uvicorn crac_cloud.app:app --reload
+# Start the FastAPI server with auto-reload using uv
+uv run uvicorn crac_cloud.app:app --reload
 ```
 The web interface is available at `http://127.0.0.1:8000`.
 
