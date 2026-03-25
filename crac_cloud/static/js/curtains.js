@@ -74,10 +74,14 @@ export function updateCurtainsUI(data) {
         const status = curtain.status || '';
         const statusData = STATUS_LABELS_MAP[status] || { text: status };
 
-        if (curtain.orientation === 'CURTAIN_EAST') {
+        const orientationKey = (curtain.orientation || '').toUpperCase();
+        const isEast = orientationKey === 'CURTAIN_EAST' || orientationKey === 'EAST';
+        const isWest = orientationKey === 'CURTAIN_WEST' || orientationKey === 'WEST';
+
+        if (isEast) {
             _setText('lbl_altezza_tenda_est',   `${angle.toFixed(1)}°`);
             _setStatus('lbl_status_tenda_est',  statusData);
-        } else if (curtain.orientation === 'CURTAIN_WEST') {
+        } else if (isWest) {
             _setText('lbl_altezza_tenda_ovest',  `${angle.toFixed(1)}°`);
             _setStatus('lbl_status_tenda_ovest', statusData);
         }

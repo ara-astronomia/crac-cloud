@@ -40,7 +40,7 @@ class CurtainsClient:
         else:
             self.DEGREE_PER_STEP = 0.0
             
-        logger.info(f"DEGREE_PER_STEP calculated: {self.DEGREE_PER_STEP}")
+        logger.debug(f"DEGREE_PER_STEP calculated: {self.DEGREE_PER_STEP}")
 
     def _steps_to_angle(self, steps):
         """
@@ -61,6 +61,7 @@ class CurtainsClient:
         request = curtains_pb2.CurtainsRequest(action=action)
         try:
             response = self.stub.SetAction(request)
+            logger.debug(f"DEBUG stato tende: {response}")  # Stampa l'intero oggetto di risposta per il debug  
             return self._parse_response(response)
         except grpc.RpcError as e:
             return {"error": str(e.details())}
@@ -83,23 +84,21 @@ class CurtainsClient:
     # --- 1. Parsing degli oggetti 'curtains' ---
         curtains_data = []
         for curtain in response.curtains:
-            status_enum_name = self._get_enum_name(curtain.status, curtains_pb2.CurtainStatus)         
-                        
+            status_enum_name = self._get_enum_name(curtain.status, curtains_pb2.CurtainStatus)
+
             # 2. Mappatura dell'ORIENTAMENTO
-            # 🛑 CORREZIONE: Passa la classe CurtainOrientation
-            orientation_enum_name = self._get_enum_name(curtain.orientation, curtains_pb2.CurtainOrientation)           
-            steps_value = curtain.steps             
-            # 3. Mappa il nome ENUM completo alla label UI (ad esempio, 'CURTAIN_CLOSED' -> 'Chiusa')
-            status_ui_label = STATUS_LABEL_MAP.get(status_enum_name, status_enum_name)
-            logger.debug(f"Status curtain:{orientation_enum_name}, {steps_value}, {status_ui_label}")
-            
-            # 4. Pulisci la stringa dell'orientamento per la risposta finale
-            # Se orientation_enum_name è 'CURTAIN_EAST', la sostituzione lo rende 'EAST'
-            orientation_name = orientation_enum_name.replace("CURTAIN_", "").title()
+            orientation_enum_name = self._get_enum_name(curtain.orientation, curtains_pb2.CurtainOrientation)
+            steps_value = curtain.steps
+
+            # 3. Mantieni enum come stato e orientamento grezzi per il frontend
+            #    Il frontend mappa poi in testo/colore usando STATUS_LABELS_MAP
+            status_enum_label = status_enum_name
+            status_ui_text = STATUS_LABEL_MAP.get(status_enum_name, status_enum_name)
+            logger.info(f"Status curtain:{orientation_enum_name}, {steps_value}, {status_ui_text}")
 
             curtains_data.append({
-                "orientation": orientation_name,
-                "status": status_ui_label,
+                "orientation": orientation_enum_name,
+                "status": status_enum_label,
                 "steps": steps_value,
                 "angle": self._steps_to_angle(steps_value)
             })
