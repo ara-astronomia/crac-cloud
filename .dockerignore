@@ -1,0 +1,14 @@
+.git
+.gitignore
+tests/
+.venv/
+.pytest_cache/
+*.egg-info/
+__pycache__/
+**/__pycache__/
+**/*.pyc
+crac_cloud/static/maps/
+crac_cloud/.env
+.DS_Store
+README.md
+CLAUDE.md

@@ -1,0 +1,11 @@
+services:
+  crac-cloud:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVER_IP=192.168.178.22
+      - SERVER_PORT=50051
+      - LOG_LEVEL=WARNING
+      - LOG_TO_FILE=false
+    restart: unless-stopped
