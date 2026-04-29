@@ -6,6 +6,16 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from astroquery.skyview import SkyView
+
+# Workaround: astroplan 0.10.1 passes grid=grid to SkyView.get_images(),
+# but astroquery >= 0.4.8 removed that parameter (issue astropy/astroplan#588).
+# Remove this patch once astroplan > 0.10.1 is released and the dependency is updated.
+_orig_get_images = SkyView.get_images
+def _get_images_no_grid(*args, **kwargs):
+    kwargs.pop('grid', None)
+    return _orig_get_images(*args, **kwargs)
+SkyView.get_images = _get_images_no_grid
+
 from astropy.coordinates import EarthLocation, SkyCoord
 from astropy.time import Time,TimeDelta
 import astropy.units as u
