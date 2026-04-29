@@ -146,6 +146,7 @@ body > * { position: relative; z-index: 1; }
 .border-with-text {
   border-color: var(--obs-border2) !important;
   background: transparent !important;
+  padding-top: 12px;
 }
 
 .border-with-text::before {
@@ -160,6 +161,7 @@ body > * { position: relative; z-index: 1; }
   border-color: rgba(100,160,255,0.2) !important;
   background: rgba(13,21,32,0.6) !important;
   border-radius: 8px !important;
+  padding-top: 12px;
 }
 
 .border-with-text-ext::before {
