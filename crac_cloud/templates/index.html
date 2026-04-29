@@ -3,174 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRaC -- Control Roof and Curtains by ARA</title>
+    <title>CRaC — Control Roof and Curtains by ARA</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/observatory-theme-crac.css">
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
-
 </head>
 <body>
 
+<!-- ── HEADER ─────────────────────────────────────────────────── -->
+<div class="obs-header">
+  <div class="obs-header-inner">
+    <img src="/static/logo_ara.jpg" alt="Logo ARA" class="obs-logo-img">
+    <div class="obs-logo-divider"></div>
+    <div class="obs-header-titles">
+      <div class="obs-header-title">CRaC</div>
+      <div class="obs-header-sub">Control Roof and Curtains — Frasso Sabino Observatory</div>
+    </div>
+    <div class="obs-header-spacer"></div>
+    <div class="obs-header-badge" id="obs-clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- ── CONTENUTO PRINCIPALE ───────────────────────────────────── -->
+<div class="obs-main">
+
     <p>{{ result }}</p>
+
     <div class="container">
         <div class="border-with-text-ext" data-text="Stato di CRaC">  
-            <label title="indica se il telescopio è connesso a CRaC" id="lbl_status" style="display: block; margin: 0 auto; text-align: center;" class="status-label">Nessun Errore Riscontrato </label>
+            <label title="indica se il telescopio è connesso a CRaC" id="lbl_status"
+                   style="display: block; margin: 0 auto; text-align: center;"
+                   class="status-label">Nessun Errore Riscontrato</label>
         </div>
     </div>
+
     <p></p>
+
     <div class="main-container">
         <div class="border-with-text-ext" data-text="Controllo 3T - Tetto-telescopio-Tende">
             <p></p>
             <div class="container">
                 <div class="border-with-text" data-text="Tetto">        
-                    <button id="btn-tetto" name="button_id" title="Apre e  chiude il tetto scorrevole" class="status-button" value="btn_tetto">Chiuso</button>
+                    <button id="btn-tetto" name="button_id"
+                            title="Apre e chiude il tetto scorrevole"
+                            class="status-button" value="btn_tetto">Chiuso</button>
                 </div>
-                
-                    <div class="border-with-text" data-text="Telescopio">
-                        <button id="btn-conn-telescopio" name="button_id" title="Connette e disconnette il telescopio a CRaC" class="status-button" value="conn_telescopio">Disconnesso</button>
-                        <button id="btn-park" name="button_id" title="porta il telescopio in posizione di park e disattiva il tracking" class="status-button" value="park_telescopio">Park</button>
-                        <button id="btn-flat" name="button_id" title="porta il telescopio in posizione di flat e disattiva il tracking con il pannello spento" class="status-button" value="flat_telescopio">Flat</button>
-                    </div>
-                
+                <div class="border-with-text" data-text="Telescopio">
+                    <button id="btn-conn-telescopio" name="button_id"
+                            title="Connette e disconnette il telescopio a CRaC"
+                            class="status-button" value="conn_telescopio">Disconnesso</button>
+                    <button id="btn-park" name="button_id"
+                            title="porta il telescopio in posizione di park e disattiva il tracking"
+                            class="status-button" value="park_telescopio">Park</button>
+                    <button id="btn-flat" name="button_id"
+                            title="porta il telescopio in posizione di flat e disattiva il tracking con il pannello spento"
+                            class="status-button" value="flat_telescopio">Flat</button>
+                </div>
                 <div class="border-with-text" data-text="Tende">
-                    <button id="btn-curtains" name="button_id" title="attiva e disattiva i motori delle tende" class="status-button" value="attiva_tende">Disattive</button>
+                    <button id="btn-curtains" name="button_id"
+                            title="attiva e disattiva i motori delle tende"
+                            class="status-button" value="attiva_tende">Disattive</button>
                 </div>
             </div>
         </div>
+
         <div class="border-with-text-ext" data-text="Alimentatori & Luci">
             <p></p>
             <div class="container">
                 <div class="border-with-text" data-text="Telescopio">
-                    <button id="btn-tele-switch" name="button_id" title="Accende e spegne l'alimentazione del telescopio" class="status-button" value="btn_power_telescope">Spento</button>
+                    <button id="btn-tele-switch" name="button_id"
+                            title="Accende e spegne l'alimentazione del telescopio"
+                            class="status-button" value="btn_power_telescope">Spento</button>
                 </div>
                 <div class="border-with-text" data-text="Dispositivi">
-                    <button id="btn-ccd-switch" name="button_id" title="Accende e spegne l'alimentazione dei dispositivi di ripresa, camera, fuocheggiatore, ecc" class="status-button"value="btn_power_camera">Spento</button>
+                    <button id="btn-ccd-switch" name="button_id"
+                            title="Accende e spegne l'alimentazione dei dispositivi di ripresa"
+                            class="status-button" value="btn_power_camera">Spento</button>
                 </div>
                 <div class="border-with-text" data-text="Luce Flat">
-                    <button id="btn-flat-light" name="button_id" title="Accende e spegne il pannello per le immagini flat e riavvia il tracking " class="status-button" value="btn_power_flat">Spento</button>
+                    <button id="btn-flat-light" name="button_id"
+                            title="Accende e spegne il pannello per le immagini flat e riavvia il tracking"
+                            class="status-button" value="btn_power_flat">Spento</button>
                 </div>
                 <div class="border-with-text" data-text="Luce Cupola">
-                    <button id="btn-dome-light" name="button_id" title="Accende e spegne le luci in cupola" class="status-button" value="btn_luce_cupola">Spento</button>
-                    <input type="checkbox" id="Autolight" name ="Autolight", value=false>
-                    <label title="abilita e disabilita l'accensione automatica della luce durante lo slewing del telesciopio" for="Autolight"> AutoLight</label>
+                    <button id="btn-dome-light" name="button_id"
+                            title="Accende e spegne le luci in cupola"
+                            class="status-button" value="btn_luce_cupola">Spento</button>
+                    <input type="checkbox" id="Autolight" name="Autolight" value="false">
+                    <label title="abilita e disabilita l'accensione automatica della luce durante lo slewing"
+                           for="Autolight"> AutoLight</label>
                 </div>
             </div>    
         </div>
     </div>
+
     <p></p>
+
     <div class="container-tende-telescopio">
         <div class="container-tende">
             <div class="border-with-text-ext" data-text="Stato tende">                    
-                <div class ="container-img-tende" style="position: relative;"> 
-                    <img id="roof-background" src="/static/images/background_curtains_close.png" 
-                        alt="Sfondo cupola" 
-                        style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 1;">
-                        <canvas id="curtainsCanvas" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 2;"></canvas>
+                <div class="container-img-tende" style="position: relative;"> 
+                    <img id="roof-background"
+                         src="/static/images/background_curtains_close.png" 
+                         alt="Sfondo cupola" 
+                         style="width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;z-index:1;">
+                    <canvas id="curtainsCanvas"
+                            style="width:100%;height:100%;position:absolute;top:0;left:0;z-index:2;"></canvas>
                 </div>
-                
                 <p></p>
                 <div class="container">
                     <div class="border-with-text-ext" data-text="Alt Ovest">
-                        <label title="indica l'altezza della tenda ovest" id="lbl_altezza_tenda_ovest" class="status-label" style="display: block; margin: 0 auto; text-align: center;">0°</label>
+                        <label title="indica l'altezza della tenda ovest"
+                               id="lbl_altezza_tenda_ovest"
+                               class="status-label"
+                               style="display:block;margin:0 auto;text-align:center;">0°</label>
                         <span id="value2"></span>
                     </div>
                     <div class="border-with-text-ext" data-text="Alt Est">
-                        <label title="indica l'altezza della tenda Est" id="lbl_altezza_tenda_est" class="status-label" style="display: block; margin: 0 auto; text-align: center;">0°</label>
+                        <label title="indica l'altezza della tenda Est"
+                               id="lbl_altezza_tenda_est"
+                               class="status-label"
+                               style="display:block;margin:0 auto;text-align:center;">0°</label>
                         <span id="value1"></span>
                     </div>                                        
                     <div class="border-with-text-ext" data-text="Tenda Est">
-                        <label title="indica lo stato della tenda Est" id="lbl_status_tenda_est" class="status-label" style="display: block; margin: 0 auto; text-align: center;">CHIUSA</label>
+                        <label title="indica lo stato della tenda Est"
+                               id="lbl_status_tenda_est"
+                               class="status-label"
+                               style="display:block;margin:0 auto;text-align:center;">CHIUSA</label>
                     </div>
-                
                     <div class="border-with-text-ext" data-text="Tenda Ovest">
-                        <label title="indica lo stato della tenda ovest" id="lbl_status_tenda_ovest" class="status-label" style="display: block; margin: 0 auto; text-align: center;">CHIUSA</label>
+                        <label title="indica lo stato della tenda ovest"
+                               id="lbl_status_tenda_ovest"
+                               class="status-label"
+                               style="display:block;margin:0 auto;text-align:center;">CHIUSA</label>
                     </div> 
                 </div>
             </div>
         </div>
+
         <div class="container-telescopio">
-            <div class="border-with-text-ext" data-text="Stato telescopio" >
+            <div class="border-with-text-ext" data-text="Stato telescopio">
                 <div class="container">
-                    <div class ="container-chart">
-                        <div class ="container-img-chart-sky">
+                    <div class="container-chart">
+                        <div class="container-img-chart-sky">
                             <img id="fixed_sky_map" 
-                                src="/static/maps/fixed_field_map.png"
-                                alt="Mappa del Cielo a Campo Fisso" 
-                                class="map-image-style" />
+                                 src="/static/maps/fixed_field_map.png"
+                                 alt="Mappa del Cielo a Campo Fisso" 
+                                 class="map-image-style" />
                         </div>
-        
-                        <div class ="container-img-chart-telescopio">
+                        <div class="container-img-chart-telescopio">
                             <img id="tracking_chart" 
-                                src="/maps/tracking_chart" 
-                                alt="Grafico di Tracciato Alt-Az" 
-                                class="map-image-style" />
+                                 src="/maps/tracking_chart" 
+                                 alt="Grafico di Tracciato Alt-Az" 
+                                 class="map-image-style" />
                         </div>
                     </div>
                 </div>
                 <p></p>
-                    <div class="container">
-                        <div class="border-with-text-ext" data-text="Altezza">
-                            <label title="indica l'altezza attuale del telescopio" id="lbl_status_altezza_telescopio" class="status-label" style="display: block; margin: 0 auto; text-align: center;">0</label>
-                            <span id="value3"></span>
-                        </div>
-                        <div class="border-with-text-ext" data-text="Azimuth">
-                            <label title="indica l'azimuth attuale del telescopio" id="lbl_status_azimuth_telescopio" class="status-label" style="display: block; margin: 0 auto; text-align: center;">0</label>
-                            <span id="value4"></span>
-                        </div>                          
-                        <div class="border-with-text-ext" data-text="Airmass">
-                        <label title="Valore dell'airmass alla posizione attuale del telescopio, per Airmass > 4 viene visualizzato 'High Airmass'" id="airmass"  class="status-label" style="display: block; margin: 0 auto; text-align: center;">No data</label>
+                <div class="container">
+                    <div class="border-with-text-ext" data-text="Altezza">
+                        <label title="indica l'altezza attuale del telescopio"
+                               id="lbl_status_altezza_telescopio"
+                               class="status-label"
+                               style="display:block;margin:0 auto;text-align:center;">0</label>
+                        <span id="value3"></span>
+                    </div>
+                    <div class="border-with-text-ext" data-text="Azimuth">
+                        <label title="indica l'azimuth attuale del telescopio"
+                               id="lbl_status_azimuth_telescopio"
+                               class="status-label"
+                               style="display:block;margin:0 auto;text-align:center;">0</label>
+                        <span id="value4"></span>
+                    </div>                          
+                    <div class="border-with-text-ext" data-text="Airmass">
+                        <label title="Valore dell'airmass alla posizione attuale del telescopio"
+                               id="airmass"
+                               class="status-label"
+                               style="display:block;margin:0 auto;text-align:center;">No data</label>
                         <span id="value5"></span>
-                        </div>
-                        <div class="border-with-text-ext" data-text="Connessione">
-                        <label title="indica se il telescopio è connesso a CRaC" id="lbl_status_connect" class="status-label" >Disconnesso</label>
+                    </div>
+                    <div class="border-with-text-ext" data-text="Connessione">
+                        <label title="indica se il telescopio è connesso a CRaC"
+                               id="lbl_status_connect"
+                               class="status-label">Disconnesso</label>
                         <span id="value6"></span>
-                        </div>
-                        <div class="border-with-text-ext" data-text="Tracking">
-                        <label title="indica se il telescopio è connesso a CRaC" id="lbl_status_tracking" class="status-label" >Track Off</label>
+                    </div>
+                    <div class="border-with-text-ext" data-text="Tracking">
+                        <label title="indica lo stato del tracking"
+                               id="lbl_status_tracking"
+                               class="status-label">Track Off</label>
                         <span id="value7"></span>
-                        </div>
-                        <div class="border-with-text-ext" data-text="Slewing">
-                        <label title="indica se il telescopio è connesso a CRaC" id="lbl_status_slewing" class="status-label" >Slewing Off</label>
+                    </div>
+                    <div class="border-with-text-ext" data-text="Slewing">
+                        <label title="indica se il telescopio è in slewing"
+                               id="lbl_status_slewing"
+                               class="status-label">Slewing Off</label>
                         <span id="value8"></span>
-                        </div>
                     </div>
                 </div>
             </div>
+        </div>
     </div>
+
     <p></p>
+
     <div class="border-with-text-ext" data-text="Stato Alimentazione - UPS">
         <div class="container-ups">
             <div class="border-with-text" data-text="Cupola">
-                <p>Batterie: 
+                <p>Batterie:
                     <span id="value_batt_dome"></span> %
-                <meter class="custom-meter" min="0" max="100" low="50" high="75" optimum="90" id="percent_batt_dome" value="0"></meter></p>
-                <p>Tensione Rete: 
+                    <meter class="custom-meter" min="0" max="100" low="50" high="75"
+                           optimum="90" id="percent_batt_dome" value="0"></meter>
+                </p>
+                <p>Tensione Rete:
                     <span id="value_volt_dome"></span> V
-                <meter class="custom-meter" min="0" max="240" low="195" high="215" optimum="220" id="volt_rete_dome" value="0"></meter></p>
+                    <meter class="custom-meter" min="0" max="240" low="195" high="215"
+                           optimum="220" id="volt_rete_dome" value="0"></meter>
+                </p>
             </div>
             <div class="border-with-text" data-text="Control Room">
-                <p>Batterie: 
+                <p>Batterie:
                     <span id="value_batt_room"></span> %
-                <meter class="custom-meter" min="0" max="100" low="50" high="75" optimum="90" id="percent_batt_room" value="0"></meter></p>
-                <p>Tensione Rete: 
+                    <meter class="custom-meter" min="0" max="100" low="50" high="75"
+                           optimum="90" id="percent_batt_room" value="0"></meter>
+                </p>
+                <p>Tensione Rete:
                     <span id="value_volt_room"></span> V
-                <meter class="custom-meter" min="0" max="240" low="200" high="215" optimum="220" id="volt_rete_room" value="0"></meter></p>
+                    <meter class="custom-meter" min="0" max="240" low="200" high="215"
+                           optimum="220" id="volt_rete_room" value="0"></meter>
+                </p>
             </div>
         </div>
     </div>
+
     <p></p>
-    <div class="border-with-text-ext" data-text="Dati Meteo" style="display: block; margin: 0 auto; text-align: center;">
-            <div class = 'container'>
-                <div class="border-with-text" data-text="" >
-                    <p>Tendenza Barometro (3 ore): {{items.get('barometer_trend')}} mmbar</p> 
-                </div>
-                <div class="border-with-text" data-text="">
-                    <p> Previsioni: {{items.get('barometer-trend-forecast')}}</p>
-                </div>
-            </div>
-        <div class = 'container'>
-            <label title="indica lo stato delle condizioni meteo" id="cond_meteo" style="display: block; margin: 0 auto; text-align: center;" class="status-label">Condizioni meteo non conosciute </label>    
+
+    <div class="border-with-text-ext" data-text="Dati Meteo"
+         style="display:block;margin:0 auto;text-align:center;">
+        <div class="container">
+            <label title="indica lo stato delle condizioni meteo"
+                   id="cond_meteo"
+                   style="display:block;margin:0 auto;text-align:center;"
+                   class="status-label">Condizioni meteo non conosciute</label>    
         </div>
-            <div class="container-meteo">
+        <div class="container-meteo">
             <svg id="gauge-temperature"></svg>
             <svg id="gauge-humidity"></svg>
             <svg id="gauge-wind_speed"></svg>
@@ -178,12 +255,25 @@
             <svg id="gauge-barometer"></svg>
             <svg id="gauge-rain_rate"></svg>
         </div>
-        
     </div>
-    
-        <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-        <script type="module" src="/static/js/coordinator.js"></script>
-        
-     
+
+</div><!-- /obs-main -->
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script type="module" src="/static/js/coordinator.js"></script>
+
+<script>
+// Orologio nell'header
+function updateClock(){
+    const now = new Date();
+    const t = now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const d = now.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const el = document.getElementById('obs-clock');
+    if(el) el.textContent = d + '  ' + t;
+}
+setInterval(updateClock, 1000);
+updateClock();
+</script>
+
 </body>
 </html>
