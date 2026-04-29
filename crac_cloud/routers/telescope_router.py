@@ -27,19 +27,10 @@ telescope_client = TelescopeClient(host=grpc_host, port=grpc_port)
 @router.get("/status")
 def get_telescope_status():
     """Endpoint per ottenere lo stato completo del telescopio (connessione, coordinate, stato)."""
-
-    response_data = telescope_client.get_status()
     try:
-        # Assumiamo che il gRPC client abbia un metodo get_status()
-        response_data = telescope_client.get_status()
-        
-        # 🎯 Il frontend JS si aspetta la chiave 'status' e 'gui' (o 'buttons_gui' in questo caso)
-        # La funzione del client deve parsare e restituire i dati nel formato corretto.
-        return response_data
-        
+        return telescope_client.get_status()
     except Exception as e:
-        logger.error(f"❌ Errore nella richiesta di stato del telescopio: {e}")    
-        # In caso di errore gRPC, restituiamo un errore standard
+        logger.error(f"❌ Errore nella richiesta di stato del telescopio: {e}")
         return {
             "status": "ERROR",
             "error": str(e),
@@ -77,10 +68,11 @@ def set_telescope_action(data: TelescopeActionModel):
         else:
             raise HTTPException(status_code=400, detail="Invalid action. Supported: CONNECT, DISCONNECT, PARK_POSITION, FLAT_POSITION.")
 
+    except HTTPException:
+        raise
     except AttributeError:
         raise HTTPException(status_code=400, detail="Invalid telescope action")
     except Exception as e:
-        # Gestione degli errori gRPC o di altro tipo
         raise HTTPException(status_code=500, detail=f"Failed to execute action: {e}")
 
 # L'endpoint power_on è asincrono e dovrebbe usare HTTPException
