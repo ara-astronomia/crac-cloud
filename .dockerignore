@@ -7,7 +7,8 @@ tests/
 __pycache__/
 **/__pycache__/
 **/*.pyc
-crac_cloud/static/maps/
+crac_cloud/static/maps/fixed_field_map.png
+crac_cloud/static/maps/tracking_chart.png
 crac_cloud/.env
 .DS_Store
 README.md

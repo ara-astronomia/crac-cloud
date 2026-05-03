@@ -16,10 +16,12 @@ env/
 .eggs/
 
 # --- File e Cartelle Specifici del Progetto ---
-# Cartella astroplan specifica
 crac_cloud/astroplan/
-# Cartella delle mappe generate all'avvio dell'app
-crac_cloud/static/maps/
+crac_cloud/static/maps/fixed_field_map.png
+crac_cloud/static/maps/tracking_chart.png
+crac_cloud/static/maps/tracking_error.png
+crac_cloud/.env
+crac_cloud/templates/old_index.html
 
 # --- File Scaricati e Archivi ---
 # Ignora l'archivio grpcurl e futuri file .tar.gz
