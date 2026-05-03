@@ -23,7 +23,6 @@ dependencies = [
     "numpy", # Dipendenza di Matplotlib e Astropy
     # Per connettersi a un repository GitHub come dipendenza
     "crac-protobuf @ git+https://github.com/ara-astronomia/crac-protobuf@16-create-new-proto-geographic-and-data_image",
-    #"crac-protobuf @ file:///home/raniero/Documenti/GitHub/crac-protobuf",
     "astroquery>=0.4.11",
 ]
 
