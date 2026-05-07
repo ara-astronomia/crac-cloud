@@ -1,0 +1,310 @@
+/*
+ * observatory-theme-crac.css
+ * Tema Observatory Tools per CRaC — Control Roof and Curtains
+ * Da includere DOPO style.css — sovrascrive solo estetica, non logica
+ * I gauge D3/SVG non vengono toccati (colori gestiti da coordinator.js)
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600&display=swap');
+
+/* ── Variabili ───────────────────────────────────────────────── */
+:root {
+  --obs-bg:      #080c14;
+  --obs-bg2:     #0d1520;
+  --obs-bg3:     #111d2e;
+  --obs-border:  rgba(100,160,255,0.15);
+  --obs-border2: rgba(100,160,255,0.25);
+  --obs-accent:  #4a9eff;
+  --obs-accent2: #7ec8ff;
+  --obs-gold:    #f0c060;
+  --obs-green:   #50e090;
+  --obs-red:     #ff6060;
+  --obs-purple:  #a78bfa;
+  --obs-text:    rgba(210,230,255,0.92);
+  --obs-text2:   rgba(150,190,255,0.65);
+  --obs-mono:    'Space Mono', monospace;
+  --obs-sans:    'Outfit', sans-serif;
+  /* colore di sfondo usato dai pseudo-elementi :before per "coprire" il bordo */
+  --obs-label-bg: #080c14;
+}
+
+/* ── Body e sfondo stellato ──────────────────────────────────── */
+body {
+  background-color: var(--obs-bg) !important;
+  font-family: var(--obs-sans) !important;
+  color: var(--obs-text) !important;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(1px 1px at 8%  12%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px 1px at 22% 38%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 38% 7%,  rgba(255,255,255,0.60) 0%, transparent 100%),
+    radial-gradient(1px 1px at 53% 28%, rgba(255,255,255,0.25) 0%, transparent 100%),
+    radial-gradient(1px 1px at 68% 52%, rgba(255,255,255,0.40) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 83% 18%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px 1px at 91% 68%, rgba(255,255,255,0.30) 0%, transparent 100%),
+    radial-gradient(1px 1px at 14% 78%, rgba(255,255,255,0.28) 0%, transparent 100%),
+    radial-gradient(1px 1px at 58% 83%, rgba(255,255,255,0.22) 0%, transparent 100%),
+    radial-gradient(1px 1px at 4%  52%, rgba(255,255,255,0.18) 0%, transparent 100%),
+    radial-gradient(1px 1px at 44% 62%, rgba(255,255,255,0.15) 0%, transparent 100%),
+    radial-gradient(1px 1px at 76% 88%, rgba(255,255,255,0.20) 0%, transparent 100%);
+}
+
+body > * { position: relative; z-index: 1; }
+
+/* ── Header sticky ───────────────────────────────────────────── */
+.obs-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  background: rgba(8,12,20,0.97);
+  border-bottom: 0.5px solid var(--obs-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  margin-bottom: 16px;
+}
+
+.obs-header-inner {
+  max-width: 1460px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 58px;
+}
+
+.obs-logo-img {
+  height: 38px;
+  width: auto;
+  opacity: 0.92;
+  filter: drop-shadow(0 0 6px rgba(74,158,255,0.3));
+}
+
+.obs-logo-divider {
+  width: 0.5px;
+  height: 28px;
+  background: var(--obs-border2);
+  flex-shrink: 0;
+}
+
+.obs-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.obs-header-title {
+  font-family: var(--obs-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--obs-accent2);
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.obs-header-sub {
+  font-family: var(--obs-mono);
+  font-size: 10px;
+  color: var(--obs-text2);
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.obs-header-spacer { flex: 1; }
+
+.obs-header-badge {
+  font-family: var(--obs-mono);
+  font-size: 10px;
+  color: var(--obs-text2);
+  background: rgba(74,158,255,0.07);
+  border: 0.5px solid var(--obs-border2);
+  border-radius: 4px;
+  padding: 4px 10px;
+  letter-spacing: 0.5px;
+}
+
+/* ── Contenitore principale ──────────────────────────────────── */
+.obs-main {
+  max-width: 1460px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 20px 20px;
+}
+
+/* ── Bordi con etichetta — FIX pseudo-elemento :before ───────── */
+/* Il colore background del :before deve matchare lo sfondo della pagina
+   altrimenti l'etichetta flottante non "taglia" correttamente il bordo */
+
+.border-with-text {
+  border-color: var(--obs-border2) !important;
+  background: transparent !important;
+  padding-top: 12px;
+}
+
+.border-with-text::before {
+  background: var(--obs-label-bg) !important;
+  color: var(--obs-accent) !important;
+  font-family: var(--obs-mono) !important;
+  font-size: 1.1vmin !important;
+  letter-spacing: 0.5px !important;
+}
+
+.border-with-text-ext {
+  border-color: rgba(100,160,255,0.2) !important;
+  background: rgba(13,21,32,0.6) !important;
+  border-radius: 8px !important;
+  padding-top: 12px;
+}
+
+.border-with-text-ext::before {
+  background: var(--obs-label-bg) !important;
+  color: var(--obs-accent2) !important;
+  font-family: var(--obs-mono) !important;
+  font-size: 1vmin !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+}
+
+/* ── Status label ────────────────────────────────────────────── */
+.status-label {
+  font-family: var(--obs-mono) !important;
+  font-size: 1.6vmin !important;
+  background: rgba(8,12,20,0.85) !important;
+  color: var(--obs-accent2) !important;
+  border: 0.5px solid var(--obs-border2) !important;
+  border-radius: 4px !important;
+  padding: 2px 8px !important;
+}
+
+/* stati specifici */
+.status-label-success {
+  background: rgba(80,224,144,0.15) !important;
+  color: var(--obs-green) !important;
+  border-color: rgba(80,224,144,0.35) !important;
+}
+
+.status-label-failure {
+  background: rgba(255,96,96,0.15) !important;
+  color: var(--obs-red) !important;
+  border-color: rgba(255,96,96,0.35) !important;
+}
+
+/* ── Status button ───────────────────────────────────────────── */
+.status-button {
+  font-family: var(--obs-mono) !important;
+  font-size: 1.6vmin !important;
+  background: rgba(74,158,255,0.08) !important;
+  color: var(--obs-text) !important;
+  border: 0.5px solid var(--obs-border2) !important;
+  border-radius: 5px !important;
+  padding: 4px 10px !important;
+  cursor: pointer !important;
+  transition: background 0.15s, transform 0.1s !important;
+  min-width: 80px;
+}
+
+.status-button:hover {
+  background: rgba(74,158,255,0.16) !important;
+  transform: scale(1.03) !important;
+}
+
+.status-button:active { transform: scale(0.97) !important; }
+
+/* stati del pulsante */
+.status-button.status-closed {
+  background: rgba(8,12,20,0.8) !important;
+  color: var(--obs-text2) !important;
+  border-color: var(--obs-border) !important;
+}
+
+.status-button.status-success {
+  background: rgba(80,224,144,0.15) !important;
+  color: var(--obs-green) !important;
+  border-color: rgba(80,224,144,0.4) !important;
+}
+
+.status-button.status-failure {
+  background: rgba(255,96,96,0.12) !important;
+  color: var(--obs-red) !important;
+  border-color: rgba(255,96,96,0.35) !important;
+}
+
+.status-button.status-transition {
+  background: rgba(240,192,96,0.12) !important;
+  color: var(--obs-gold) !important;
+  border-color: rgba(240,192,96,0.35) !important;
+}
+
+.status-button.status-stopped {
+  background: rgba(167,139,250,0.12) !important;
+  color: var(--obs-purple) !important;
+  border-color: rgba(167,139,250,0.35) !important;
+}
+
+/* ── Testo paragrafi e label generici ────────────────────────── */
+body p {
+  font-family: var(--obs-sans) !important;
+  font-size: 1.4vmin !important;
+  color: var(--obs-text2) !important;
+}
+
+/* ── Meter (UPS batterie/tensione) ───────────────────────────── */
+.custom-meter {
+  height: 18px !important;
+}
+
+.custom-meter::-webkit-meter-bar {
+  background: rgba(8,12,20,0.8) !important;
+  border: 0.5px solid var(--obs-border) !important;
+  border-radius: 6px !important;
+}
+
+.custom-meter::-webkit-meter-optimum-value {
+  background: var(--obs-green) !important;
+  border-radius: 6px !important;
+}
+
+.custom-meter::-webkit-meter-suboptimum-value {
+  background: var(--obs-gold) !important;
+  border-radius: 6px !important;
+}
+
+.custom-meter::-webkit-meter-even-less-good-value {
+  background: var(--obs-red) !important;
+  border-radius: 6px !important;
+}
+
+/* ── Checkbox AutoLight ──────────────────────────────────────── */
+input[type="checkbox"] {
+  accent-color: var(--obs-accent) !important;
+}
+
+label[for="Autolight"] {
+  font-family: var(--obs-mono) !important;
+  font-size: 1.4vmin !important;
+  color: var(--obs-text2) !important;
+}
+
+/* ── Canvas tende (solo cornice) ─────────────────────────────── */
+#curtainsCanvas {
+  border-radius: 4px !important;
+}
+
+/* ── Condizioni meteo label ──────────────────────────────────── */
+#cond_meteo {
+  font-size: 1.8vmin !important;
+}
+
+/* ── Airmass label colori dinamici (override se necessario) ─── */
+#airmass {
+  color: var(--obs-accent2) !important;
+}

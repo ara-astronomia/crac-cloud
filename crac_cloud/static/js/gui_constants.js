@@ -41,6 +41,8 @@ export const STATUS_LABELS_MAP = {
     "LABEL_OPENING":{text: "Chiusura", text_color: "orange", background_color: "white"},
     "LABEL_CLOSING":{text: "Apertura", text_color: "orange", background_color: "white"},
     "LABEL_ERROR":{text: "Errore", text_color: "white", background_color: "red"},
+    "LABEL_DISABLE": { text: "Disattiva", text_color: "white", background_color: "green" },
+    "LABEL_ENABLE":  { text: "Attiva",    text_color: "white", background_color: "red" },
     "ON":{text: "On", text_color: "green", background_color: "white"},
     "OFF":{text: "Off", text_color: "black", background_color: "white"},
     "STAND_BY":{text: "Standby", text_color: "orange", background_color: "white"},

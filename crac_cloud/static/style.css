@@ -223,12 +223,6 @@ meter {
     flex:2;
 }
 .container-img-tende {
-    /* Proprietà di adattamento dell'immagine di sfondo */
-    background-image: url('/static/images/cielo_stellato.gif'); 
-    background-size: cover;          /* Regola l'immagine per coprire tutto il container */
-    background-repeat: no-repeat;    /* Evita la ripetizione */
-    background-position: center center; /* Centra l'immagine */
-
     /* Proprietà Flexbox non necessarie per l'adattamento, ma utili se ha contenuti interni */
     display: flex;
     justify-content: center; 
@@ -238,55 +232,41 @@ meter {
 }
 
 .container-chart {
-    /* ABILITA FLEXBOX: Affianca i figli */
+    /* Mantenute le proprietà di base */
     display: flex; 
-    
-    /* Dispone i blocchi in riga */
     flex-direction: row; 
     align-items: center;
-    
-    /* Distribuisce lo spazio tra i due grafici */
     justify-content: center; 
-    
-    /* Permette ai grafici di adattarsi alla larghezza disponibile */
     height: 100%; 
-    
-    /* Aggiungi padding o margini se necessario */
     gap: 10px; 
-    flex:2;
+    flex: 2; /* Non necessario per il ridimensionamento, ma ok per il layout */
 }
 
-.container-img-chart-sky {
-    /* Proprietà di adattamento dell'immagine di sfondo */
-    background-image: url('/static/images/chart_astroplan.png'); 
-    background-size: cover;          /* Regola l'immagine per coprire tutto il container */
-    background-repeat: no-repeat;    /* Evita la ripetizione */
-    background-position: center center; /* Centra l'immagine */
+/* Regola per adattare TUTTE le immagini all'interno dei contenitori */
+.map-image-style {
+    /* Regola CRUCIALE: L'immagine non supererà mai la larghezza del suo contenitore */
+    width: 80%; 
+    height: auto; 
+    
+    /* Proprietà di visualizzazione per gestire l'immagine come blocco */
+    display: block; 
+}
 
-    /* Proprietà Flexbox non necessarie per l'adattamento, ma utili se ha contenuti interni */
-    display: flex;
-    justify-content: center; 
-    align-items: center; 
-    aspect-ratio: 16 / 9;
-    width: 49%; /* Usa meno del 50% per lasciare un piccolo spazio tra i due */
-    flex-shrink: 0; /* Impedisce che si rimpiccioliscano troppo se lo spazio è limitato */
-    }
+.container-img-chart-sky,
 .container-img-chart-telescopio {
-    /* Proprietà di adattamento dell'immagine di sfondo */
-    background-image: url('/static/images/chart_tele_position_astroplan.png'); 
-    background-size: cover;          /* Regola l'immagine per coprire tutto il container */
-    background-repeat: no-repeat;    /* Evita la ripetizione */
-    background-position: center center; /* Centra l'immagine */
-
-    /* Proprietà Flexbox non necessarie per l'adattamento, ma utili se ha contenuti interni */
     display: flex;
     justify-content: center; 
     align-items: center; 
-    aspect-ratio: 16 / 9;
-    width: 49%; /* Usa meno del 50% per lasciare un piccolo spazio tra i due */
-    flex-shrink: 0; /* Impedisce che si rimpiccioliscano troppo se lo spazio è limitato */
     
+    /* Regola di adattamento: Ogni contenitore occupa metà dello spazio */
+    width: 49%; 
     
+    /* Rimuovi flex-shrink: 0! Permettiamo al contenitore di ridursi */
+    flex-shrink: 1; /* Oppure non specificarlo affatto, il default è 1 */
+    
+    /* Mantieni l'aspect-ratio se le immagini hanno un rapporto 16:9 */
+    /* Se le tue immagini generate sono quadrate, usa 1/1 */
+    aspect-ratio: 16 / 9; 
 }
 canvas {
     width: 150px; /* Imposta una larghezza fissa per i canvas */

@@ -1,9 +1,13 @@
 # routers/telescope_router.py
+import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from ..grpc_cloud.telescope_cloud import TelescopeClient
 from crac_cloud.config import Config
 from crac_protobuf import telescope_pb2
+
+logger = logging.getLogger(__name__)
+
 from ..state import GLOBAL_CLIENT_STATE
 
 router = APIRouter(prefix="/telescope", tags=["Telescope"])
@@ -23,19 +27,10 @@ telescope_client = TelescopeClient(host=grpc_host, port=grpc_port)
 @router.get("/status")
 def get_telescope_status():
     """Endpoint per ottenere lo stato completo del telescopio (connessione, coordinate, stato)."""
-    #print("Ottenimento stato telescopio...")
-    response_data = telescope_client.get_status()
     try:
-        # Assumiamo che il gRPC client abbia un metodo get_status()
-        response_data = telescope_client.get_status()
-        
-        # 🎯 Il frontend JS si aspetta la chiave 'status' e 'gui' (o 'buttons_gui' in questo caso)
-        # La funzione del client deve parsare e restituire i dati nel formato corretto.
-        return response_data
-        
+        return telescope_client.get_status()
     except Exception as e:
-        print(f"Errore nella richiesta di stato del telescopio: {e}")
-        # In caso di errore gRPC, restituiamo un errore standard
+        logger.error(f"❌ Errore nella richiesta di stato del telescopio: {e}")
         return {
             "status": "ERROR",
             "error": str(e),
@@ -46,49 +41,49 @@ def get_telescope_status():
 @router.post("/set_action")
 def set_telescope_action(data: TelescopeActionModel):
     """Endpoint per inviare un'azione (CONNECT, DISCONNECT, PARK, FLAT) al telescopio."""
-    print(f"Azione telescopio richiesta: {data.action}, Autolight: {data.autolight}")
+
     try:
         action = data.action
         
         # 1. Gestione CONNECT/DISCONNECT
         if action == "TELESCOPE_CONNECT":
-            print(f"Connessione al telescopio... {telescope_client}")
+            logger.info(f"Connessione al telescopio... {telescope_client}") 
             return telescope_client.connect()
         elif action == "TELESCOPE_DISCONNECT":
-            print(f"Disconnetto il telescopio... {telescope_client}")
+            logger.info(f"Disconnetto il telescopio... {telescope_client}")
             return telescope_client.disconnect()
             
         # 2. Gestione PARK/FLAT
         elif action in ["PARK_POSITION", "FLAT_POSITION", "CHECK_TELESCOPE"]:
             GLOBAL_CLIENT_STATE.autolight_status = data.autolight
-            print(f" siamo nella elif pork o flat:   {action}")
             try:
                 action_name_in_pb2 = action 
                 action_enum = getattr(telescope_pb2, action_name_in_pb2)
-                print(f"action enum: {action_enum}, {action_name_in_pb2}")
+                logger.info(f"action enum: {action_enum}, {action_name_in_pb2}")
             except AttributeError:
                 # 🎯 TENTA 2: Se fallisce, tenta l'accesso diretto alla classe ENUM (la tua versione)
                 action_enum = getattr(telescope_pb2.TelescopeAction, action)#autolight1=data.autolight
-                print(f'questa è la action_enum: {action_enum}')            
+                logger.info(f'action_enum: {action_enum}')            
             return telescope_client.set_action(action=action_enum, autolight=data.autolight)
         else:
             raise HTTPException(status_code=400, detail="Invalid action. Supported: CONNECT, DISCONNECT, PARK_POSITION, FLAT_POSITION.")
 
+    except HTTPException:
+        raise
     except AttributeError:
         raise HTTPException(status_code=400, detail="Invalid telescope action")
     except Exception as e:
-        # Gestione degli errori gRPC o di altro tipo
         raise HTTPException(status_code=500, detail=f"Failed to execute action: {e}")
 
 # L'endpoint power_on è asincrono e dovrebbe usare HTTPException
     
 @router.post("/telescope/power_on")
 async def power_on_telescope():
-    print(f"Powering on the telescope...{response_data}")
     # Chiama la logica del client/simulatore
     try:
         response_data = await telescope_client.power_on()
         return {"message": "Telescope powered on successfully", "status": response_data}
     except Exception as e:
+        logger.error(f"❌ Errore durante l'accensione del telescopio: {e}")
         # Gestione degli errori, se il simulatore non risponde
         raise HTTPException(status_code=500, detail=f"Failed to power on: {e}")
