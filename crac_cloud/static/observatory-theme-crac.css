@@ -144,9 +144,11 @@ body > * { position: relative; z-index: 1; }
    altrimenti l'etichetta flottante non "taglia" correttamente il bordo */
 
 .border-with-text {
-  border-color: var(--obs-border2) !important;
-  background: transparent !important;
-  padding-top: 12px;
+    border: 1px solid var(--obs-border2);
+    position: relative;
+    padding: 15px 10px 10px 10px;
+    margin-top: 1px;
+    background: transparent;
 }
 
 .border-with-text::before {
@@ -161,7 +163,7 @@ body > * { position: relative; z-index: 1; }
   border-color: rgba(100,160,255,0.2) !important;
   background: rgba(13,21,32,0.6) !important;
   border-radius: 8px !important;
-  padding-top: 12px;
+  padding-top: 6px;
 }
 
 .border-with-text-ext::before {
