@@ -3,7 +3,7 @@
 // Tutti gli altri moduli importano da qui. Nessun fetch() altrove.
 // =============================================================================
 
-const DEFAULT_TIMEOUT_MS = 8000;
+const DEFAULT_TIMEOUT_MS = 10000;
 
 /**
  * Fetch con timeout automatico.
@@ -18,7 +18,8 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_M
         return await response.json();
     } catch (err) {
         if (err.name === 'AbortError') {
-            console.warn(`[API] Timeout (${timeoutMs}ms): ${url}`);
+            // Timeout - non loggare per ridurre spam quando server gRPC non risponde
+            // console.warn(`[API] Timeout (${timeoutMs}ms): ${url}`);
         } else {
             console.warn(`[API] Errore fetch ${url}:`, err.message);
         }
@@ -31,8 +32,8 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_M
 /**
  * GET generico — restituisce sempre un oggetto (mai undefined/null).
  */
-export async function apiGet(endpoint) {
-    return fetchWithTimeout(endpoint);
+export async function apiGet(endpoint, timeoutMs = DEFAULT_TIMEOUT_MS) {
+    return fetchWithTimeout(endpoint, {}, timeoutMs);
 }
 
 /**
@@ -74,9 +75,16 @@ export const curtainsApi = {
     disable:   () => apiPost('/curtains/control', { action: 'DISABLE' }),
 };
 
+// --- Cover Mirror ---
+export const coverMirrorApi = {
+    getStatus: () => apiGet('/cover_mirror/status'),
+    open:      () => apiPost('/cover_mirror/set_action', { action: 'OPEN_COVER_MIRROR' }),
+    close:     () => apiPost('/cover_mirror/set_action', { action: 'CLOSE_COVER_MIRROR' }),
+};
+
 // --- Pulsanti / Switch ---
 export const buttonsApi = {
-    getStatus:   ()                          => apiGet('/buttons/status'),
+    getStatus:   ()                          => apiGet('/buttons/status', 15000),
     toggle:      (key, action = 'TURN_ON')   => apiPost('/buttons/set_action', { key, action }),
 };
 

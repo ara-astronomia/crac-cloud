@@ -9,7 +9,7 @@ requires-python = ">=3.12"
 
 dependencies = [
     # Client gRPC e Protobuf
-    "grpcio >=1.64.1",
+    "grpcio>=1.80.0",
     "protobuf >=5.27.1",
     # Framework web e server
     "fastapi >=0.117.1",
@@ -22,7 +22,7 @@ dependencies = [
     "matplotlib", # Per generare i file immagine PNG (savefig)
     "numpy", # Dipendenza di Matplotlib e Astropy
     # Per connettersi a un repository GitHub come dipendenza
-    "crac-protobuf @ git+https://github.com/ara-astronomia/crac-protobuf@16-create-new-proto-geographic-and-data_image",
+    "crac-protobuf @ /home/raniero/Documenti/GitHub/crac-protobuf",
     "astroquery>=0.4.11",
 ]
 

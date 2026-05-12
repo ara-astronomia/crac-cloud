@@ -23,11 +23,11 @@ class ButtonClient:
             action=action,
             )
         try:
-            response = self.stub.SetAction(request) 
+            response = self.stub.SetAction(request, timeout=5.0) 
             # Qui usiamo un parser specifico per ButtonResponse
             return self._parse_button_response(response) 
         except grpc.RpcError as e:
-            logger.error(f" ❌ Errore RPC (Scrittura) per Tipo {button_type.name}: {e.details()}")
+            logger.error(f" ❌ Errore RPC (Scrittura) per Tipo {button_pb2.ButtonType.Name(button_type)}: {e.details()}")
             return {"status": "error", "message": f"Errore gRPC durante l'azione: {e.details()}"}
         
     def get_single_switch_status(self, button_key_str, button_type):
@@ -39,13 +39,13 @@ class ButtonClient:
             action=button_pb2.ButtonAction.CHECK_BUTTON,
         )
         try:
-            response = self.stub.SetAction(request)
+            response = self.stub.SetAction(request, timeout=5.0)
 
             parsed_response = self._parse_button_response(response)
             parsed_response["key"] = button_key_str # Aggiungi la chiave alla radice per il router
             return parsed_response
         except grpc.RpcError as e:
-            logger.error(f" ❌ Errore RPC (Lettura) per {button_key_str} (Tipo {button_type.name}): {e.details()}")
+            logger.error(f" ❌ Errore RPC (Lettura) per {button_key_str} (Tipo {button_pb2.ButtonType.Name(button_type)}): {e.details()}")
             return {"error": str(e.details()), "status": "UNKNOWN"}
         
     def _parse_button_response(self, response: button_pb2.ButtonResponse):

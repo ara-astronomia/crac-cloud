@@ -2,6 +2,8 @@
 import os
 import logging
 import logging.handlers
+from datetime import datetime
+
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -14,7 +16,8 @@ from .routers import (
     curtains_router,
     telescope_router,
     ups_router,
-    map_router
+    map_router,
+    cover_mirror_router,
 )
 from fastapi.responses import HTMLResponse
 
@@ -42,6 +45,16 @@ app = FastAPI()
 # Monta la cartella statica
 app.mount("/static", StaticFiles(directory="crac_cloud/static"), name="static")
 
+# Disabilita la cache dei file statici in modo da caricare sempre la versione aggiornata del JS
+@app.middleware("http")
+async def no_cache_static(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
 # Configura il motore di template, puntando alla cartella dei template
 templates = Jinja2Templates(directory="crac_cloud/templates")
 
@@ -53,9 +66,14 @@ app.include_router(curtains_router.router)
 app.include_router(telescope_router.router)
 app.include_router(ups_router.router)
 app.include_router(map_router.router) #, prefix="/maps", tags=["maps"])
+app.include_router(cover_mirror_router.router)
 
 @app.get("/")
 async def get_root(request: Request):
     # Passa un dizionario vuoto per 'items' al template per prevenire l'errore
     items = {}
-    return templates.TemplateResponse("index.html", {"request": request, "items": items})
+    static_version = int(datetime.utcnow().timestamp())
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request, "items": items, "static_version": static_version},
+    )

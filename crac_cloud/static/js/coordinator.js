@@ -7,12 +7,14 @@
 import { initRoofControl, updateRoofUI }             from './roof_control.js';
 import { initCurtains, updateCurtainsUI, updateRoofBackground } from './curtains.js';
 import { initTelescopeControl, updateTelescopeUI }    from './telescope_control.js';
-import { initButtons, updateButtonsUI }               from './buttons.js';
+import { initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI  } from './buttons.js';
 import { initUps, updateUpsUI }                       from './ups.js';
 import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap } from './maps.js';
 
-import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi } from './api.js';
+import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi } from './api.js';
+
+console.log('[CRaC] coordinator.js loaded');
 
 // =============================================================================
 // INTERVALLI DI POLLING (ms)
@@ -33,6 +35,7 @@ const INTERVALS = {
     weather:       60000,
     trackingChart: 30000,
     airmass:        5000,
+    cover_mirror:   3000,
 };
 
 // =============================================================================
@@ -79,8 +82,59 @@ async function pollCurtains() {
 
 async function pollButtons() {
     const data = await buttonsApi.getStatus();
+    console.log('[Coordinator] Buttons API response:', data);
     if (data && data.buttons) {
+        console.log('[Coordinator] Buttons data received:', data.buttons.length, 'items');
         updateButtonsUI(data.buttons);
+    } else {
+        console.warn('[Coordinator] No buttons data from API, using fallback');
+        // Fallback: mostra pulsanti in stato "Spento" con colori rossi
+        const fallbackButtons = [
+            {
+                key: 'KEY_TELE_SWITCH',
+                status: 'OFF',
+                button_gui: {
+                    label: 'LABEL_OFF',
+                    is_disabled: false,
+                    button_color: { text_color: 'white', background_color: 'red' }
+                }
+            },
+            {
+                key: 'KEY_CCD_SWITCH',
+                status: 'OFF',
+                button_gui: {
+                    label: 'LABEL_OFF',
+                    is_disabled: false,
+                    button_color: { text_color: 'white', background_color: 'red' }
+                }
+            },
+            {
+                key: 'KEY_FLAT_LIGHT',
+                status: 'OFF',
+                button_gui: {
+                    label: 'LABEL_OFF',
+                    is_disabled: false,
+                    button_color: { text_color: 'white', background_color: 'red' }
+                }
+            },
+            {
+                key: 'KEY_DOME_LIGHT',
+                status: 'OFF',
+                button_gui: {
+                    label: 'LABEL_OFF',
+                    is_disabled: false,
+                    button_color: { text_color: 'white', background_color: 'red' }
+                }
+            }
+        ];
+        updateButtonsUI(fallbackButtons);
+    }
+}
+
+async function pollCoverMirror() {
+    const data = await coverMirrorApi.getStatus();
+    if (data && Object.keys(data).length > 0) {
+        updateCoverMirrorUI(data);
     }
 }
 
@@ -171,19 +225,21 @@ async function init() {
     initCurtains();
     initTelescopeControl();
     initButtons();
+    initCoverMirror();
     initUps();
     await initGauges();   // async: carica gauge-config dal server
     initMaps();
 
     // 2. Avvia i loop di polling con i rispettivi intervalli
-    schedule(pollTelescope,    INTERVALS.telescope);
-    schedule(pollRoof,         INTERVALS.roof);
-    schedule(pollCurtains,     INTERVALS.curtains);
-    schedule(pollButtons,      INTERVALS.buttons);
-    schedule(pollUps,          INTERVALS.ups);
-    schedule(pollWeather,      INTERVALS.weather);
-    schedule(pollTrackingChart,INTERVALS.trackingChart);
-    schedule(pollAirmass,      INTERVALS.airmass);
+    setTimeout(() => schedule(pollTelescope,    INTERVALS.telescope),    0);
+    setTimeout(() => schedule(pollRoof,         INTERVALS.roof),         500);
+    setTimeout(() => schedule(pollCurtains,     INTERVALS.curtains),     1000);
+    setTimeout(() => schedule(pollButtons,      INTERVALS.buttons),      1500);
+    setTimeout(() => schedule(pollCoverMirror,  INTERVALS.cover_mirror), 2000);
+    setTimeout(() => schedule(pollUps,          INTERVALS.ups),          2500);
+    setTimeout(() => schedule(pollWeather,      INTERVALS.weather),      3000);
+    setTimeout(() => schedule(pollTrackingChart,INTERVALS.trackingChart),3500);
+    setTimeout(() => schedule(pollAirmass,      INTERVALS.airmass),      4000);
 
     // 3. Controllo skymap ogni secondo (leggero, aggiorna solo se flag=true)
     setInterval(checkSkyMapRefresh, 1000);

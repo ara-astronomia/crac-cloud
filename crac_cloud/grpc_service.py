@@ -9,8 +9,7 @@ from crac_cloud.grpc_cloud.roof_cloud import RoofClient
 from crac_cloud.grpc_cloud.telescope_cloud import TelescopeClient
 from crac_cloud.grpc_cloud.ups_cloud import UpsClient
 from crac_cloud.grpc_cloud.chart_cloud import ChartClient
-
-# ⭐ NUOVI CLIENT
+from crac_cloud.grpc_cloud.cover_mirror_cloud import CoverMirrorClient  
 from crac_cloud.grpc_cloud.geographic_cloud import GeographicClient
 from crac_cloud.grpc_cloud.image_config_cloud import ImageConfigClient
 
@@ -30,10 +29,10 @@ class GrpcServiceContainer:
         self.roof_client = RoofClient(host=grpc_host, port=grpc_port)
         self.ups_client = UpsClient(host=grpc_host, port=grpc_port)
         self.chart_client = ChartClient(host=grpc_host, port=grpc_port)
-
-        # ⭐ AGGIUNTO ORA
         self.geographic_client = GeographicClient(host=grpc_host, port=grpc_port)
         self.image_config_client = ImageConfigClient(host=grpc_host, port=grpc_port)
+            # Aggiungi il client per la copertura dello specchio    
+        self.cover_mirror_client = CoverMirrorClient(host=grpc_host, port=grpc_port)    
 
 
 # Singleton

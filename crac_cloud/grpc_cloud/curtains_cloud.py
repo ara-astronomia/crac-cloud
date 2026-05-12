@@ -60,7 +60,7 @@ class CurtainsClient:
     def set_action(self, action):
         request = curtains_pb2.CurtainsRequest(action=action)
         try:
-            response = self.stub.SetAction(request)
+            response = self.stub.SetAction(request, timeout=5.0)
             logger.debug(f"DEBUG stato tende: {response}")  # Stampa l'intero oggetto di risposta per il debug  
             return self._parse_response(response)
         except grpc.RpcError as e:
@@ -70,7 +70,7 @@ class CurtainsClient:
         """Ottiene lo stato delle tende inviando l'azione CHECK_CURTAIN."""
         request = curtains_pb2.CurtainsRequest(action=curtains_pb2.CurtainsAction.CHECK_CURTAIN)
         try:
-            response = self.stub.SetAction(request)
+            response = self.stub.SetAction(request, timeout=5.0)
             logger.debug(f"DEBUG stato tende: {response}")  # Stampa l'intero oggetto di risposta per il debug
             try:
                 return self._parse_response(response) # 🛑 Il crash avviene qui
