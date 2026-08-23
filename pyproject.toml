@@ -22,7 +22,7 @@ dependencies = [
     "matplotlib", # Per generare i file immagine PNG (savefig)
     "numpy", # Dipendenza di Matplotlib e Astropy
     # Per connettersi a un repository GitHub come dipendenza
-    "crac-protobuf @ git+https://github.com/ara-astronomia/crac-protobuf@cover_mirror",
+    "crac-protobuf @ git+https://github.com/ara-astronomia/crac-protobuf@cover-mirror",
     "astroquery>=0.4.11",
 ]
 
