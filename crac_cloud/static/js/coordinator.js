@@ -43,6 +43,7 @@ const INTERVALS = {
 // =============================================================================
 const state = {
     lastEqCoords: null,          // per rilevare cambio puntamento
+    lastTelStatus: null,         // per rilevare transizioni PARKED/FLATTER <-> altro
     skyMapNeedsRefresh: false,   // flag settato da updateTelescopeUI
     isInitialized: false,
 };
@@ -61,6 +62,15 @@ async function pollTelescope() {
             if (_eqCoordsChanged(eq)) {
                 state.skyMapNeedsRefresh = true;
             }
+        }
+        // eq_coords resta fermo mentre il telescopio traccia (segue una RA/DEC
+        // fissa): la deriva alt/az che fa uscire da PARKED/FLATTER (es. verso
+        // SECURE) non viene mai rilevata dal controllo sopra, lasciando la
+        // foto statica "in park"/"in flat" mostrata dal server congelata
+        // sullo schermo. Serve un trigger indipendente sul cambio di status.
+        if (data.status !== undefined && data.status !== state.lastTelStatus) {
+            state.lastTelStatus = data.status;
+            state.skyMapNeedsRefresh = true;
         }
     }
 }

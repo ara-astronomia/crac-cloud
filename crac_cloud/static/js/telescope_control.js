@@ -62,7 +62,7 @@ export function updateTelescopeUI(data) {
 
         if (connButton.textContent !== newText) connButton.textContent = newText;
         if (connButton.dataset.action !== newAction) connButton.dataset.action = newAction;
-        connButton.classList.remove('status-success', 'status-failure');
+        connButton.classList.remove('status-success', 'status-failure', 'status-transition');
         connButton.classList.add(newClass);
     }
 
@@ -71,14 +71,17 @@ export function updateTelescopeUI(data) {
         const isParked = serverState === 'PARKED';
         parkButton.disabled = !isConnected;
         parkButton.textContent = isParked ? 'Parked' : 'Park';
-        parkButton.classList.remove('status-success');
+        // 'status-transition' (giallo) va tolta qui: viene aggiunta da
+        // _setButtonTransition() al click e altrimenti resta per sempre,
+        // perché qui si toccava solo 'status-success'.
+        parkButton.classList.remove('status-success', 'status-transition');
         if (isParked) parkButton.classList.add('status-success');
     }
     if (flatButton) {
         const isFlatter = serverState === 'FLATTER';
         flatButton.disabled = !isConnected;
         flatButton.textContent = isFlatter ? 'Flatter' : 'Flat';
-        flatButton.classList.remove('status-success');
+        flatButton.classList.remove('status-success', 'status-transition');
         if (isFlatter) flatButton.classList.add('status-success');
     }
 
