@@ -36,6 +36,7 @@ export const STATUS_LABELS_MAP = {
     "TELESCOPE_SLEWING_ON":{text: "Slewing On", text_color: "green", background_color: "white"},
     "TELESCOPE_SLEWING_OFF":{text: "Slewing Off", text_color: "black", background_color: "white"},
     "TELESCOPE_DISCONNECTED":{text: "Disconnesso", text_color: "black", background_color: "white"},
+    "TELESCOPE_LOST":{text: "Connetti INDIGO", text_color: "white", background_color: "red"},
     "LABEL_CLOSE":{text: "Chiuso", text_color: "black", background_color: "white"},
     "LABEL_OPEN":{text: "Aperto", text_color: "green", background_color: "white"},
     "LABEL_OPENING":{text: "Chiusura", text_color: "orange", background_color: "white"},
