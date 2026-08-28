@@ -229,11 +229,11 @@ meter {
    pulsanti risultavano più grandi degli altri e si rimpicciolivano fino a
    sparire quando la finestra si stringeva. */
 .container-alimentatori .status-button {
-    width: 90px;
+    width: 95px;
     height: 32px;
-    min-width: 90px;
+    min-width: 95px;
     min-height: 32px;
-    font-size: 13px !important;
+    font-size: 16px !important;
     padding: 4px 6px !important;
     flex-shrink: 0;
     /* Forza il testo a essere visibile anche se JS impazzisce */
