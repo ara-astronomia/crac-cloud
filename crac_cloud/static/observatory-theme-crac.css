@@ -131,6 +131,30 @@ body > * { position: relative; z-index: 1; }
   letter-spacing: 0.5px;
 }
 
+/* ── Pulsante help (link al wiki) ─────────────────────────────── */
+.obs-header-help {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 10px;
+  border-radius: 50%;
+  background: rgba(74,158,255,0.07);
+  border: 0.5px solid var(--obs-border2);
+  color: var(--obs-text2);
+  font-family: var(--obs-mono);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.obs-header-help:hover {
+  background: rgba(74,158,255,0.16);
+  color: var(--obs-accent);
+}
+
 /* ── Contenitore principale ──────────────────────────────────── */
 .obs-main {
   max-width: 1460px;
