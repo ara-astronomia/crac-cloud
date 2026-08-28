@@ -122,8 +122,8 @@ def generate_telescope_maps(
 # --- FUNZIONI DI PLOTTING SKYMAP ---
 # ----------------------------------------------------------------------
 def _generate_field_map(center_coord, save_path, field_width_deg, field_height_deg):
-    width = (field_width_deg+10) * u.arcmin 
-    height = (field_height_deg+10) * u.arcmin
+    width = (field_width_deg+20) * u.arcmin
+    height = (field_height_deg+20) * u.arcmin
 
     logger.info(f"Scarico immagine DSS per RA={center_coord.ra.deg}, DEC={center_coord.dec.deg}")
     logger.info(f"Dimensioni mappa: {width} x {height}")
