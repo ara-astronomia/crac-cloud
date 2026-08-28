@@ -58,12 +58,17 @@ export function updateTelescopeUI(data) {
         const newAction = isConnected
             ? TELESCOPE_ACTION_MAP['CONNECTED']
             : TELESCOPE_ACTION_MAP['DISCONNECTED'];
-        const newClass  = isConnected ? 'status-success' : 'status-failure';
 
         if (connButton.textContent !== newText) connButton.textContent = newText;
         if (connButton.dataset.action !== newAction) connButton.dataset.action = newAction;
-        connButton.classList.remove('status-success', 'status-failure', 'status-transition');
-        connButton.classList.add(newClass);
+
+        // Colore solido dal server, come gli altri pulsanti (tende, alimentatori,
+        // specchio) — non più la classe CSS "pill" traslucida, per coerenza visiva.
+        const color = data.gui && data.gui.button_color;
+        if (color) {
+            connButton.style.setProperty('background-color', color.background_color || '', 'important');
+            connButton.style.setProperty('color', color.text_color || '', 'important');
+        }
     }
 
     // --- Park / Flat ---

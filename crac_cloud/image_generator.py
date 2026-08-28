@@ -185,7 +185,7 @@ def _generate_field_map(center_coord, save_path, field_width_deg, field_height_d
     current_fig = plt.gcf() 
     
     # Salva la figura corrente
-    current_fig.savefig(save_path, bbox_inches="tight")
+    current_fig.savefig(save_path, bbox_inches="tight", dpi=200)
     
     # Chiudi la figura
     plt.close(current_fig)

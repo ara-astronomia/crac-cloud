@@ -185,6 +185,11 @@ meter {
     align-items: flex-start; /* Impedisce ai blocchi di allungarsi verso il basso */
     gap: 10px;
 }
+.container-alimentatori {
+    /* i pulsanti sono a dimensione fissa: se non ci stanno tutti, si scorre
+       invece di stringerli fino a farli sparire */
+    overflow-x: auto;
+}
 .container-3t .border-with-text {
     flex: 1;
     display: flex;
@@ -204,7 +209,7 @@ meter {
 }
 
 .container-alimentatori .border-with-text {
-    flex: 1; /* Distribuisce lo spazio equamente */
+    flex: 0 0 auto; /* dimensione fissa, non si stringe al ridimensionamento */
     display: flex;
     flex-direction: row;    /* Mette tutto in riga */
     flex-wrap: nowrap;      /* Impedisce di andare a capo */
@@ -217,12 +222,20 @@ meter {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 1.2vmin;
+    font-size: 12px;
     white-space: nowrap; /* Impedisce al testo AutoLight di spezzarsi */
 }
+/* Dimensione fissa (non vmin): in attesa di un frontend responsive, questi
+   pulsanti risultavano più grandi degli altri e si rimpicciolivano fino a
+   sparire quando la finestra si stringeva. */
 .container-alimentatori .status-button {
-    min-width: 100px;
-    min-height: 35px;
+    width: 90px;
+    height: 32px;
+    min-width: 90px;
+    min-height: 32px;
+    font-size: 13px !important;
+    padding: 4px 6px !important;
+    flex-shrink: 0;
     /* Forza il testo a essere visibile anche se JS impazzisce */
     display: flex;
     align-items: center;
@@ -311,6 +324,28 @@ meter {
     
     /* Proprietà di visualizzazione per gestire l'immagine come blocco */
     display: block; 
+}
+
+.sky-map-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.9);
+    justify-content: center;
+    align-items: center;
+    cursor: zoom-out;
+}
+
+.sky-map-modal-overlay.open {
+    display: flex;
+}
+
+.sky-map-modal-img {
+    max-width: 95vw;
+    max-height: 95vh;
+    width: auto;
+    height: auto;
 }
 
 .container-img-chart-sky,

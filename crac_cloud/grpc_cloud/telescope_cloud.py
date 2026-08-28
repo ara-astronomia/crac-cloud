@@ -154,7 +154,8 @@ class TelescopeClient:
                 "metadata": gui.metadata,
                 "label": button_pb2.ButtonLabel.Name(gui.label),
                 "is_disabled": gui.is_disabled,
-                "is_visible": gui.is_visible
+                "is_visible": gui.is_visible,
+                "button_color": self.__button_color(gui)
             })
 
         # 3. 🎯 Aggiungiamo la chiave 'gui' per il pulsante CONNECT/DISCONNECT che usa il frontend JS
@@ -162,7 +163,8 @@ class TelescopeClient:
             parsed_data["gui"] = {
                 "label": button_pb2.ButtonLabel.Name(first_button_gui.label),
                 "is_disabled": first_button_gui.is_disabled,
-                "is_visible": first_button_gui.is_visible
+                "is_visible": first_button_gui.is_visible,
+                "button_color": self.__button_color(first_button_gui)
             }
         else:
             # Fallback se non ci sono bottoni
@@ -170,3 +172,11 @@ class TelescopeClient:
 
 
         return parsed_data
+
+    def __button_color(self, gui) -> dict | None:
+        if not gui.HasField("button_color"):
+            return None
+        return {
+            "text_color": gui.button_color.text_color,
+            "background_color": gui.button_color.background_color,
+        }
