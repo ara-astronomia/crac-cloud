@@ -348,7 +348,7 @@ requires-dist = [
     { name = "astropy" },
     { name = "astroquery", specifier = ">=0.4.11" },
     { name = "autopep8", marker = "extra == 'dev'", specifier = ">=1.6" },
-    { name = "crac-protobuf", git = "https://github.com/ara-astronomia/crac-protobuf?rev=cover-mirror" },
+    { name = "crac-protobuf", git = "https://github.com/ara-astronomia/crac-protobuf?rev=main" },
     { name = "fastapi", specifier = ">=0.117.1" },
     { name = "grpcio", specifier = ">=1.80.0" },
     { name = "grpcio-tools", marker = "extra == 'dev'", specifier = ">=1.64" },
@@ -366,7 +366,7 @@ provides-extras = ["dev"]
 [[package]]
 name = "crac-protobuf"
 version = "0.1.21.0"
-source = { git = "https://github.com/ara-astronomia/crac-protobuf?rev=cover-mirror#5ed9366511cbcbfd09077a33df5aac4c7c3d5b30" }
+source = { git = "https://github.com/ara-astronomia/crac-protobuf?rev=main#c6465a5bb20e868a2c56c35747be7dfe5b101201" }
 
 [[package]]
 name = "cryptography"
