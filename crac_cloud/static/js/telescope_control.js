@@ -54,7 +54,7 @@ export function updateTelescopeUI(data) {
     // --- Pulsante connessione ---
     if (connButton) {
         connButton.disabled = false;
-        const newText   = isConnected ? 'Disconnetti' : 'Connetti';
+        const newText   = isConnected ? 'Connesso' : 'Disconnesso';
         const newAction = isConnected
             ? TELESCOPE_ACTION_MAP['CONNECTED']
             : TELESCOPE_ACTION_MAP['DISCONNECTED'];
