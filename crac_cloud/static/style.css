@@ -35,7 +35,7 @@
     border-radius:3px;
     padding: 15px;
     flex: 1;
-    font-size: 1.5vmin;
+    font-size: 15px;
 }
 
 .border-with-text-ext {
@@ -44,7 +44,7 @@
     border-radius:3px;
     padding: 5px;
     flex: 1;
-    font-size: 1.5vmin; 
+    font-size: 15px; 
 }
 
 .border-with-text-ext:before {
@@ -54,7 +54,7 @@
     left:10px;
     background: #313030;        
     padding: 0px ;
-    font-size: 1.5vmin;
+    font-size: 15px;
 }
 
 .border-with-text:before {
@@ -64,7 +64,7 @@
     left:10px;
     background: #313030;        
     padding: 0px;
-    font-size: 1.2vmin;
+    font-size: 12px;
 }
 body {
     background-color: #313030;
@@ -110,7 +110,7 @@ body {
 .status-button {    
     background-color: rgb(156, 160, 156);
     padding: 2px 2px;
-    font-size: 1.8vmin;
+    font-size: 18px;
 }
 .status-button.status-closed {
     background-color:rgb(156, 160, 156); 
@@ -143,7 +143,7 @@ meter {
     background-color: white;
     color: red;
     padding: 1px 5px;
-    font-size: 1.8vmin;
+    font-size: 18px;
     text-align: center;
     margin: 0 auto;
 }
@@ -177,7 +177,7 @@ meter {
     gap: 0px; /* Spazio tra i canvas */
     padding-top: 0px;   /* Riduci lo spazio sopra */
     padding-bottom: 0px; /* Riduci lo spazio sotto */
-    font-size: 1.5vmin;
+    font-size: 15px;
 }
 .container-3t, .container-alimentatori{
     display: flex;

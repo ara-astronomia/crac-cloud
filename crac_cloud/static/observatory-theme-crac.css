@@ -155,7 +155,7 @@ body > * { position: relative; z-index: 1; }
   background: var(--obs-label-bg) !important;
   color: var(--obs-accent) !important;
   font-family: var(--obs-mono) !important;
-  font-size: 1.1vmin !important;
+  font-size: 11px !important;
   letter-spacing: 0.5px !important;
 }
 
@@ -170,7 +170,7 @@ body > * { position: relative; z-index: 1; }
   background: var(--obs-label-bg) !important;
   color: var(--obs-accent2) !important;
   font-family: var(--obs-mono) !important;
-  font-size: 1vmin !important;
+  font-size: 10px !important;
   font-weight: 700 !important;
   letter-spacing: 1px !important;
   text-transform: uppercase !important;
@@ -179,7 +179,7 @@ body > * { position: relative; z-index: 1; }
 /* ── Status label ────────────────────────────────────────────── */
 .status-label {
   font-family: var(--obs-mono) !important;
-  font-size: 1.6vmin !important;
+  font-size: 16px !important;
   background: rgba(8,12,20,0.85) !important;
   color: var(--obs-accent2) !important;
   border: 0.5px solid var(--obs-border2) !important;
@@ -203,7 +203,7 @@ body > * { position: relative; z-index: 1; }
 /* ── Status button ───────────────────────────────────────────── */
 .status-button {
   font-family: var(--obs-mono) !important;
-  font-size: 1.6vmin !important;
+  font-size: 16px !important;
   background: rgba(74,158,255,0.08) !important;
   color: var(--obs-text) !important;
   border: 0.5px solid var(--obs-border2) !important;
@@ -255,7 +255,7 @@ body > * { position: relative; z-index: 1; }
 /* ── Testo paragrafi e label generici ────────────────────────── */
 body p {
   font-family: var(--obs-sans) !important;
-  font-size: 1.4vmin !important;
+  font-size: 14px !important;
   color: var(--obs-text2) !important;
 }
 
@@ -292,7 +292,7 @@ input[type="checkbox"] {
 
 label[for="Autolight"] {
   font-family: var(--obs-mono) !important;
-  font-size: 1.4vmin !important;
+  font-size: 14px !important;
   color: var(--obs-text2) !important;
 }
 
@@ -303,7 +303,7 @@ label[for="Autolight"] {
 
 /* ── Condizioni meteo label ──────────────────────────────────── */
 #cond_meteo {
-  font-size: 1.8vmin !important;
+  font-size: 18px !important;
 }
 
 /* ── Airmass label colori dinamici (override se necessario) ─── */
