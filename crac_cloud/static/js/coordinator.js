@@ -168,10 +168,11 @@ async function pollTrackingChart() {
 
 async function pollAirmass() {
     const data = await mapsApi.getAirmass();
-    if (data && data.airmass !== undefined) {
-        const el = document.getElementById('airmass');
-        if (el) el.textContent = data.airmass === 'HIGH Airmass' ? 'HIGH Airmass' : data.airmass;
-    }
+    const el = document.getElementById('airmass');
+    if (!el || !data) return;
+    // telescopio non connesso: l'endpoint risponde con error, non con un valore
+    if (data.error) el.textContent = 'N/D';
+    else if (data.airmass !== undefined) el.textContent = data.airmass;
 }
 
 // Skymap: refresh solo se le coordinate sono cambiate

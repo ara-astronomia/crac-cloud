@@ -28,6 +28,16 @@ image_config_client = ImageConfigClient(host=grpc_host, port=grpc_port)
 telescope_client = TelescopeClient(host=grpc_host, port=grpc_port)
 LAST_EQ_COORDS = None
 
+
+def _static_map_response(image_name: str) -> Response:
+    """Serve una PNG statica di segnaposto (telescopio in park/flat/non connesso)."""
+    with open(os.path.join(OUTPUT_DIR, image_name), 'rb') as f:
+        return Response(
+            content=f.read(),
+            media_type="image/png",
+            headers={"Content-Disposition": f"inline; filename={image_name}"}
+        )
+
 # --------------------------------------------------------------
 # ASYNC: recupera TUTTI i dati richiesti
 # --------------------------------------------------------------
@@ -106,10 +116,7 @@ async def get_tracking_chart(t: float = None):
         data = await _get_all_required_data()
         # Se il telescopio è OFFLINE → niente tracking chart
         if data["eq_coords"] is None:
-            return {
-                "error": "TELESCOPE_NOT_CONNECTED",
-                "message": "Connetti il telescopio per generare il grafico di tracking."
-            }
+            return _static_map_response("airmass_not_available.png")
 
         _, map2_path = generate_telescope_maps(
             data["geo_data"],
@@ -136,20 +143,11 @@ async def get_fixed_sky_map(t: float = None):
     try:
         data = await _get_all_required_data()
         if data["eq_coords"] is None:
-            return {
-                "error": "TELESCOPE_NOT_CONNECTED",
-                "message": "Connetti il telescopio per generare la mappa del campo."
-            }
+            return _static_map_response("tele_not_connected.png")
         tel_status = data.get("tel_status", "")
         if tel_status in ("PARKED", "FLATTER"):
-            image_name = "tele_in_park.png" if tel_status == "PARKED" else "tele_in_flat.png"
-            image_path = os.path.join(OUTPUT_DIR, image_name)
-            with open(image_path, 'rb') as f:
-                image_data = f.read()
-            return Response(
-                content=image_data,
-                media_type="image/png",
-                headers={"Content-Disposition": f"inline; filename={image_name}"}
+            return _static_map_response(
+                "tele_in_park.png" if tel_status == "PARKED" else "tele_in_flat.png"
             )
 
         coords_have_changed = eq_coords_changed(data["eq_coords"])
