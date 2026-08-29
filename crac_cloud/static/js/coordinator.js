@@ -10,7 +10,7 @@ import { initTelescopeControl, updateTelescopeUI }    from './telescope_control.
 import { initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI  } from './buttons.js';
 import { initUps, updateUpsUI }                       from './ups.js';
 import { initGauges, updateGaugesUI }                 from './gauges.js';
-import { initMaps, refreshTrackingChart, refreshSkyMap } from './maps.js';
+import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
 import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi } from './api.js';
 
@@ -41,6 +41,11 @@ const INTERVALS = {
 // =============================================================================
 // STATO INTERNO DEL COORDINATOR
 // =============================================================================
+// Stati in cui il server risponde con una PNG segnaposto invece della sky map
+const NO_SKY_MAP_STATUSES = [
+    'DISCONNECTED', 'ERROR', 'CRITICAL_ERROR', 'LOST', 'PARKED', 'FLATTER',
+];
+
 const state = {
     lastEqCoords: null,          // per rilevare cambio puntamento
     lastTelStatus: null,         // per rilevare transizioni PARKED/FLATTER <-> altro
@@ -58,6 +63,12 @@ async function pollTelescope() {
         updateTelescopeUI(data);
         // Controlla se le coordinate sono cambiate per triggerare il refresh skymap
         const eq = data.eq_coords;
+        // Stessa condizione di /maps/sky_map_fixed: in questi casi il server
+        // manda un segnaposto statico, non la mappa → niente zoom.
+        setSkyMapZoomable(
+            !!eq && eq.ra !== undefined && eq.dec !== undefined &&
+            !NO_SKY_MAP_STATUSES.includes(data.status)
+        );
         if (eq && eq.ra !== undefined && eq.dec !== undefined) {
             if (_eqCoordsChanged(eq)) {
                 state.skyMapNeedsRefresh = true;
