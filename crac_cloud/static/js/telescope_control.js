@@ -54,16 +54,21 @@ export function updateTelescopeUI(data) {
     // --- Pulsante connessione ---
     if (connButton) {
         connButton.disabled = false;
-        const newText   = isConnected ? 'Disconnetti' : 'Connetti';
+        const newText   = isConnected ? 'Connesso' : 'Disconnesso';
         const newAction = isConnected
             ? TELESCOPE_ACTION_MAP['CONNECTED']
             : TELESCOPE_ACTION_MAP['DISCONNECTED'];
-        const newClass  = isConnected ? 'status-success' : 'status-failure';
 
         if (connButton.textContent !== newText) connButton.textContent = newText;
         if (connButton.dataset.action !== newAction) connButton.dataset.action = newAction;
-        connButton.classList.remove('status-success', 'status-failure');
-        connButton.classList.add(newClass);
+
+        // Colore solido dal server, come gli altri pulsanti (tende, alimentatori,
+        // specchio) — non più la classe CSS "pill" traslucida, per coerenza visiva.
+        const color = data.gui && data.gui.button_color;
+        if (color) {
+            connButton.style.setProperty('background-color', color.background_color || '', 'important');
+            connButton.style.setProperty('color', color.text_color || '', 'important');
+        }
     }
 
     // --- Park / Flat ---
@@ -71,15 +76,25 @@ export function updateTelescopeUI(data) {
         const isParked = serverState === 'PARKED';
         parkButton.disabled = !isConnected;
         parkButton.textContent = isParked ? 'Parked' : 'Park';
-        parkButton.classList.remove('status-success');
-        if (isParked) parkButton.classList.add('status-success');
+
+        // Colore solido dal server, come connButton — non più la classe CSS
+        // "pill" traslucida, per coerenza visiva.
+        const color = _findButtonGui(data, 'LABEL_PARK');
+        if (color) {
+            parkButton.style.setProperty('background-color', color.background_color || '', 'important');
+            parkButton.style.setProperty('color', color.text_color || '', 'important');
+        }
     }
     if (flatButton) {
         const isFlatter = serverState === 'FLATTER';
         flatButton.disabled = !isConnected;
         flatButton.textContent = isFlatter ? 'Flatter' : 'Flat';
-        flatButton.classList.remove('status-success');
-        if (isFlatter) flatButton.classList.add('status-success');
+
+        const color = _findButtonGui(data, 'LABEL_FLAT');
+        if (color) {
+            flatButton.style.setProperty('background-color', color.background_color || '', 'important');
+            flatButton.style.setProperty('color', color.text_color || '', 'important');
+        }
     }
 
     // --- Label connessione / posizione ---
@@ -163,8 +178,13 @@ function _applyLabel(elementId, statusKey) {
     el.style.color = d.text_color || '';
 }
 
+function _findButtonGui(data, label) {
+    const entry = data.buttons_gui && data.buttons_gui.find(b => b.label === label);
+    return entry && entry.button_color;
+}
+
 function _setButtonTransition(btn) {
     btn.disabled = true;
-    btn.classList.remove('status-success', 'status-failure', 'status-error');
-    btn.classList.add('status-transition');
+    btn.style.setProperty('background-color', 'orange', 'important');
+    btn.style.setProperty('color', 'white', 'important');
 }

@@ -38,24 +38,20 @@ export function updateRoofUI(data) {
     const buttonText = labelData.text || enumLabel;
     const isDisabled = gui.is_disabled !== undefined ? gui.is_disabled : false;
 
-    // Classe CSS in base allo stato
-    let newClass = 'status-default';
-    if (serverState === 'ROOF_CLOSED')       newClass = 'status-failure';
-    else if (serverState === 'ROOF_OPENED')  newClass = 'status-success';
-    else if (serverState.includes('ING'))    newClass = 'status-transition';
-    else if (serverState.includes('ERROR') || serverState.includes('DANGER')) newClass = 'status-error';
-
-    roofButton.classList.remove('status-failure', 'status-success', 'status-transition', 'status-error', 'status-default');
-    roofButton.classList.add(newClass);
     roofButton.textContent = buttonText;
     roofButton.disabled = isDisabled;
 
-    // Colori dal server (solo se non in transizione)
-    roofButton.style.backgroundColor = '';
-    roofButton.style.color = '';
-    if (!serverState.includes('ING') && gui.button_color) {
-        roofButton.style.backgroundColor = gui.button_color.background_color || '';
-        roofButton.style.color = gui.button_color.text_color || '';
+    // Colore solido, come gli altri pulsanti (tende, alimentatori, specchio).
+    // Il server manda ancora il colore rosso/verde dello stato precedente durante
+    // OPENING/CLOSING (vedi roof_converter.py), quindi qui lo sovrascriviamo con
+    // l'arancione locale finché non arriva lo stato finale.
+    let color = gui.button_color;
+    if (serverState.includes('ING')) {
+        color = { background_color: 'orange', text_color: 'white' };
+    }
+    if (color) {
+        roofButton.style.setProperty('background-color', color.background_color || '', 'important');
+        roofButton.style.setProperty('color', color.text_color || '', 'important');
     }
 }
 
@@ -73,8 +69,8 @@ async function handleRoofClick() {
 
     // Optimistic UI: disabilita subito il pulsante
     roofButton.disabled = true;
-    roofButton.classList.remove('status-success', 'status-failure', 'status-error');
-    roofButton.classList.add('status-transition');
+    roofButton.style.setProperty('background-color', 'orange', 'important');
+    roofButton.style.setProperty('color', 'white', 'important');
 
     const action = commandToSend === 'ROOF_OPEN' ? roofApi.open : roofApi.close;
     const response = await action();

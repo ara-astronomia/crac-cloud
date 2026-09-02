@@ -2,7 +2,7 @@
 // buttons.js - Modulo puro per gli switch alimentatori e luci
 // =============================================================================
 
-import { buttonsApi } from './api.js';
+import { buttonsApi, coverMirrorApi } from './api.js';
 
 const BUTTON_IDS = ['btn-tele-switch', 'btn-ccd-switch', 'btn-flat-light', 'btn-dome-light'];
 
@@ -11,6 +11,7 @@ const KEY_TO_ID = {
     'KEY_CCD_SWITCH':  'btn-ccd-switch',
     'KEY_FLAT_LIGHT':  'btn-flat-light',
     'KEY_DOME_LIGHT':  'btn-dome-light',
+    'KEY_COVER_MIRROR': 'btn-cover-mirror',
 };
 
 const LABEL_MAP = {
@@ -78,5 +79,49 @@ async function handleButtonClick(btn) {
         updateButtonsUI([{ key, button_gui: response.button_gui }]);
     } else {
         btn.disabled = false;
+    }
+}
+export function initCoverMirror() {
+    const btn = document.getElementById('btn-cover-mirror');
+    if (btn) {
+        btn.addEventListener('click', () => handleCoverMirrorClick(btn));
+    }
+}
+
+async function handleCoverMirrorClick(btn) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+
+    const currentStatus = btn.dataset.status || 'CLOSED';
+    const response = currentStatus === 'COVER_MIRROR_OPENED'
+        ? await coverMirrorApi.close()
+        : await coverMirrorApi.open();
+
+    if (response && response.gui) {
+        updateCoverMirrorUI(response);
+    } else {
+        btn.disabled = false;
+    }
+}
+
+export function updateCoverMirrorUI(data) {
+    const btn = document.getElementById('btn-cover-mirror');
+    if (!btn || !data.gui) return;
+
+    const gui = data.gui;
+    const labelMap = {
+        'LABEL_OPEN':    'Aperto',
+        'LABEL_CLOSE':   'Chiuso',
+        'LABEL_OPENING': 'Apertura...',
+        'LABEL_CLOSING': 'Chiusura...',
+        'LABEL_ERROR':   'Errore',
+    };
+    btn.textContent = labelMap[gui.label] || gui.label || '';
+    btn.disabled = gui.is_disabled || false;
+    btn.dataset.status = data.status || 'COVER_MIRROR_CLOSED';
+
+    if (gui.button_color) {
+        btn.style.setProperty('background-color', gui.button_color.background_color || '', 'important');
+        btn.style.setProperty('color', gui.button_color.text_color || '', 'important');
     }
 }

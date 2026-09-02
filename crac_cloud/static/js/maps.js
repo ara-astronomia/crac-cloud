@@ -6,11 +6,58 @@ import { mapsApi } from './api.js';
 
 let trackingImg = null;
 let skyMapImg   = null;
+let modalOverlay = null;
+let modalImg     = null;
+let zoomable     = false;   // finché il primo poll non dice il contrario
 
 export function initMaps() {
     trackingImg = document.getElementById('tracking_chart');
     skyMapImg   = document.getElementById('fixed_sky_map');
+
+    if (skyMapImg) {
+        skyMapImg.addEventListener('click', openSkyMapModal);
+        setSkyMapZoomable(zoomable);
+    }
+
     console.log('[Maps] Inizializzato.');
+}
+
+/**
+ * Modale fullscreen con l'immagine del campo inquadrato a piena
+ * risoluzione, creata al volo la prima volta che serve (nessun markup
+ * aggiuntivo da mantenere in index.html).
+ */
+function openSkyMapModal() {
+    if (!zoomable) return;
+    if (!modalOverlay) {
+        modalOverlay = document.createElement('div');
+        modalOverlay.className = 'sky-map-modal-overlay';
+        modalImg = document.createElement('img');
+        modalImg.className = 'sky-map-modal-img';
+        modalOverlay.appendChild(modalImg);
+        modalOverlay.addEventListener('click', closeSkyMapModal);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeSkyMapModal();
+        });
+        document.body.appendChild(modalOverlay);
+    }
+    modalImg.src = skyMapImg.src;
+    modalOverlay.classList.add('open');
+}
+
+function closeSkyMapModal() {
+    if (modalOverlay) modalOverlay.classList.remove('open');
+}
+
+/**
+ * Quando il server risponde con una PNG segnaposto (telescopio non connesso,
+ * in park o in flat) al posto della mappa vera, ingrandirla non ha senso.
+ */
+export function setSkyMapZoomable(value) {
+    zoomable = value;
+    if (!skyMapImg) return;
+    skyMapImg.style.cursor = value ? 'zoom-in' : 'default';
+    skyMapImg.title = value ? 'Clic per ingrandire' : '';
 }
 
 /**

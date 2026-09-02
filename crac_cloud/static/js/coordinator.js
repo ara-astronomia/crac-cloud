@@ -7,12 +7,14 @@
 import { initRoofControl, updateRoofUI }             from './roof_control.js';
 import { initCurtains, updateCurtainsUI, updateRoofBackground } from './curtains.js';
 import { initTelescopeControl, updateTelescopeUI }    from './telescope_control.js';
-import { initButtons, updateButtonsUI }               from './buttons.js';
+import { initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI  } from './buttons.js';
 import { initUps, updateUpsUI }                       from './ups.js';
 import { initGauges, updateGaugesUI }                 from './gauges.js';
-import { initMaps, refreshTrackingChart, refreshSkyMap } from './maps.js';
+import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
-import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi } from './api.js';
+import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi } from './api.js';
+
+console.log('[CRaC] coordinator.js loaded');
 
 // =============================================================================
 // INTERVALLI DI POLLING (ms)
@@ -33,13 +35,20 @@ const INTERVALS = {
     weather:       60000,
     trackingChart: 30000,
     airmass:        5000,
+    cover_mirror:   3000,
 };
 
 // =============================================================================
 // STATO INTERNO DEL COORDINATOR
 // =============================================================================
+// Stati in cui il server risponde con una PNG segnaposto invece della sky map
+const NO_SKY_MAP_STATUSES = [
+    'DISCONNECTED', 'ERROR', 'CRITICAL_ERROR', 'LOST', 'PARKED', 'FLATTER',
+];
+
 const state = {
     lastEqCoords: null,          // per rilevare cambio puntamento
+    lastTelStatus: null,         // per rilevare transizioni PARKED/FLATTER <-> altro
     skyMapNeedsRefresh: false,   // flag settato da updateTelescopeUI
     isInitialized: false,
 };
@@ -54,10 +63,25 @@ async function pollTelescope() {
         updateTelescopeUI(data);
         // Controlla se le coordinate sono cambiate per triggerare il refresh skymap
         const eq = data.eq_coords;
+        // Stessa condizione di /maps/sky_map_fixed: in questi casi il server
+        // manda un segnaposto statico, non la mappa → niente zoom.
+        setSkyMapZoomable(
+            !!eq && eq.ra !== undefined && eq.dec !== undefined &&
+            !NO_SKY_MAP_STATUSES.includes(data.status)
+        );
         if (eq && eq.ra !== undefined && eq.dec !== undefined) {
             if (_eqCoordsChanged(eq)) {
                 state.skyMapNeedsRefresh = true;
             }
+        }
+        // eq_coords resta fermo mentre il telescopio traccia (segue una RA/DEC
+        // fissa): la deriva alt/az che fa uscire da PARKED/FLATTER (es. verso
+        // SECURE) non viene mai rilevata dal controllo sopra, lasciando la
+        // foto statica "in park"/"in flat" mostrata dal server congelata
+        // sullo schermo. Serve un trigger indipendente sul cambio di status.
+        if (data.status !== undefined && data.status !== state.lastTelStatus) {
+            state.lastTelStatus = data.status;
+            state.skyMapNeedsRefresh = true;
         }
     }
 }
@@ -79,8 +103,59 @@ async function pollCurtains() {
 
 async function pollButtons() {
     const data = await buttonsApi.getStatus();
+    console.log('[Coordinator] Buttons API response:', data);
     if (data && data.buttons) {
+        console.log('[Coordinator] Buttons data received:', data.buttons.length, 'items');
         updateButtonsUI(data.buttons);
+    } else {
+        console.warn('[Coordinator] No buttons data from API, using fallback');
+        // Fallback: mostra pulsanti in stato "Spento" con colori rossi
+        const fallbackButtons = [
+            {
+                key: 'KEY_TELE_SWITCH',
+                status: 'OFF',
+                button_gui: {
+                    label: 'LABEL_OFF',
+                    is_disabled: false,
+                    button_color: { text_color: 'white', background_color: 'red' }
+                }
+            },
+            {
+                key: 'KEY_CCD_SWITCH',
+                status: 'OFF',
+                button_gui: {
+                    label: 'LABEL_OFF',
+                    is_disabled: false,
+                    button_color: { text_color: 'white', background_color: 'red' }
+                }
+            },
+            {
+                key: 'KEY_FLAT_LIGHT',
+                status: 'OFF',
+                button_gui: {
+                    label: 'LABEL_OFF',
+                    is_disabled: false,
+                    button_color: { text_color: 'white', background_color: 'red' }
+                }
+            },
+            {
+                key: 'KEY_DOME_LIGHT',
+                status: 'OFF',
+                button_gui: {
+                    label: 'LABEL_OFF',
+                    is_disabled: false,
+                    button_color: { text_color: 'white', background_color: 'red' }
+                }
+            }
+        ];
+        updateButtonsUI(fallbackButtons);
+    }
+}
+
+async function pollCoverMirror() {
+    const data = await coverMirrorApi.getStatus();
+    if (data && Object.keys(data).length > 0) {
+        updateCoverMirrorUI(data);
     }
 }
 
@@ -104,10 +179,11 @@ async function pollTrackingChart() {
 
 async function pollAirmass() {
     const data = await mapsApi.getAirmass();
-    if (data && data.airmass !== undefined) {
-        const el = document.getElementById('airmass');
-        if (el) el.textContent = data.airmass === 'HIGH Airmass' ? 'HIGH Airmass' : data.airmass;
-    }
+    const el = document.getElementById('airmass');
+    if (!el || !data) return;
+    // telescopio non connesso: l'endpoint risponde con error, non con un valore
+    if (data.error) el.textContent = 'N/D';
+    else if (data.airmass !== undefined) el.textContent = data.airmass;
 }
 
 // Skymap: refresh solo se le coordinate sono cambiate
@@ -171,19 +247,21 @@ async function init() {
     initCurtains();
     initTelescopeControl();
     initButtons();
+    initCoverMirror();
     initUps();
     await initGauges();   // async: carica gauge-config dal server
     initMaps();
 
     // 2. Avvia i loop di polling con i rispettivi intervalli
-    schedule(pollTelescope,    INTERVALS.telescope);
-    schedule(pollRoof,         INTERVALS.roof);
-    schedule(pollCurtains,     INTERVALS.curtains);
-    schedule(pollButtons,      INTERVALS.buttons);
-    schedule(pollUps,          INTERVALS.ups);
-    schedule(pollWeather,      INTERVALS.weather);
-    schedule(pollTrackingChart,INTERVALS.trackingChart);
-    schedule(pollAirmass,      INTERVALS.airmass);
+    setTimeout(() => schedule(pollTelescope,    INTERVALS.telescope),    0);
+    setTimeout(() => schedule(pollRoof,         INTERVALS.roof),         500);
+    setTimeout(() => schedule(pollCurtains,     INTERVALS.curtains),     1000);
+    setTimeout(() => schedule(pollButtons,      INTERVALS.buttons),      1500);
+    setTimeout(() => schedule(pollCoverMirror,  INTERVALS.cover_mirror), 2000);
+    setTimeout(() => schedule(pollUps,          INTERVALS.ups),          2500);
+    setTimeout(() => schedule(pollWeather,      INTERVALS.weather),      3000);
+    setTimeout(() => schedule(pollTrackingChart,INTERVALS.trackingChart),3500);
+    setTimeout(() => schedule(pollAirmass,      INTERVALS.airmass),      4000);
 
     // 3. Controllo skymap ogni secondo (leggero, aggiorna solo se flag=true)
     setInterval(checkSkyMapRefresh, 1000);

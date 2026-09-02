@@ -22,7 +22,7 @@ class ChartClient:
         """Ottiene lo stato meteorologico e i dati per i grafici."""
         request = chart_pb2.WeatherRequest()
         try:
-            response = self.stub.GetStatus(request)
+            response = self.stub.GetStatus(request, timeout=5.0)
             
             charts_list = []
             for chart in response.charts:

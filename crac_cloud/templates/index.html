@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRaC — Control Roof and Curtains by ARA</title>
+    <title>CRAC — Control Remote Astronomical Center by ARA</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="/static/observatory-theme-crac.css">
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
@@ -16,11 +16,13 @@
     <img src="/static/logo_ara.png" alt="Logo ARA" class="obs-logo-img">
     <div class="obs-logo-divider"></div>
     <div class="obs-header-titles">
-      <div class="obs-header-title">CRaC</div>
-      <div class="obs-header-sub">Control Roof and Curtains — Frasso Sabino Observatory</div>
+      <div class="obs-header-title">CRAC</div>
+      <div class="obs-header-sub">Control Remote Astronomical Center — Frasso Sabino Observatory</div>
     </div>
     <div class="obs-header-spacer"></div>
     <div class="obs-header-badge" id="obs-clock">--:--:--</div>
+    <a class="obs-header-help" href="https://github.com/ara-astronomia/crac-cloud/wiki"
+       target="_blank" rel="noopener" title="Guida e documentazione">?</a>
   </div>
 </div>
 
@@ -42,7 +44,7 @@
     <div class="main-container">
         <div class="border-with-text-ext" data-text="Controllo 3T - Tetto-telescopio-Tende">
             <p></p>
-            <div class="container">
+            <div class="container-3t">
                 <div class="border-with-text" data-text="Tetto">        
                     <button id="btn-tetto" name="button_id"
                             title="Apre e chiude il tetto scorrevole"
@@ -59,6 +61,11 @@
                             title="porta il telescopio in posizione di flat e disattiva il tracking con il pannello spento"
                             class="status-button" value="flat_telescopio">Flat</button>
                 </div>
+                <div class="border-with-text" data-text="Specchio">
+                    <button id="btn-cover-mirror" name="button_id"
+                            title="Apre e chiude la copertura dello specchio del telescopio"
+                            class="status-button" value="open_cover">Chiuso</button>
+                </div>
                 <div class="border-with-text" data-text="Tende">
                     <button id="btn-curtains" name="button_id"
                             title="attiva e disattiva i motori delle tende"
@@ -69,7 +76,7 @@
 
         <div class="border-with-text-ext" data-text="Alimentatori & Luci">
             <p></p>
-            <div class="container">
+            <div class="container-alimentatori">
                 <div class="border-with-text" data-text="Telescopio">
                     <button id="btn-tele-switch" name="button_id"
                             title="Accende e spegne l'alimentazione del telescopio"
@@ -260,7 +267,7 @@
 </div><!-- /obs-main -->
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-<script type="module" src="/static/js/coordinator.js"></script>
+<script type="module" src="/static/js/coordinator.js?t={{ static_version }}"></script>
 
 <script>
 // Orologio nell'header

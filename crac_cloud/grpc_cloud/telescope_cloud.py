@@ -31,7 +31,7 @@ class TelescopeClient:
 
         try:
             # Chiama il metodo SetAction (o GetStatus se esiste)
-            response = self.stub.SetAction(request) 
+            response = self.stub.SetAction(request, timeout=5.0) 
             logger.debug(f"DEBUG questa è la response in telescope_cloud: {response}")
             logger.debug(f"DEBUG stato autolight: {response.autolight}")
             # Per ora, restituiamo un formato consistente
@@ -53,9 +53,8 @@ class TelescopeClient:
             action_value = int(action)
         """Sends an action (PARK or FLAT) to the telescope."""
         request = telescope_pb2.TelescopeRequest(action=action_value, autolight=autolight)
-        response = self.stub.SetAction(request)
         try:
-            response = self.stub.SetAction(request)
+            response = self.stub.SetAction(request, timeout=5.0)
             return self._parse_response(response)
         except grpc.RpcError as e:
         # 1. ✅ LOGGA L'ERRORE nel terminale Python
@@ -86,7 +85,7 @@ class TelescopeClient:
         
         logger.debug(f"DENUG: Invio SetAction(CHECK_TELESCOPE) per lo stato.")
         try:
-            response = self.stub.SetAction(request) 
+            response = self.stub.SetAction(request, timeout=5.0) 
             return self._parse_response(response)
         except grpc.RpcError as e:
             # Assicurati di gestire l'errore per non rompere il router (restituisci stato d'errore)
@@ -106,7 +105,7 @@ class TelescopeClient:
         logger.debug(f"DEBUG: Invio Connect per connettere il telescopio. {request}")
         try:
             # Chiama l'RPC Connect
-            response = self.stub.SetAction(request)
+            response = self.stub.SetAction(request, timeout=5.0)
             logger.debug(f"DEBUG: Risposta gRPC risposta: {response}")
             # Analizza la risposta che dovrebbe contenere il nuovo stato (connesso)
             return self._parse_response(response)
@@ -126,7 +125,7 @@ class TelescopeClient:
         try:
             # Chiama l'RPC Disconnect
             # response = self.stub.Disconnect(request)
-            response = self.stub.SetAction(request)
+            response = self.stub.SetAction(request, timeout=5.0)
             logger.debug(f"DEBUG: Risposta gRPC alla richiesta di disconnessione: {response}")
             # Analizza la risposta che dovrebbe contenere il nuovo stato (disconnesso)
             return self._parse_response(response)
@@ -155,7 +154,8 @@ class TelescopeClient:
                 "metadata": gui.metadata,
                 "label": button_pb2.ButtonLabel.Name(gui.label),
                 "is_disabled": gui.is_disabled,
-                "is_visible": gui.is_visible
+                "is_visible": gui.is_visible,
+                "button_color": self.__button_color(gui)
             })
 
         # 3. 🎯 Aggiungiamo la chiave 'gui' per il pulsante CONNECT/DISCONNECT che usa il frontend JS
@@ -163,7 +163,8 @@ class TelescopeClient:
             parsed_data["gui"] = {
                 "label": button_pb2.ButtonLabel.Name(first_button_gui.label),
                 "is_disabled": first_button_gui.is_disabled,
-                "is_visible": first_button_gui.is_visible
+                "is_visible": first_button_gui.is_visible,
+                "button_color": self.__button_color(first_button_gui)
             }
         else:
             # Fallback se non ci sono bottoni
@@ -171,3 +172,11 @@ class TelescopeClient:
 
 
         return parsed_data
+
+    def __button_color(self, gui) -> dict | None:
+        if not gui.HasField("button_color"):
+            return None
+        return {
+            "text_color": gui.button_color.text_color,
+            "background_color": gui.button_color.background_color,
+        }

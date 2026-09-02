@@ -33,9 +33,9 @@
     position: relative;
     border: 2px solid #73a8da;
     border-radius:3px;
-    padding: 5px;
+    padding: 15px;
     flex: 1;
-    font-size: 1.5vmin;
+    font-size: 15px;
 }
 
 .border-with-text-ext {
@@ -44,7 +44,7 @@
     border-radius:3px;
     padding: 5px;
     flex: 1;
-    font-size: 1.5vmin; 
+    font-size: 15px; 
 }
 
 .border-with-text-ext:before {
@@ -54,7 +54,7 @@
     left:10px;
     background: #313030;        
     padding: 0px ;
-    font-size: 1.5vmin;
+    font-size: 15px;
 }
 
 .border-with-text:before {
@@ -64,7 +64,7 @@
     left:10px;
     background: #313030;        
     padding: 0px;
-    font-size: 1.2vmin;
+    font-size: 12px;
 }
 body {
     background-color: #313030;
@@ -110,7 +110,7 @@ body {
 .status-button {    
     background-color: rgb(156, 160, 156);
     padding: 2px 2px;
-    font-size: 1.8vmin;
+    font-size: 18px;
 }
 .status-button.status-closed {
     background-color:rgb(156, 160, 156); 
@@ -143,7 +143,7 @@ meter {
     background-color: white;
     color: red;
     padding: 1px 5px;
-    font-size: 1.8vmin;
+    font-size: 18px;
     text-align: center;
     margin: 0 auto;
 }
@@ -177,7 +177,69 @@ meter {
     gap: 0px; /* Spazio tra i canvas */
     padding-top: 0px;   /* Riduci lo spazio sopra */
     padding-bottom: 0px; /* Riduci lo spazio sotto */
-    font-size: 1.5vmin;
+    font-size: 15px;
+}
+.container-3t, .container-alimentatori{
+    display: flex;
+    flex-direction: row; /* Blocchi in riga */
+    align-items: flex-start; /* Impedisce ai blocchi di allungarsi verso il basso */
+    gap: 10px;
+}
+.container-alimentatori {
+    /* i pulsanti sono a dimensione fissa: se non ci stanno tutti, si scorre
+       invece di stringerli fino a farli sparire */
+    overflow-x: auto;
+}
+.container-3t .border-with-text {
+    flex: 1;
+    display: flex;
+    flex-direction: row; 
+    flex-wrap: nowrap;     /* MODIFICA: Impedisce ai bottoni di andare a capo */
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;        /* Mantiene la dimensione fissa basata sul contenuto */
+}
+.container-3t .border-with-text[data-text="Telescopio"] {
+    flex: 0 0 auto; 
+    min-width: max-content; /* Assicura che il box sia largo quanto la riga di bottoni */
+}
+.container-3t .status-button {
+    height: auto;       /* Impedisce ai bottoni di diventare giganti */
+    padding: 5px 10px;
+}
+
+.container-alimentatori .border-with-text {
+    flex: 0 0 auto; /* dimensione fissa, non si stringe al ridimensionamento */
+    display: flex;
+    flex-direction: row;    /* Mette tutto in riga */
+    flex-wrap: nowrap;      /* Impedisce di andare a capo */
+    align-items: center;    /* Centra verticalmente bottoni e checkbox */
+    justify-content: center;
+    gap: 6px;
+    padding-top: 20px;     /* Spazio per l'etichetta in alto */
+}
+.container-alimentatori .border-with-text label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    white-space: nowrap; /* Impedisce al testo AutoLight di spezzarsi */
+}
+/* Dimensione fissa (non vmin): in attesa di un frontend responsive, questi
+   pulsanti risultavano più grandi degli altri e si rimpicciolivano fino a
+   sparire quando la finestra si stringeva. */
+.container-alimentatori .status-button {
+    width: 95px;
+    height: 32px;
+    min-width: 95px;
+    min-height: 32px;
+    font-size: 16px !important;
+    padding: 4px 6px !important;
+    flex-shrink: 0;
+    /* Forza il testo a essere visibile anche se JS impazzisce */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .container-meteo {
     display: flex;
@@ -189,13 +251,25 @@ meter {
 }
 .container-ups {
     display: flex;
-    justify-content: center; /* Per centrare i canvas orizzontalmente */
-    align-items: center; /* Per allineare i canvas verticalmente */
-    gap: 0px; /* Spazio tra i canvas */
-    margin-top: 0;
-    margin-bottom: 0;
-    padding-top: 0px;   /* Riduci lo spazio sopra */
-    padding-bottom: 0px; /* Riduci lo spazio sotto */
+    flex-direction: row; /* Se vuoi Cupola e Control Room affiancati */
+    gap: 15px;
+}
+
+.container-ups .border-with-text {
+    display: block;      /* IMPORTANTE: i p e i meter tornano uno sopra l'altro */
+    flex: 1;             /* Divide lo spazio equamente tra Cupola e Control Room */
+    min-width: 200px;
+}
+
+.container-ups p {
+    margin: 8px 0;       /* Ridà respiro ai testi */
+    font-size: 0.9rem;
+}
+
+.custom-meter {
+    display: block;      /* Mette il meter sotto il testo se vuoi, o inline */
+    width: 100%;         /* Fa sì che la barra occupi tutta la larghezza */
+    height: 12px;        /* Ripristina un'altezza decente */
 }
 .container-tende-telescopio {
     display: flex;
@@ -250,6 +324,28 @@ meter {
     
     /* Proprietà di visualizzazione per gestire l'immagine come blocco */
     display: block; 
+}
+
+.sky-map-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.9);
+    justify-content: center;
+    align-items: center;
+    cursor: zoom-out;
+}
+
+.sky-map-modal-overlay.open {
+    display: flex;
+}
+
+.sky-map-modal-img {
+    max-width: 95vw;
+    max-height: 95vh;
+    width: auto;
+    height: auto;
 }
 
 .container-img-chart-sky,

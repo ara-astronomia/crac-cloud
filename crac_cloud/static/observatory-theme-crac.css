@@ -131,6 +131,30 @@ body > * { position: relative; z-index: 1; }
   letter-spacing: 0.5px;
 }
 
+/* ── Pulsante help (link al wiki) ─────────────────────────────── */
+.obs-header-help {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 10px;
+  border-radius: 50%;
+  background: rgba(74,158,255,0.07);
+  border: 0.5px solid var(--obs-border2);
+  color: var(--obs-text2);
+  font-family: var(--obs-mono);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.obs-header-help:hover {
+  background: rgba(74,158,255,0.16);
+  color: var(--obs-accent);
+}
+
 /* ── Contenitore principale ──────────────────────────────────── */
 .obs-main {
   max-width: 1460px;
@@ -144,16 +168,18 @@ body > * { position: relative; z-index: 1; }
    altrimenti l'etichetta flottante non "taglia" correttamente il bordo */
 
 .border-with-text {
-  border-color: var(--obs-border2) !important;
-  background: transparent !important;
-  padding-top: 12px;
+    border: 1px solid var(--obs-border2);
+    position: relative;
+    padding: 15px 10px 10px 10px;
+    margin-top: 1px;
+    background: transparent;
 }
 
 .border-with-text::before {
   background: var(--obs-label-bg) !important;
   color: var(--obs-accent) !important;
   font-family: var(--obs-mono) !important;
-  font-size: 1.1vmin !important;
+  font-size: 11px !important;
   letter-spacing: 0.5px !important;
 }
 
@@ -161,14 +187,14 @@ body > * { position: relative; z-index: 1; }
   border-color: rgba(100,160,255,0.2) !important;
   background: rgba(13,21,32,0.6) !important;
   border-radius: 8px !important;
-  padding-top: 12px;
+  padding-top: 6px;
 }
 
 .border-with-text-ext::before {
   background: var(--obs-label-bg) !important;
   color: var(--obs-accent2) !important;
   font-family: var(--obs-mono) !important;
-  font-size: 1vmin !important;
+  font-size: 10px !important;
   font-weight: 700 !important;
   letter-spacing: 1px !important;
   text-transform: uppercase !important;
@@ -177,7 +203,7 @@ body > * { position: relative; z-index: 1; }
 /* ── Status label ────────────────────────────────────────────── */
 .status-label {
   font-family: var(--obs-mono) !important;
-  font-size: 1.6vmin !important;
+  font-size: 16px !important;
   background: rgba(8,12,20,0.85) !important;
   color: var(--obs-accent2) !important;
   border: 0.5px solid var(--obs-border2) !important;
@@ -201,7 +227,7 @@ body > * { position: relative; z-index: 1; }
 /* ── Status button ───────────────────────────────────────────── */
 .status-button {
   font-family: var(--obs-mono) !important;
-  font-size: 1.6vmin !important;
+  font-size: 16px !important;
   background: rgba(74,158,255,0.08) !important;
   color: var(--obs-text) !important;
   border: 0.5px solid var(--obs-border2) !important;
@@ -253,7 +279,7 @@ body > * { position: relative; z-index: 1; }
 /* ── Testo paragrafi e label generici ────────────────────────── */
 body p {
   font-family: var(--obs-sans) !important;
-  font-size: 1.4vmin !important;
+  font-size: 14px !important;
   color: var(--obs-text2) !important;
 }
 
@@ -290,7 +316,7 @@ input[type="checkbox"] {
 
 label[for="Autolight"] {
   font-family: var(--obs-mono) !important;
-  font-size: 1.4vmin !important;
+  font-size: 14px !important;
   color: var(--obs-text2) !important;
 }
 
@@ -301,7 +327,7 @@ label[for="Autolight"] {
 
 /* ── Condizioni meteo label ──────────────────────────────────── */
 #cond_meteo {
-  font-size: 1.8vmin !important;
+  font-size: 18px !important;
 }
 
 /* ── Airmass label colori dinamici (override se necessario) ─── */

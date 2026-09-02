@@ -16,7 +16,7 @@ class UpsClient:
         """Ottiene lo stato degli UPS e i dati per i grafici."""
         request = ups_pb2.UpsRequest()
         try:
-            response = self.stub.GetStatus(request)
+            response = self.stub.GetStatus(request, timeout=5.0)
             charts_list = []
             for chart in response.charts:
                 # Parsing della chart

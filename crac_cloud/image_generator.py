@@ -122,8 +122,8 @@ def generate_telescope_maps(
 # --- FUNZIONI DI PLOTTING SKYMAP ---
 # ----------------------------------------------------------------------
 def _generate_field_map(center_coord, save_path, field_width_deg, field_height_deg):
-    width = (field_width_deg+10) * u.arcmin 
-    height = (field_height_deg+10) * u.arcmin
+    width = (field_width_deg+20) * u.arcmin
+    height = (field_height_deg+20) * u.arcmin
 
     logger.info(f"Scarico immagine DSS per RA={center_coord.ra.deg}, DEC={center_coord.dec.deg}")
     logger.info(f"Dimensioni mappa: {width} x {height}")
@@ -138,8 +138,13 @@ def _generate_field_map(center_coord, save_path, field_width_deg, field_height_d
     rect_height_arcmin = field_height_deg * u.arcmin
     download_width = width.to(u.deg)
     download_height = height.to(u.deg)
+    # fov_radius deve coprire l'intero campo reale (compreso il margine), non un valore fisso:
+    # altrimenti la scala degli assi WCS restituita da plot_finder_image (che dipende
+    # dall'immagine DSS scaricata) non corrisponde al campo effettivamente inquadrato.
+    fov_radius = max(width, height) / 2
     logger.info(f"Dimensioni immagine scaricata in gradi: {download_width} x {download_height}")
-    ax, hdu = plot_finder_image(target, fov_radius=30*u.arcmin, survey="DSS") 
+    ax, hdu = plot_finder_image(target, fov_radius=fov_radius, survey="DSS")
+    ax.coords[0].set_major_formatter('hh:mm')  # asse RA: solo ore/minuti, niente secondi
 
     try:
         cdelt1 = abs(hdu.header['CDELT1']) * u.deg # Scala lungo l'asse X
@@ -180,7 +185,7 @@ def _generate_field_map(center_coord, save_path, field_width_deg, field_height_d
     current_fig = plt.gcf() 
     
     # Salva la figura corrente
-    current_fig.savefig(save_path, bbox_inches="tight")
+    current_fig.savefig(save_path, bbox_inches="tight", dpi=200)
     
     # Chiudi la figura
     plt.close(current_fig)

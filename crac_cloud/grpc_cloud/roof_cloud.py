@@ -39,7 +39,7 @@ class RoofClient:
         """Invia un'azione (apri/chiudi) al tetto scorrevole e parsifica la risposta."""
         request = roof_pb2.RoofRequest(action=action_enum)
         try:
-            response = self.stub.SetAction(request)
+            response = self.stub.SetAction(request, timeout=5.0)
             
             # 🎯 USA IL PARSING QUI
             return self._parse_roof_response(response) 

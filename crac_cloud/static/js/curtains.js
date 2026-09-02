@@ -62,8 +62,11 @@ export function updateCurtainsUI(data) {
         curtainButton.textContent = labelData.text || enableGui.label;
         curtainButton.disabled = enableGui.is_disabled || false;
         if (enableGui.button_color) {
-            curtainButton.style.backgroundColor = enableGui.button_color.background_color || '';
-            curtainButton.style.color = enableGui.button_color.text_color || '';
+            // 'important' necessario per vincere su altre regole CSS che
+            // altrimenti sovrascrivono il colore (stesso motivo per cui
+            // buttons.js usa setProperty con priorità 'important').
+            curtainButton.style.setProperty('background-color', enableGui.button_color.background_color || '', 'important');
+            curtainButton.style.setProperty('color', enableGui.button_color.text_color || '', 'important');
         }
         curtainsEnabled = enableGui.label === 'LABEL_ENABLE'; // "Disattiva" = tende attive
     }
