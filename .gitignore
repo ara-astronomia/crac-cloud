@@ -20,7 +20,7 @@ crac_cloud/astroplan/
 crac_cloud/static/maps/fixed_field_map.png
 crac_cloud/static/maps/tracking_chart.png
 crac_cloud/static/maps/tracking_error.png
-crac_cloud/.env
+.env
 crac_cloud/templates/old_index.html
 
 # --- File Scaricati e Archivi ---
