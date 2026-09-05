@@ -97,12 +97,15 @@ def generate_telescope_maps(
     # Dimensioni del campo visivo (convertite da minuti d'arco a gradi)
     field_width_deg = ccd_data['width'] 
     field_height_deg = ccd_data['height']
-    logger.info(field_width_deg, field_height_deg)
+    logger.info(f"Campo visivo: width={field_width_deg}, height={field_height_deg}")
     
     # 2. Generazione delle Mappe
     
     # Mappa 1: Sky Map a Campo Fisso
-    logger.info(center_coord, ccd_data, map1_path, field_width_deg, field_height_deg)
+    logger.info(
+        f"Sky map: center={center_coord}, ccd={ccd_data}, path={map1_path}, "
+        f"width={field_width_deg}, height={field_height_deg}"
+    )
     # Mappa 2: Grafico di Tracciato (Alt-Az)
     try:
         _generate_tracking_chart(observer, center_coord, current_time, map2_path)

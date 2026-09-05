@@ -4,6 +4,8 @@ import logging
 import logging.handlers
 from datetime import datetime
 
+from dotenv import load_dotenv
+
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -21,6 +23,7 @@ from .routers import (
 )
 from fastapi.responses import HTMLResponse
 
+load_dotenv()
 log_level = getattr(logging, os.getenv('LOG_LEVEL', 'WARNING').upper(), logging.WARNING)
 log_to_file = os.getenv('LOG_TO_FILE', 'false').lower() == 'true'
 
