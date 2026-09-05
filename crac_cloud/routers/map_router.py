@@ -133,7 +133,7 @@ async def get_tracking_chart(t: float = None):
         )
 
     except Exception as e:
-        logger.error(" ❌ ERRORE NELL'ENDPOINT TRACKING CHART:", e)
+        logger.error(f" ❌ ERRORE NELL'ENDPOINT TRACKING CHART: {e}")
         raise HTTPException(status_code=500, detail=f"Errore interno: {e}")
 # --------------------------------------------------------------
 # ENDPOINT 2 – Sky map
@@ -172,7 +172,7 @@ async def get_fixed_sky_map(t: float = None):
             headers={"Content-Disposition": f"inline; filename={MAP1_FILENAME}"}
         )
     except Exception as e:
-        logger.error(" ❌ ERRORE NELL'ENDPOINT:", e)
+        logger.error(f" ❌ ERRORE NELL'ENDPOINT: {e}")
         raise
 # --------------------------------------------------------------
 # ENDPOINT 3 – AIRMASS
@@ -199,5 +199,5 @@ async def get_airmass():
 
 
     except Exception as e:
-        logger.error(" ❌ ERRORE NELL'ENDPOINT AIRMASS:", e)
+        logger.error(f" ❌ ERRORE NELL'ENDPOINT AIRMASS: {e}")
         raise HTTPException(status_code=500, detail=f"Errore interno: {e}")

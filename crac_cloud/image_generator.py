@@ -73,11 +73,14 @@ def generate_telescope_maps(
     map1_path = os.path.join(OUTPUT_DIR, MAP1_FILENAME)
     map2_path = os.path.join(OUTPUT_DIR, MAP2_FILENAME)
 
-    logger.info(">>> OUTPUT_DIR:", OUTPUT_DIR)
-    logger.info(">>> Saving field map to:", map1_path)
+    logger.info(f">>> OUTPUT_DIR: {OUTPUT_DIR}")
+    logger.info(f">>> Saving field map to: {map1_path}")
 
     # Dati di posizione
-    logger.info("TIPI GEO:", type(geo_data['latitude']), type(geo_data['longitude']), type(geo_data['elevation']))
+    logger.info(
+        f"TIPI GEO: {type(geo_data['latitude'])}, "
+        f"{type(geo_data['longitude'])}, {type(geo_data['elevation'])}"
+    )
 
     location = EarthLocation(
         lat=geo_data['latitude'], #* u.deg, 
