@@ -32,8 +32,8 @@ class TelescopeClient:
         try:
             # Chiama il metodo SetAction (o GetStatus se esiste)
             response = self.stub.SetAction(request, timeout=5.0) 
-            logger.debug(f"DEBUG questa è la response in telescope_cloud: {response}")
-            logger.debug(f"DEBUG stato autolight: {response.autolight}")
+            logger.debug(f"questa è la response in telescope_cloud: {response}")
+            logger.debug(f"stato autolight: {response.autolight}")
             # Per ora, restituiamo un formato consistente
             return {
                 "key": "KEY_AUTOLIGHT",
@@ -83,7 +83,7 @@ class TelescopeClient:
             action=telescope_pb2.CHECK_TELESCOPE # Invia l'azione di check
         )
         
-        logger.debug(f"DENUG: Invio SetAction(CHECK_TELESCOPE) per lo stato.")
+        logger.debug(f"Invio SetAction(CHECK_TELESCOPE) per lo stato.")
         try:
             response = self.stub.SetAction(request, timeout=5.0) 
             return self._parse_response(response)
@@ -101,12 +101,12 @@ class TelescopeClient:
         # 2. Crea la richiesta (usando il modello TelescopeRequest)
         request = telescope_pb2.TelescopeRequest(action=action_enum, autolight=False) 
         
-        logger.debug(f"DEBUG: Invio SetAction(TELESCOPE_CONNECT) al server gRPC: {request}")
-        logger.debug(f"DEBUG: Invio Connect per connettere il telescopio. {request}")
+        logger.debug(f"Invio SetAction(TELESCOPE_CONNECT) al server gRPC: {request}")
+        logger.debug(f"Invio Connect per connettere il telescopio. {request}")
         try:
             # Chiama l'RPC Connect
             response = self.stub.SetAction(request, timeout=5.0)
-            logger.debug(f"DEBUG: Risposta gRPC risposta: {response}")
+            logger.debug(f"Risposta gRPC risposta: {response}")
             # Analizza la risposta che dovrebbe contenere il nuovo stato (connesso)
             return self._parse_response(response)
         except grpc.RpcError as e:
@@ -126,7 +126,7 @@ class TelescopeClient:
             # Chiama l'RPC Disconnect
             # response = self.stub.Disconnect(request)
             response = self.stub.SetAction(request, timeout=5.0)
-            logger.debug(f"DEBUG: Risposta gRPC alla richiesta di disconnessione: {response}")
+            logger.debug(f"Risposta gRPC alla richiesta di disconnessione: {response}")
             # Analizza la risposta che dovrebbe contenere il nuovo stato (disconnesso)
             return self._parse_response(response)
         except grpc.RpcError as e:

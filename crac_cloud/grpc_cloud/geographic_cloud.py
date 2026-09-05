@@ -13,10 +13,10 @@ class GeographicClient:
 
     async def get_geographic_data(self):
         request = geographic_pb2.GeographicRequest()
-        logger.info("Requesting geographic data from server...")
+        logger.debug("Requesting geographic data from server...")
         try:
             response = await self.stub.GetGeographicInfo(request)
-            logger.info(f"Geographic data received: lat={response.latitude}, lon={response.longitude}, elev={response.elevation_meters}")
+            logger.debug(f"Geographic data received: lat={response.latitude}, lon={response.longitude}, elev={response.elevation_meters}")
             return {
                 "latitude": response.latitude,
                 "longitude": response.longitude,

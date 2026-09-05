@@ -47,10 +47,10 @@ def set_telescope_action(data: TelescopeActionModel):
         
         # 1. Gestione CONNECT/DISCONNECT
         if action == "TELESCOPE_CONNECT":
-            logger.info(f"Connessione al telescopio... {telescope_client}") 
+            logger.info("Azione richiesta: connetti il telescopio")
             return telescope_client.connect()
         elif action == "TELESCOPE_DISCONNECT":
-            logger.info(f"Disconnetto il telescopio... {telescope_client}")
+            logger.info("Azione richiesta: disconnetti il telescopio")
             return telescope_client.disconnect()
             
         # 2. Gestione PARK/FLAT
@@ -59,11 +59,11 @@ def set_telescope_action(data: TelescopeActionModel):
             try:
                 action_name_in_pb2 = action 
                 action_enum = getattr(telescope_pb2, action_name_in_pb2)
-                logger.info(f"action enum: {action_enum}, {action_name_in_pb2}")
+                logger.debug(f"action enum: {action_enum}, {action_name_in_pb2}")
             except AttributeError:
                 # 🎯 TENTA 2: Se fallisce, tenta l'accesso diretto alla classe ENUM (la tua versione)
                 action_enum = getattr(telescope_pb2.TelescopeAction, action)#autolight1=data.autolight
-                logger.info(f'action_enum: {action_enum}')            
+                logger.debug(f'action_enum: {action_enum}')            
             return telescope_client.set_action(action=action_enum, autolight=data.autolight)
         else:
             raise HTTPException(status_code=400, detail="Invalid action. Supported: CONNECT, DISCONNECT, PARK_POSITION, FLAT_POSITION.")

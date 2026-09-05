@@ -21,7 +21,7 @@ class ImageConfigClient:
             # CHIAMATA ASINCRONA
             response = await self.stub.GetCCDImageData(request)
 
-            logger.info(
+            logger.debug(
                 f"Image config data received: width={response.field_of_view_width}, height={response.field_of_view_height}"
             )
 

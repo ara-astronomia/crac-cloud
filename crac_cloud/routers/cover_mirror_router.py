@@ -30,9 +30,9 @@ def get_cover_mirror_status():
     try:
         request = cover_mirror_pb2.CoverMirrorRequest(action=cover_mirror_pb2.CoverMirrorAction.CHECK_COVER_MIRROR)
         response = cover_mirror_client.stub.SetAction(request)
-        logger.info(f" questo è da get_status: {response}")
+        logger.debug(f"Risposta get_status copertura specchio: {response}")
         parsed_data = cover_mirror_client._parse_cover_mirror_response(response)
-        logger.info(f"Risposta completa inviata al frontend: {parsed_data}")
+        logger.debug(f"Risposta completa inviata al frontend: {parsed_data}")
         return parsed_data
     except Exception as e:
         logger.error(f"❌ Errore nella richiesta di stato cover mirror: {e}")

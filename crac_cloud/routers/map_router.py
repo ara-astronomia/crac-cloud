@@ -44,7 +44,7 @@ def _static_map_response(image_name: str) -> Response:
 # Funzione di utilità per convertire DMS in decimali
 
 async def _get_all_required_data() -> dict:
-    logger.debug("DEBUG, Recupero dati dai servizi gRPC...")
+    logger.debug("Recupero dati dai servizi gRPC...")
 
     # Lancia le richieste async in parallelo
     geo_task = asyncio.create_task(geo_client.get_geographic_data())
@@ -68,7 +68,7 @@ async def _get_all_required_data() -> dict:
     tel_state = telescope_status.get("status", "DISCONNECTED")
 
     if tel_state in ["DISCONNECTED", "ERROR", "CRITICAL_ERROR", "LOST"]:
-        logger.info(">>> Telescopio non connesso → eq_coords = None")
+        logger.debug("Telescopio non connesso: eq_coords = None")
         return {
             "geo_data": geo_data,
             "ccd_data": ccd_data,
@@ -78,7 +78,7 @@ async def _get_all_required_data() -> dict:
 
     eq_coords = telescope_status.get("eq_coords", None)
     if not eq_coords or not all(k in eq_coords for k in ["ra", "dec"]):
-        logger.info(">>> Telescopio connesso ma coordinate mancanti → eq_coords = None")
+        logger.debug("Telescopio connesso ma coordinate mancanti: eq_coords = None")
         eq_coords = None
 
     return {
@@ -151,7 +151,7 @@ async def get_fixed_sky_map(t: float = None):
             )
 
         coords_have_changed = eq_coords_changed(data["eq_coords"])
-        logger.info(f"Coordinate eq cambiate? {coords_have_changed}")  
+        logger.debug(f"Coordinate eq cambiate? {coords_have_changed}")  
 
         if coords_have_changed:
             map1_path, _ = generate_telescope_maps(
@@ -160,7 +160,7 @@ async def get_fixed_sky_map(t: float = None):
             data["ccd_data"]
             )
         else:
-            logger.info("Coordinate eq non cambiate, riuso l'ultima mappa generata.")
+            logger.debug("Coordinate eq non cambiate, riuso l'ultima mappa generata.")
             map1_path = os.path.join(OUTPUT_DIR, MAP1_FILENAME)
 
         with open(map1_path, 'rb') as f:

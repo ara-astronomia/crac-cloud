@@ -61,7 +61,7 @@ class CurtainsClient:
         request = curtains_pb2.CurtainsRequest(action=action)
         try:
             response = self.stub.SetAction(request, timeout=5.0)
-            logger.debug(f"DEBUG stato tende: {response}")  # Stampa l'intero oggetto di risposta per il debug  
+            logger.debug(f"Risposta SetAction tende: {response}")
             return self._parse_response(response)
         except grpc.RpcError as e:
             return {"error": str(e.details())}
@@ -71,7 +71,7 @@ class CurtainsClient:
         request = curtains_pb2.CurtainsRequest(action=curtains_pb2.CurtainsAction.CHECK_CURTAIN)
         try:
             response = self.stub.SetAction(request, timeout=5.0)
-            logger.debug(f"DEBUG stato tende: {response}")  # Stampa l'intero oggetto di risposta per il debug
+            logger.debug(f"Risposta CheckCurtain tende: {response}")
             try:
                 return self._parse_response(response) # 🛑 Il crash avviene qui
             except Exception as parse_error:
@@ -94,7 +94,7 @@ class CurtainsClient:
             #    Il frontend mappa poi in testo/colore usando STATUS_LABELS_MAP
             status_enum_label = status_enum_name
             status_ui_text = STATUS_LABEL_MAP.get(status_enum_name, status_enum_name)
-            logger.info(f"Status curtain:{orientation_enum_name}, {steps_value}, {status_ui_text}")
+            logger.debug(f"Status curtain:{orientation_enum_name}, {steps_value}, {status_ui_text}")
 
             curtains_data.append({
                 "orientation": orientation_enum_name,

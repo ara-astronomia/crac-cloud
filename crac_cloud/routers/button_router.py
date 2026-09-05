@@ -57,7 +57,7 @@ def set_autolight_action(autolight_value: bool, telescope_stub):
 
     try:
         # 3. Chiama il metodo SetAction sullo stub del Telescopio
-        logger.debug(f"Invio Autolight con azione {ACTION_FOR_AUTOLIGHT}: {autolight_value}")
+        logger.info(f"Invio Autolight con azione {ACTION_FOR_AUTOLIGHT}: {autolight_value}")
         response = telescope_stub.SetAction(request) 
         # ... (Logica di parsing della risposta) ...
         return {"status": "ok", "message": "Autolight impostato"}
@@ -69,7 +69,7 @@ def set_autolight_action(autolight_value: bool, telescope_stub):
 
 @router.post("/set_action")
 async def set_action(request: ButtonActionRequest, service: get_grpc_container = Depends(get_grpc_container)):
-    logger.debug(f"DEBUG: Azione richiesta: {request.action}") # Debug utile
+    logger.debug(f"Azione richiesta: {request.action}") # Debug utile
     """
     Gestisce tutte le azioni dei pulsanti in base all'azione richiesta dal frontend.
     """
@@ -94,7 +94,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             # 💡 CHIAMATA CORRETTA: usa il nome corretto e passa ENTRAMBI gli argomenti
             status_data = service.button_client.get_single_switch_status(request.key, type_enum) 
             current_status = status_data.get("status") # Es: "ON" o "OFF"
-            logger.debug(f"DEBUG: Current status for {request.key} is {current_status}")
+            logger.debug(f"Current status for {request.key} is {current_status}")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to check current status on server: {e}")
         
@@ -113,14 +113,14 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
         # FASE 3 - INVIO DELL'AZIONE CORRETTA AL SERVER
         
         # 💡 NUOVA STAMPA: Cosa inviamo davvero?
-        logger.debug(f"DEBUG: Invio Azione Finale gRPC: {action_name} su Tipo: {type_name}") 
+        logger.info(f"Invio azione gRPC: {action_name} su tipo {type_name}") 
         
         response_data = service.button_client.set_switch_action(
             action=action_to_send_enum, # Azione corretta per la commutazione
             button_type=type_enum 
         )        
         # 💡 NUOVA STAMPA: Cosa è tornato dal server CRAC?
-        logger.debug(f"DEBUG: Risposta Finale gRPC: {response_data}") 
+        logger.debug(f"Risposta Finale gRPC: {response_data}") 
         return response_data
 
 # ------------------------------------------------------------------
@@ -132,7 +132,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
              logger.warning(f"Attenzione: Ricevuta azione CHECK_BUTTON per chiave non supportata: {request.key}")          
              return {"status": "error", "message": f"SET_VALUE non supportato per la chiave: {request.key}"}
         else:
-            logger.debug(f"DEBUG: Chiave valida per CHECK_BUTTON: {request.key}")
+            logger.debug(f"Chiave valida per CHECK_BUTTON: {request.key}")
         
         # 2. Estrazione del Valore Booleano
         # La richiesta FastAPI (Pydantic model) deve includere 'value: Optional[bool]'
@@ -142,7 +142,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             return {"status": "error", "message": "Il campo 'value' (boolean) è mancante per SET_VALUE."}
             
         autolight_value = request.value # ✅ Questo è il true/false
-        logger.debug(f"DEBUG: Valore Autolight ricevuto: {autolight_value}")        
+        logger.debug(f"Valore Autolight ricevuto: {autolight_value}")        
         # 3. Chiamata al servizio gRPC corretto (TelescopeRetriever)
         try:
         # Chiama la funzione proxy con lo stub del Telescopio e il valore
@@ -150,7 +150,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             request.value,
             service.telescope_client.stub # Passa lo stub gRPC corretto
             )
-            logger.debug(f"DEBUG: Risposta Finale gRPC Autolight: {response_data}")
+            logger.debug(f"Risposta Finale gRPC Autolight: {response_data}")
             return response_data
             
         except Exception as e:
@@ -202,7 +202,7 @@ async def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc
             status_data = service.button_client.get_single_switch_status(key_str, type_enum)
             
             all_statuses.append(status_data)
-            logger.debug(f"DEBUG: Stato ottenuto per {key_str}: {status_data}")
+            logger.debug(f"Stato ottenuto per {key_str}: {status_data}")
 
         except Exception as e:
             # Gestisce l'errore per un singolo pulsante senza bloccare il resto
