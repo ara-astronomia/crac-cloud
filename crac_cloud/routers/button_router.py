@@ -77,6 +77,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
     try:
         action_enum = button_pb2.ButtonAction.Value(request.action)
     except ValueError:
+        logger.warning(f"Azione non riconosciuta: {request.action}")
         return {"status": "error", "message": f"Unknown action: {request.action}"}
 
     # --- BLOCCO 1: TURN_ON / TURN_OFF (Interruttori e Luci) ---
@@ -85,8 +86,10 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             button_type_str = KEY_TO_TYPE_MAP[request.key] # Es: 'TELE_SWITCH'
             type_enum = button_pb2.ButtonType.Value(button_type_str)
         except KeyError:
+            logger.warning(f"Chiave non presente in KEY_TO_TYPE_MAP: {request.key}")
             return {"status": "error", "message": f"Unknown key '{request.key}' in KEY_TO_TYPE_MAP."}
         except ValueError:
+            logger.warning(f"Tipo non presente in ButtonType: {button_type_str}")
             return {"status": "error", "message": f"Type '{button_type_str}' not found in ButtonType enum."}
 
         # ⚠️ FASE 1 - OTTIENI LO STATO ATTUALE DAL SERVER ⚠️
@@ -96,6 +99,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             current_status = status_data.get("status") # Es: "ON" o "OFF"
             logger.debug(f"Current status for {request.key} is {current_status}")
         except Exception as e:
+            logger.error(f" ❌ Errore nel recupero dello stato di {request.key}: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to check current status on server: {e}")
         
         # ... (omissis: FASE 2 - Logica di Commutazione e FASE 3 - Invio) ...       
@@ -154,7 +158,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             return response_data
             
         except Exception as e:
-            # Cattura qualsiasi errore durante la comunicazione gRPC
+            logger.error(f" ❌ Errore nell'impostazione dell'autolight: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to set Autolight status: {e}")
 
 # ------------------------------------------------------------------
@@ -165,6 +169,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             button_type_str = KEY_TO_TYPE_MAP[request.key] # Es: 'TELE_SWITCH'
             type_enum_value = button_pb2.ButtonType.Value(button_type_str)
         except (KeyError, ValueError):
+            logger.warning(f"Chiave o tipo non validi per l'azione di default: {request.key}")
             return {"status": "error", "message": f"Unknown key or type for default action: {request.key}"}
         
         # Chiama gRPC inviando l'ID numerico della CHIAVE nel campo BUTTON_TYPE

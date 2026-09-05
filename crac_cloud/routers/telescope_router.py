@@ -71,8 +71,10 @@ def set_telescope_action(data: TelescopeActionModel):
     except HTTPException:
         raise
     except AttributeError:
+        logger.error(f" ❌ Azione telescopio non valida: {data.action}")
         raise HTTPException(status_code=400, detail="Invalid telescope action")
     except Exception as e:
+        logger.error(f" ❌ Errore durante l'azione {data.action} sul telescopio: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to execute action: {e}")
 
 # L'endpoint power_on è asincrono e dovrebbe usare HTTPException

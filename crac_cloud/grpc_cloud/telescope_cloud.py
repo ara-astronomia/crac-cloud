@@ -42,7 +42,7 @@ class TelescopeClient:
             }
             
         except Exception as e:
-            # ... (Gestione degli errori) ...
+            logger.error(f" ❌ Errore nel recupero dello stato autolight: {e}")
             return {"key": "KEY_AUTOLIGHT", "status": "UNKNOWN"}
 
     def set_action(self, action: telescope_pb2.TelescopeAction, autolight: bool = False):
@@ -110,6 +110,7 @@ class TelescopeClient:
             # Analizza la risposta che dovrebbe contenere il nuovo stato (connesso)
             return self._parse_response(response)
         except grpc.RpcError as e:
+            logger.error(f" ❌ Errore gRPC (connessione telescopio): {e.details()}")
             from fastapi import HTTPException
             raise HTTPException(
                 status_code=500,

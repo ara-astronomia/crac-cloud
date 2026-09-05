@@ -64,6 +64,7 @@ class CurtainsClient:
             logger.debug(f"Risposta SetAction tende: {response}")
             return self._parse_response(response)
         except grpc.RpcError as e:
+            logger.error(f" ❌ Errore gRPC (azione tende): {e.details()}")
             return {"error": str(e.details())}
     
     def get_status(self):
@@ -78,6 +79,7 @@ class CurtainsClient:
                 logger.error(f" ❌ ERRORE DI PARSING in _parse_response: {parse_error}")
                 return {"error": f"Parsing failed: {parse_error}", "curtains": []}
         except grpc.RpcError as e:
+            logger.error(f" ❌ Errore gRPC (stato tende): {e.details()}")
             return {"error": str(e.details())}
     
     def _parse_response(self, response):

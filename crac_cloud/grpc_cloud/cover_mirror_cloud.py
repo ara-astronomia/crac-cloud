@@ -1,7 +1,10 @@
+import logging
 import grpc
 from crac_protobuf import cover_mirror_pb2
 from crac_protobuf import cover_mirror_pb2_grpc
 from crac_protobuf import button_pb2
+
+logger = logging.getLogger(__name__)
 
 
 class CoverMirrorClient:
@@ -34,7 +37,8 @@ class CoverMirrorClient:
         request = cover_mirror_pb2.CoverMirrorRequest(action=action_enum)
         try:
             response = self.stub.SetAction(request, timeout=5.0)
-            print (f"questo è il response: {response}")
+            logger.debug(f"Risposta SetAction copertura specchio: {response}")
             return self._parse_cover_mirror_response(response)
         except grpc.RpcError as e:
+            logger.error(f" ❌ Errore gRPC (azione copertura specchio): {e.details()}")
             return {"error": str(e.details())}
