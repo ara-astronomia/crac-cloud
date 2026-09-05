@@ -30,12 +30,12 @@ def get_cover_mirror_status():
     try:
         request = cover_mirror_pb2.CoverMirrorRequest(action=cover_mirror_pb2.CoverMirrorAction.CHECK_COVER_MIRROR)
         response = cover_mirror_client.stub.SetAction(request)
-        logger.debug(f"Risposta get_status copertura specchio: {response}")
+        logger.debug(f"Mirror cover get_status response: {response}")
         parsed_data = cover_mirror_client._parse_cover_mirror_response(response)
-        logger.debug(f"Risposta completa inviata al frontend: {parsed_data}")
+        logger.debug(f"Full response sent to the frontend: {parsed_data}")
         return parsed_data
     except Exception as e:
-        logger.error(f"❌ Errore nella richiesta di stato cover mirror: {e}")
+        logger.error(f"❌ Error while requesting the mirror cover status: {e}")
         return {
             "status": "ERROR",
             "gui": {
@@ -50,9 +50,9 @@ def get_cover_mirror_status():
 @router.post("/set_action")
 async def set_action(request: CoverMirrorActionRequest):
     if request.action == "OPEN_COVER_MIRROR":
-        logger.info("Azione richiesta: apri copertura specchio")
+        logger.info("Action requested: open the mirror cover")
         return cover_mirror_client.set_action(cover_mirror_pb2.CoverMirrorAction.OPEN_COVER_MIRROR)
     elif request.action == "CLOSE_COVER_MIRROR":
-        logger.info("Azione richiesta: chiudi copertura specchio")
+        logger.info("Action requested: close the mirror cover")
         return cover_mirror_client.set_action(cover_mirror_pb2.CoverMirrorAction.CLOSE_COVER_MIRROR)
     return {"status": "error", "message": f"Azione non valida: {request.action}"}

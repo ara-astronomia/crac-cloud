@@ -32,8 +32,8 @@ class TelescopeClient:
         try:
             # Chiama il metodo SetAction (o GetStatus se esiste)
             response = self.stub.SetAction(request, timeout=5.0) 
-            logger.debug(f"questa è la response in telescope_cloud: {response}")
-            logger.debug(f"stato autolight: {response.autolight}")
+            logger.debug(f"telescope_cloud response: {response}")
+            logger.debug(f"autolight status: {response.autolight}")
             # Per ora, restituiamo un formato consistente
             return {
                 "key": "KEY_AUTOLIGHT",
@@ -42,7 +42,7 @@ class TelescopeClient:
             }
             
         except Exception as e:
-            logger.error(f" ❌ Errore nel recupero dello stato autolight: {e}")
+            logger.error(f" ❌ Error while fetching the autolight status: {e}")
             return {"key": "KEY_AUTOLIGHT", "status": "UNKNOWN"}
 
     def set_action(self, action: telescope_pb2.TelescopeAction, autolight: bool = False):
@@ -60,7 +60,7 @@ class TelescopeClient:
         # 1. ✅ LOGGA L'ERRORE nel terminale Python
             error_details = e.details()
             error_code = e.code().name
-            logger.error(f"\n🚨 ERRORE gRPC RILEVATO per Azione {action.name}: Codice di Stato: {error_code}, Dettagli: {error_details}")
+            logger.error(f"\n🚨 gRPC error detected for action {action.name}: status code: {error_code}, details: {error_details}")
 
             # 2. ✅ RILANCIA UN'ECCEZIONE HTTP CHE FASTAPI PUÒ GESTIRE
             from fastapi import HTTPException
@@ -72,7 +72,7 @@ class TelescopeClient:
         except Exception as general_error:
         # 🚨 Questo blocco è FONDAMENTALE per catturare eccezioni inattese 🚨
             import traceback
-            logger.error(f"\n🛑 ERRORE FATALE NON CATTURATO: {type(general_error).__name__}: {general_error}")
+            logger.error(f"\n🛑 Uncaught fatal error: {type(general_error).__name__}: {general_error}")
             traceback.print_exc()
             from fastapi import HTTPException
             raise HTTPException(status_code=500, detail=f"Errore fatale in SetAction.")
@@ -83,13 +83,13 @@ class TelescopeClient:
             action=telescope_pb2.CHECK_TELESCOPE # Invia l'azione di check
         )
         
-        logger.debug(f"Invio SetAction(CHECK_TELESCOPE) per lo stato.")
+        logger.debug(f"Sending SetAction(CHECK_TELESCOPE) to get the status.")
         try:
             response = self.stub.SetAction(request, timeout=5.0) 
             return self._parse_response(response)
         except grpc.RpcError as e:
             # Assicurati di gestire l'errore per non rompere il router (restituisci stato d'errore)
-            logger.error(f"❌ Errore gRPC: Il servizio del telescopio non ha risposto. Dettagli: {e.details()}")
+            logger.error(f"❌ gRPC error: the telescope service did not answer. Details: {e.details()}")
             return {"error": str(e.details())}
 
     def connect(self):
@@ -101,16 +101,16 @@ class TelescopeClient:
         # 2. Crea la richiesta (usando il modello TelescopeRequest)
         request = telescope_pb2.TelescopeRequest(action=action_enum, autolight=False) 
         
-        logger.debug(f"Invio SetAction(TELESCOPE_CONNECT) al server gRPC: {request}")
-        logger.debug(f"Invio Connect per connettere il telescopio. {request}")
+        logger.debug(f"Sending SetAction(TELESCOPE_CONNECT) to the gRPC server: {request}")
+        logger.debug(f"Sending Connect to connect the telescope. {request}")
         try:
             # Chiama l'RPC Connect
             response = self.stub.SetAction(request, timeout=5.0)
-            logger.debug(f"Risposta gRPC risposta: {response}")
+            logger.debug(f"gRPC response: {response}")
             # Analizza la risposta che dovrebbe contenere il nuovo stato (connesso)
             return self._parse_response(response)
         except grpc.RpcError as e:
-            logger.error(f" ❌ Errore gRPC (connessione telescopio): {e.details()}")
+            logger.error(f" ❌ gRPC error (telescope connection): {e.details()}")
             from fastapi import HTTPException
             raise HTTPException(
                 status_code=500,
@@ -127,12 +127,12 @@ class TelescopeClient:
             # Chiama l'RPC Disconnect
             # response = self.stub.Disconnect(request)
             response = self.stub.SetAction(request, timeout=5.0)
-            logger.debug(f"Risposta gRPC alla richiesta di disconnessione: {response}")
+            logger.debug(f"gRPC response to the disconnect request: {response}")
             # Analizza la risposta che dovrebbe contenere il nuovo stato (disconnesso)
             return self._parse_response(response)
         except grpc.RpcError as e:
             error_message = f"Errore gRPC: Il servizio non ha risposto. {e.details()}"
-            logger.error(f" ❌ ERRORE gRPC {error_message}") # Assicurati di vederlo!
+            logger.error(f" ❌ gRPC error {error_message}") # Assicurati di vederlo!
             return {"error": str(e.details())}
         
     def _parse_response(self, response):

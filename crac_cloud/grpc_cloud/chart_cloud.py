@@ -80,5 +80,5 @@ class ChartClient:
             }
         except grpc.RpcError as e:
             # Gestione errore gRPC, fondamentale per il debug
-            logger.error(f" ❌ Errore RPC (ChartStatus): {e.details()}")
+            logger.error(f" ❌ RPC error (ChartStatus): {e.details()}")
             return {"error": str(e.details()), "status": "SCONOSCIUTO"}

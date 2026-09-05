@@ -49,5 +49,5 @@ class RoofClient:
             return self._parse_roof_response(response) 
             
         except grpc.RpcError as e:
-            logger.error(f" ❌ Errore gRPC (azione tetto): {e.details()}")
+            logger.error(f" ❌ gRPC error (roof action): {e.details()}")
             return {"error": str(e.details())}    

@@ -30,7 +30,7 @@ def get_telescope_status():
     try:
         return telescope_client.get_status()
     except Exception as e:
-        logger.error(f"❌ Errore nella richiesta di stato del telescopio: {e}")
+        logger.error(f"❌ Error while requesting the telescope status: {e}")
         return {
             "status": "ERROR",
             "error": str(e),
@@ -47,10 +47,10 @@ def set_telescope_action(data: TelescopeActionModel):
         
         # 1. Gestione CONNECT/DISCONNECT
         if action == "TELESCOPE_CONNECT":
-            logger.info("Azione richiesta: connetti il telescopio")
+            logger.info("Action requested: connect the telescope")
             return telescope_client.connect()
         elif action == "TELESCOPE_DISCONNECT":
-            logger.info("Azione richiesta: disconnetti il telescopio")
+            logger.info("Action requested: disconnect the telescope")
             return telescope_client.disconnect()
             
         # 2. Gestione PARK/FLAT
@@ -71,10 +71,10 @@ def set_telescope_action(data: TelescopeActionModel):
     except HTTPException:
         raise
     except AttributeError:
-        logger.error(f" ❌ Azione telescopio non valida: {data.action}")
+        logger.error(f" ❌ Invalid telescope action: {data.action}")
         raise HTTPException(status_code=400, detail="Invalid telescope action")
     except Exception as e:
-        logger.error(f" ❌ Errore durante l'azione {data.action} sul telescopio: {e}")
+        logger.error(f" ❌ Error during action {data.action} on the telescope: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to execute action: {e}")
 
 # L'endpoint power_on è asincrono e dovrebbe usare HTTPException
@@ -86,6 +86,6 @@ async def power_on_telescope():
         response_data = await telescope_client.power_on()
         return {"message": "Telescope powered on successfully", "status": response_data}
     except Exception as e:
-        logger.error(f"❌ Errore durante l'accensione del telescopio: {e}")
+        logger.error(f"❌ Error while powering on the telescope: {e}")
         # Gestione degli errori, se il simulatore non risponde
         raise HTTPException(status_code=500, detail=f"Failed to power on: {e}")

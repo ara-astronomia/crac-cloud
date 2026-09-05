@@ -19,5 +19,5 @@ ups_client = UpsClient(host=grpc_host, port=grpc_port)
 @router.get("/status")
 def get_ups_status():
     """Endpoint per ottenere lo stato degli UPS."""
-    logger.debug("Richiesta stato UPS")
+    logger.debug("UPS status requested")
     return ups_client.get_status()

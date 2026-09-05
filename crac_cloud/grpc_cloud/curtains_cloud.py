@@ -61,10 +61,10 @@ class CurtainsClient:
         request = curtains_pb2.CurtainsRequest(action=action)
         try:
             response = self.stub.SetAction(request, timeout=5.0)
-            logger.debug(f"Risposta SetAction tende: {response}")
+            logger.debug(f"Curtains SetAction response: {response}")
             return self._parse_response(response)
         except grpc.RpcError as e:
-            logger.error(f" ❌ Errore gRPC (azione tende): {e.details()}")
+            logger.error(f" ❌ gRPC error (curtains action): {e.details()}")
             return {"error": str(e.details())}
     
     def get_status(self):
@@ -72,14 +72,14 @@ class CurtainsClient:
         request = curtains_pb2.CurtainsRequest(action=curtains_pb2.CurtainsAction.CHECK_CURTAIN)
         try:
             response = self.stub.SetAction(request, timeout=5.0)
-            logger.debug(f"Risposta CheckCurtain tende: {response}")
+            logger.debug(f"Curtains CheckCurtain response: {response}")
             try:
                 return self._parse_response(response) # 🛑 Il crash avviene qui
             except Exception as parse_error:
-                logger.error(f" ❌ ERRORE DI PARSING in _parse_response: {parse_error}")
+                logger.error(f" ❌ Parsing error in _parse_response: {parse_error}")
                 return {"error": f"Parsing failed: {parse_error}", "curtains": []}
         except grpc.RpcError as e:
-            logger.error(f" ❌ Errore gRPC (stato tende): {e.details()}")
+            logger.error(f" ❌ gRPC error (curtains status): {e.details()}")
             return {"error": str(e.details())}
     
     def _parse_response(self, response):
@@ -148,5 +148,5 @@ class CurtainsClient:
             return str(enum_value) 
                 
         except Exception as e:
-            logger.error(f" ❌ ERRORE di conversione ENUM {enum_class.__name__}: {e}")
+            logger.error(f" ❌ Enum conversion error {enum_class.__name__}: {e}")
             return str(enum_value)

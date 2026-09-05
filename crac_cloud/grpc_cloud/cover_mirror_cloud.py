@@ -37,8 +37,8 @@ class CoverMirrorClient:
         request = cover_mirror_pb2.CoverMirrorRequest(action=action_enum)
         try:
             response = self.stub.SetAction(request, timeout=5.0)
-            logger.debug(f"Risposta SetAction copertura specchio: {response}")
+            logger.debug(f"Mirror cover SetAction response: {response}")
             return self._parse_cover_mirror_response(response)
         except grpc.RpcError as e:
-            logger.error(f" ❌ Errore gRPC (azione copertura specchio): {e.details()}")
+            logger.error(f" ❌ gRPC error (mirror cover action): {e.details()}")
             return {"error": str(e.details())}

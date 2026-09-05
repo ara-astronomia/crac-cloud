@@ -57,19 +57,19 @@ def set_autolight_action(autolight_value: bool, telescope_stub):
 
     try:
         # 3. Chiama il metodo SetAction sullo stub del Telescopio
-        logger.info(f"Invio Autolight con azione {ACTION_FOR_AUTOLIGHT}: {autolight_value}")
+        logger.info(f"Sending autolight with action {ACTION_FOR_AUTOLIGHT}: {autolight_value}")
         response = telescope_stub.SetAction(request) 
         # ... (Logica di parsing della risposta) ...
         return {"status": "ok", "message": "Autolight impostato"}
         
     except grpc.RpcError as e:
-        logger.error(f"❌ Errore RPC (Autolight): {e.details()}")
+        logger.error(f"❌ RPC error (autolight): {e.details()}")
         return {"status": "error", "message": f"Errore gRPC Autolight: {e.details()}"}
 
 
 @router.post("/set_action")
 async def set_action(request: ButtonActionRequest, service: get_grpc_container = Depends(get_grpc_container)):
-    logger.debug(f"Azione richiesta: {request.action}") # Debug utile
+    logger.debug(f"Action requested: {request.action}") # Debug utile
     """
     Gestisce tutte le azioni dei pulsanti in base all'azione richiesta dal frontend.
     """
@@ -77,7 +77,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
     try:
         action_enum = button_pb2.ButtonAction.Value(request.action)
     except ValueError:
-        logger.warning(f"Azione non riconosciuta: {request.action}")
+        logger.warning(f"Unknown action: {request.action}")
         return {"status": "error", "message": f"Unknown action: {request.action}"}
 
     # --- BLOCCO 1: TURN_ON / TURN_OFF (Interruttori e Luci) ---
@@ -86,10 +86,10 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             button_type_str = KEY_TO_TYPE_MAP[request.key] # Es: 'TELE_SWITCH'
             type_enum = button_pb2.ButtonType.Value(button_type_str)
         except KeyError:
-            logger.warning(f"Chiave non presente in KEY_TO_TYPE_MAP: {request.key}")
+            logger.warning(f"Key not found in KEY_TO_TYPE_MAP: {request.key}")
             return {"status": "error", "message": f"Unknown key '{request.key}' in KEY_TO_TYPE_MAP."}
         except ValueError:
-            logger.warning(f"Tipo non presente in ButtonType: {button_type_str}")
+            logger.warning(f"Type not found in ButtonType: {button_type_str}")
             return {"status": "error", "message": f"Type '{button_type_str}' not found in ButtonType enum."}
 
         # ⚠️ FASE 1 - OTTIENI LO STATO ATTUALE DAL SERVER ⚠️
@@ -99,7 +99,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             current_status = status_data.get("status") # Es: "ON" o "OFF"
             logger.debug(f"Current status for {request.key} is {current_status}")
         except Exception as e:
-            logger.error(f" ❌ Errore nel recupero dello stato di {request.key}: {e}")
+            logger.error(f" ❌ Error while fetching the status of {request.key}: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to check current status on server: {e}")
         
         # ... (omissis: FASE 2 - Logica di Commutazione e FASE 3 - Invio) ...       
@@ -117,14 +117,14 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
         # FASE 3 - INVIO DELL'AZIONE CORRETTA AL SERVER
         
         # 💡 NUOVA STAMPA: Cosa inviamo davvero?
-        logger.info(f"Invio azione gRPC: {action_name} su tipo {type_name}") 
+        logger.info(f"Sending gRPC action: {action_name} on type {type_name}") 
         
         response_data = service.button_client.set_switch_action(
             action=action_to_send_enum, # Azione corretta per la commutazione
             button_type=type_enum 
         )        
         # 💡 NUOVA STAMPA: Cosa è tornato dal server CRAC?
-        logger.debug(f"Risposta Finale gRPC: {response_data}") 
+        logger.debug(f"Final gRPC response: {response_data}") 
         return response_data
 
 # ------------------------------------------------------------------
@@ -133,10 +133,10 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
         
         # 1. Verifica la Chiave
         if request.key != 'KEY_AUTOLIGHT':
-             logger.warning(f"Attenzione: Ricevuta azione CHECK_BUTTON per chiave non supportata: {request.key}")          
+             logger.warning(f"CHECK_BUTTON action received for an unsupported key: {request.key}")          
              return {"status": "error", "message": f"SET_VALUE non supportato per la chiave: {request.key}"}
         else:
-            logger.debug(f"Chiave valida per CHECK_BUTTON: {request.key}")
+            logger.debug(f"Valid key for CHECK_BUTTON: {request.key}")
         
         # 2. Estrazione del Valore Booleano
         # La richiesta FastAPI (Pydantic model) deve includere 'value: Optional[bool]'
@@ -146,7 +146,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             return {"status": "error", "message": "Il campo 'value' (boolean) è mancante per SET_VALUE."}
             
         autolight_value = request.value # ✅ Questo è il true/false
-        logger.debug(f"Valore Autolight ricevuto: {autolight_value}")        
+        logger.debug(f"Autolight value received: {autolight_value}")        
         # 3. Chiamata al servizio gRPC corretto (TelescopeRetriever)
         try:
         # Chiama la funzione proxy con lo stub del Telescopio e il valore
@@ -154,11 +154,11 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             request.value,
             service.telescope_client.stub # Passa lo stub gRPC corretto
             )
-            logger.debug(f"Risposta Finale gRPC Autolight: {response_data}")
+            logger.debug(f"Final gRPC autolight response: {response_data}")
             return response_data
             
         except Exception as e:
-            logger.error(f" ❌ Errore nell'impostazione dell'autolight: {e}")
+            logger.error(f" ❌ Error while setting the autolight: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to set Autolight status: {e}")
 
 # ------------------------------------------------------------------
@@ -169,7 +169,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
             button_type_str = KEY_TO_TYPE_MAP[request.key] # Es: 'TELE_SWITCH'
             type_enum_value = button_pb2.ButtonType.Value(button_type_str)
         except (KeyError, ValueError):
-            logger.warning(f"Chiave o tipo non validi per l'azione di default: {request.key}")
+            logger.warning(f"Invalid key or type for the default action: {request.key}")
             return {"status": "error", "message": f"Unknown key or type for default action: {request.key}"}
         
         # Chiama gRPC inviando l'ID numerico della CHIAVE nel campo BUTTON_TYPE
@@ -207,11 +207,11 @@ async def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc
             status_data = service.button_client.get_single_switch_status(key_str, type_enum)
             
             all_statuses.append(status_data)
-            logger.debug(f"Stato ottenuto per {key_str}: {status_data}")
+            logger.debug(f"Status fetched for {key_str}: {status_data}")
 
         except Exception as e:
             # Gestisce l'errore per un singolo pulsante senza bloccare il resto
-            logger.error(f"❌ Errore nel recupero stato per {key_str}: {e}")
+            logger.error(f"❌ Error while fetching the status for {key_str}: {e}")
             # Invia uno stato di errore (grigio predefinito)
             all_statuses.append({"key": key_str, "status": "ERROR", "button_gui": {}})
 
@@ -221,7 +221,7 @@ async def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc
             all_statuses.append(autolight_status)
 
         except Exception as e:
-            logger.error(f"❌ Errore nel recupero Autolight: {e}")
+            logger.error(f"❌ Error while fetching the autolight: {e}")
             # Gestisci l'errore per non bloccare il polling    
 
     # Restituisce un JSON con la lista di tutti gli stati

@@ -91,7 +91,7 @@ def generate_telescope_maps(
     # Dimensioni del campo visivo (convertite da minuti d'arco a gradi)
     field_width_deg = ccd_data['width'] 
     field_height_deg = ccd_data['height']
-    logger.debug(f"Campo visivo: width={field_width_deg}, height={field_height_deg}")
+    logger.debug(f"Field of view: width={field_width_deg}, height={field_height_deg}")
     
     # 2. Generazione delle Mappe
     
@@ -99,11 +99,11 @@ def generate_telescope_maps(
     try:
         _generate_tracking_chart(observer, center_coord, current_time, map2_path)
     except Exception as e:
-        logger.error(f" ❌ Errore nella generazione del grafico di tracciato: {e}")      
+        logger.error(f" ❌ Error while generating the tracking chart: {e}")      
     try:     
         _generate_field_map(center_coord, map1_path, field_width_deg, field_height_deg)
     except Exception as e:
-        logger.error(f" ❌ Errore nella generazione della mappa del cielo: {e}")   
+        logger.error(f" ❌ Error while generating the sky map: {e}")   
         fallback = os.path.join(OUTPUT_DIR,  "backup_map.png")
         import shutil
         shutil.copy(fallback, map1_path)
@@ -117,8 +117,8 @@ def _generate_field_map(center_coord, save_path, field_width_deg, field_height_d
     width = (field_width_deg+20) * u.arcmin
     height = (field_height_deg+20) * u.arcmin
 
-    logger.info(f"Scarico immagine DSS per RA={center_coord.ra.deg}, DEC={center_coord.dec.deg}")
-    logger.debug(f"Dimensioni mappa: {width} x {height}")
+    logger.info(f"Downloading DSS image for RA={center_coord.ra.deg}, DEC={center_coord.dec.deg}")
+    logger.debug(f"Map size: {width} x {height}")
     ra_val = float(center_coord.ra.deg)
     ra_val_hour=ra_val *u.hour 
     dec_val = (center_coord.dec) 
@@ -134,7 +134,7 @@ def _generate_field_map(center_coord, save_path, field_width_deg, field_height_d
     # altrimenti la scala degli assi WCS restituita da plot_finder_image (che dipende
     # dall'immagine DSS scaricata) non corrisponde al campo effettivamente inquadrato.
     fov_radius = max(width, height) / 2
-    logger.debug(f"Dimensioni immagine scaricata in gradi: {download_width} x {download_height}")
+    logger.debug(f"Downloaded image size in degrees: {download_width} x {download_height}")
     ax, hdu = plot_finder_image(target, fov_radius=fov_radius, survey="DSS")
     ax.coords[0].set_major_formatter('hh:mm')  # asse RA: solo ore/minuti, niente secondi
 
@@ -142,7 +142,7 @@ def _generate_field_map(center_coord, save_path, field_width_deg, field_height_d
         cdelt1 = abs(hdu.header['CDELT1']) * u.deg # Scala lungo l'asse X
         cdelt2 = abs(hdu.header['CDELT2']) * u.deg # Scala lungo l'asse Y
     except KeyError:
-        logger.error(" ❌ Errore: Header FITS non contiene CDELT1/CDELT2. Impossibile calcolare il FoV.")
+        logger.error(" ❌ Error: FITS header has no CDELT1/CDELT2, cannot compute the FoV.")
         # Se non possiamo calcolare, usciamo o usiamo un fallback
         plt.close() 
         return
@@ -181,7 +181,7 @@ def _generate_field_map(center_coord, save_path, field_width_deg, field_height_d
     
     # Chiudi la figura
     plt.close(current_fig)
-    logger.info(f"MAPPA DEL CIELO SALVATA IN {save_path}")
+    logger.info(f"Sky map saved to {save_path}")
 #----------------------------------------------------------------------
 #--- FUNZIONI DI PLOTTING TRACKING TELESCOPE ---
 #----------------------------------------------------------------------
@@ -258,8 +258,8 @@ def _generate_tracking_chart(observer, center_coord, current_time, save_path):
     plt.savefig(save_path)
     plt.close(fig)
 
-    logger.info(f"GRAFICO DELL'AIRMASS SALVATO IN {save_path}")
-    logger.debug(f"Airmass attuale: {airmass_formatted}")
+    logger.info(f"Airmass chart saved to {save_path}")
+    logger.debug(f"Current airmass: {airmass_formatted}")
 
 def compute_airmass(
         geo_data: Dict[str, float], 
@@ -269,7 +269,7 @@ def compute_airmass(
     Calcola SOLO l'airmass attuale senza generare immagini.
     È leggerissima e veloce (millisecondi).
     """
-    logger.debug("Calcolo dell'airmass")
+    logger.debug("Computing the airmass")
     location = EarthLocation(
         lat=geo_data['latitude'], #* u.deg, 
         lon=geo_data['longitude'], #* u.deg, 
@@ -293,6 +293,6 @@ def compute_airmass(
     telescope_target = FixedTarget(name='Telescope', coord=telescope_coord)
     altaz_now = observer.altaz(current_time, telescope_target.coord)
     airmass_now = altaz_now.secz.value
-    logger.debug(f"Airmass calcolato: {airmass_now}")
+    logger.debug(f"Computed airmass: {airmass_now}")
     
     return float(f"{airmass_now:.3f}")

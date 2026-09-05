@@ -44,7 +44,7 @@ def _static_map_response(image_name: str) -> Response:
 # Funzione di utilità per convertire DMS in decimali
 
 async def _get_all_required_data() -> dict:
-    logger.debug("Recupero dati dai servizi gRPC...")
+    logger.debug("Fetching data from the gRPC services...")
 
     # Lancia le richieste async in parallelo
     geo_task = asyncio.create_task(geo_client.get_geographic_data())
@@ -68,7 +68,7 @@ async def _get_all_required_data() -> dict:
     tel_state = telescope_status.get("status", "DISCONNECTED")
 
     if tel_state in ["DISCONNECTED", "ERROR", "CRITICAL_ERROR", "LOST"]:
-        logger.debug("Telescopio non connesso: eq_coords = None")
+        logger.debug("Telescope not connected: eq_coords = None")
         return {
             "geo_data": geo_data,
             "ccd_data": ccd_data,
@@ -78,7 +78,7 @@ async def _get_all_required_data() -> dict:
 
     eq_coords = telescope_status.get("eq_coords", None)
     if not eq_coords or not all(k in eq_coords for k in ["ra", "dec"]):
-        logger.debug("Telescopio connesso ma coordinate mancanti: eq_coords = None")
+        logger.debug("Telescope connected but coordinates missing: eq_coords = None")
         eq_coords = None
 
     return {
@@ -133,7 +133,7 @@ async def get_tracking_chart(t: float = None):
         )
 
     except Exception as e:
-        logger.error(f" ❌ ERRORE NELL'ENDPOINT TRACKING CHART: {e}")
+        logger.error(f" ❌ Error in the tracking chart endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Errore interno: {e}")
 # --------------------------------------------------------------
 # ENDPOINT 2 – Sky map
@@ -151,7 +151,7 @@ async def get_fixed_sky_map(t: float = None):
             )
 
         coords_have_changed = eq_coords_changed(data["eq_coords"])
-        logger.debug(f"Coordinate eq cambiate? {coords_have_changed}")  
+        logger.debug(f"Eq coordinates changed? {coords_have_changed}")  
 
         if coords_have_changed:
             map1_path, _ = generate_telescope_maps(
@@ -160,7 +160,7 @@ async def get_fixed_sky_map(t: float = None):
             data["ccd_data"]
             )
         else:
-            logger.debug("Coordinate eq non cambiate, riuso l'ultima mappa generata.")
+            logger.debug("Eq coordinates unchanged, reusing the last generated map.")
             map1_path = os.path.join(OUTPUT_DIR, MAP1_FILENAME)
 
         with open(map1_path, 'rb') as f:
@@ -172,7 +172,7 @@ async def get_fixed_sky_map(t: float = None):
             headers={"Content-Disposition": f"inline; filename={MAP1_FILENAME}"}
         )
     except Exception as e:
-        logger.error(f" ❌ ERRORE NELL'ENDPOINT: {e}")
+        logger.error(f" ❌ Error in the endpoint: {e}")
         raise
 # --------------------------------------------------------------
 # ENDPOINT 3 – AIRMASS
@@ -199,5 +199,5 @@ async def get_airmass():
 
 
     except Exception as e:
-        logger.error(f" ❌ ERRORE NELL'ENDPOINT AIRMASS: {e}")
+        logger.error(f" ❌ Error in the airmass endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Errore interno: {e}")
