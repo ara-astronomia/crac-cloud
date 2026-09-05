@@ -34,7 +34,7 @@ class UpsClient:
                 battery_statuses_list = [
                     ups_pb2.BatteryStatus.Name(status) for status in chart.battery_statuses
                 ]
-                logger.debug(f"DEBUG: Questo è lo status_list delle batterie:{battery_statuses_list}")
+                logger.debug(f"Batteries status_list: {battery_statuses_list}")
                 charts_list.append({
                     "chart": chart_data,
                     "battery_statuses": battery_statuses_list
@@ -48,5 +48,5 @@ class UpsClient:
                 "devices": list(response.devices)
             }
         except grpc.RpcError as e:
-            logger.error(f"❌ Errore gRPC: Il servizio UPS non ha risposto. Dettagli: {e.details()}")
+            logger.error(f"❌ gRPC error: the UPS service did not answer. Details: {e.details()}")
             return {"error": str(e.details())}

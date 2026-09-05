@@ -10,7 +10,7 @@ class ImageConfigClient:
     def __init__(self, host: str, port: int):
         # Usa il canale ASINCRONO
         self.channel = grpc.aio.insecure_channel(f"{host}:{port}")
-        logger.debug(f"ImageConfigClient: Canale gRPC asincrono creato per {host}:{port}")
+        logger.debug(f"ImageConfigClient: async gRPC channel created for {host}:{port}")
         self.stub = data_image_pb2_grpc.ImageConfigServiceStub(self.channel)
 
     async def get_ccd_image_data(self):
@@ -21,7 +21,7 @@ class ImageConfigClient:
             # CHIAMATA ASINCRONA
             response = await self.stub.GetCCDImageData(request)
 
-            logger.info(
+            logger.debug(
                 f"Image config data received: width={response.field_of_view_width}, height={response.field_of_view_height}"
             )
 

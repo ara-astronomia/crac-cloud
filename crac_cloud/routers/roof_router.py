@@ -32,11 +32,11 @@ def get_roof_status():
         request = roof_pb2.RoofRequest(action=roof_pb2.RoofAction.CHECK_ROOF)
         response = roof_client.stub.SetAction(request)
         parsed_data = roof_client._parse_roof_response(response)
-        logger.info(f"Risposta completa inviata al frontend: {parsed_data}") 
+        logger.debug(f"Full response sent to the frontend: {parsed_data}") 
         return roof_client._parse_roof_response(response) 
         #return {"status": roof_pb2.RoofStatus.Name(response.status)}
     except Exception as e:
-        logger.error(f" ❌ Errore nella richiesta di stato del tetto: {e}")
+        logger.error(f" ❌ Error while requesting the roof status: {e}")
         # Restituisci uno stato di errore ben definito
         return {
             "status": "ERROR",
@@ -53,12 +53,12 @@ def get_roof_status():
 async def set_action(request: RoofActionRequest):
     # ... logica per OPEN/CLOSE ...
     if request.action == "ROOF_OPEN":
-        logger.debug("DEBUG: Azione richiesta per aprire il tetto") # Debug utile
+        logger.info("Action requested: open the roof") # Debug utile
         # roof_client.set_action ora restituisce l'output parsificato
         return roof_client.set_action(roof_pb2.RoofAction.OPEN) 
         
     elif request.action == "ROOF_CLOSE":
-        logger.debug("DEBUG: Azione richiesta per chiudere il tetto") # Debug utile
+        logger.info("Action requested: close the roof") # Debug utile
         return roof_client.set_action(roof_pb2.RoofAction.CLOSE)
         
     return {"status": "error", "message": f"Azione non valida: {request.action}"} 

@@ -30,7 +30,7 @@ def get_telescope_status():
     try:
         return telescope_client.get_status()
     except Exception as e:
-        logger.error(f"❌ Errore nella richiesta di stato del telescopio: {e}")
+        logger.error(f"❌ Error while requesting the telescope status: {e}")
         return {
             "status": "ERROR",
             "error": str(e),
@@ -47,10 +47,10 @@ def set_telescope_action(data: TelescopeActionModel):
         
         # 1. Gestione CONNECT/DISCONNECT
         if action == "TELESCOPE_CONNECT":
-            logger.info(f"Connessione al telescopio... {telescope_client}") 
+            logger.info("Action requested: connect the telescope")
             return telescope_client.connect()
         elif action == "TELESCOPE_DISCONNECT":
-            logger.info(f"Disconnetto il telescopio... {telescope_client}")
+            logger.info("Action requested: disconnect the telescope")
             return telescope_client.disconnect()
             
         # 2. Gestione PARK/FLAT
@@ -59,11 +59,11 @@ def set_telescope_action(data: TelescopeActionModel):
             try:
                 action_name_in_pb2 = action 
                 action_enum = getattr(telescope_pb2, action_name_in_pb2)
-                logger.info(f"action enum: {action_enum}, {action_name_in_pb2}")
+                logger.debug(f"action enum: {action_enum}, {action_name_in_pb2}")
             except AttributeError:
                 # 🎯 TENTA 2: Se fallisce, tenta l'accesso diretto alla classe ENUM (la tua versione)
                 action_enum = getattr(telescope_pb2.TelescopeAction, action)#autolight1=data.autolight
-                logger.info(f'action_enum: {action_enum}')            
+                logger.debug(f'action_enum: {action_enum}')            
             return telescope_client.set_action(action=action_enum, autolight=data.autolight)
         else:
             raise HTTPException(status_code=400, detail="Invalid action. Supported: CONNECT, DISCONNECT, PARK_POSITION, FLAT_POSITION.")
@@ -71,8 +71,10 @@ def set_telescope_action(data: TelescopeActionModel):
     except HTTPException:
         raise
     except AttributeError:
+        logger.error(f" ❌ Invalid telescope action: {data.action}")
         raise HTTPException(status_code=400, detail="Invalid telescope action")
     except Exception as e:
+        logger.error(f" ❌ Error during action {data.action} on the telescope: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to execute action: {e}")
 
 # L'endpoint power_on è asincrono e dovrebbe usare HTTPException
@@ -84,6 +86,6 @@ async def power_on_telescope():
         response_data = await telescope_client.power_on()
         return {"message": "Telescope powered on successfully", "status": response_data}
     except Exception as e:
-        logger.error(f"❌ Errore durante l'accensione del telescopio: {e}")
+        logger.error(f"❌ Error while powering on the telescope: {e}")
         # Gestione degli errori, se il simulatore non risponde
         raise HTTPException(status_code=500, detail=f"Failed to power on: {e}")

@@ -1,8 +1,12 @@
 # grpc_cloud/roof_cloud.py
+import logging
 import grpc
 from crac_protobuf import roof_pb2
 from crac_protobuf import roof_pb2_grpc
 from crac_protobuf import button_pb2
+
+logger = logging.getLogger(__name__)
+
 
 class RoofClient:
     def __init__(self, host: str, port: int):
@@ -45,4 +49,5 @@ class RoofClient:
             return self._parse_roof_response(response) 
             
         except grpc.RpcError as e:
+            logger.error(f" ❌ gRPC error (roof action): {e.details()}")
             return {"error": str(e.details())}    
