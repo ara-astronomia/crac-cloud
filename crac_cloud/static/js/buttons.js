@@ -92,8 +92,7 @@ async function handleCoverMirrorClick(btn) {
     if (btn.disabled) return;
     btn.disabled = true;
 
-    const currentStatus = btn.dataset.status || 'CLOSED';
-    const response = currentStatus === 'COVER_MIRROR_OPENED'
+    const response = btn.dataset.action === 'CLOSE_COVER_MIRROR'
         ? await coverMirrorApi.close()
         : await coverMirrorApi.open();
 
@@ -118,7 +117,7 @@ export function updateCoverMirrorUI(data) {
     };
     btn.textContent = labelMap[gui.label] || gui.label || '';
     btn.disabled = gui.is_disabled || false;
-    btn.dataset.status = data.status || 'COVER_MIRROR_CLOSED';
+    btn.dataset.action = gui.metadata || '';
 
     if (gui.button_color) {
         btn.style.setProperty('background-color', gui.button_color.background_color || '', 'important');
