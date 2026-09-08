@@ -26,7 +26,7 @@ class CoverMirrorClient:
         return {
             "status": cover_mirror_pb2.CoverMirrorStatus.Name(response.status),
             "gui": {
-                "metadata": gui.metadata,
+                "metadata": cover_mirror_pb2.CoverMirrorAction.Name(gui.metadata),
                 "label": button_pb2.ButtonLabel.Name(gui.label),
                 "is_disabled": gui.is_disabled,
                 "button_color": color_data,
