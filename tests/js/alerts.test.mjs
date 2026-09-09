@@ -5,6 +5,7 @@ import { AlertRegistry, SEVERITY } from '../../crac_cloud/static/js/alerts.js';
 
 const ROOF = 'Tetto';
 const COVER = 'Copertura specchio';
+const LINK = 'Collegamento a crac-server';
 
 test('uno stato di errore apre un avviso per quel componente', () => {
     const registry = new AlertRegistry();
@@ -205,4 +206,12 @@ test('con l\'alimentatore acceso, irraggiungibile e\' un guasto', () => {
 
 test('lo stato normale passa comunque, per chiudere gli avvisi aperti', () => {
     assert.equal(telescopeStatusToReport('PARKED', 'ON'), 'PARKED');
+});
+
+test('il collegamento perso e\' un errore, e il testo dice che i valori sono fermi', () => {
+    const registry = new AlertRegistry();
+    registry.record(LINK, 'SERVER_ERROR', 1000);
+    assert.equal(registry.current()[0].severity, SEVERITY.ERROR);
+    assert.equal(alertText({ component: LINK, status: 'SERVER_ERROR' }),
+                 `${LINK}: nessuna risposta, i valori a schermo sono fermi`);
 });

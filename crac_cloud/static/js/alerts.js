@@ -22,6 +22,7 @@ const TEXT_BY_STATUS = {
     ROOF_ERROR: 'errore',
     CURTAIN_ERROR: 'errore',
     COVER_MIRROR_ERROR: 'errore',
+    SERVER_ERROR: 'nessuna risposta, i valori a schermo sono fermi',
     ROOF_DANGER: 'attenzione, posizione di pericolo',
     CURTAIN_DANGER: 'attenzione, posizione di pericolo',
 };

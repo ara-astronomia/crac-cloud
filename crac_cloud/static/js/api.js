@@ -7,7 +7,9 @@ const DEFAULT_TIMEOUT_MS = 10000;
 
 /**
  * Fetch con timeout automatico.
- * @returns {Promise<any>} JSON parsato, o {} in caso di errore (non lancia mai).
+ * @returns {Promise<any>} JSON parsato, o { error } se la risposta non arriva
+ * (non lancia mai). E' la stessa forma che crac-cloud usa quando e' crac-server
+ * a non rispondere, cosi' un solo controllo copre entrambi i casi.
  */
 async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
     const controller = new AbortController();
@@ -17,16 +19,19 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_M
         if (!response.ok) throw new Error(`HTTP ${response.status} at ${url}`);
         return await response.json();
     } catch (err) {
-        if (err.name === 'AbortError') {
-            // Timeout - non loggare per ridurre spam quando server gRPC non risponde
-            // console.warn(`[API] Timeout (${timeoutMs}ms): ${url}`);
-        } else {
-            console.warn(`[API] Errore fetch ${url}:`, err.message);
-        }
-        return {};
+        if (err.name !== 'AbortError') console.warn(`[API] Errore fetch ${url}:`, err.message);
+        return { error: err.name === 'AbortError' ? `nessuna risposta entro ${timeoutMs}ms` : err.message };
     } finally {
         clearTimeout(timer);
     }
+}
+
+/**
+ * Vero quando la risposta non porta dati utilizzabili: crac-cloud risponde 200
+ * anche quando il gRPC verso crac-server fallisce, e mette il motivo in `error`.
+ */
+export function isError(payload) {
+    return !payload || typeof payload !== 'object' || 'error' in payload || Object.keys(payload).length === 0;
 }
 
 /**

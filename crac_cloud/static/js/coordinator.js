@@ -12,8 +12,9 @@ import { initUps, updateUpsUI }                       from './ups.js';
 import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
-import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi } from './api.js';
+import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi, isError } from './api.js';
 import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport } from './alerts.js';
+import { ConnectionHealth } from './connection.js';
 import { renderAlerts } from './status_panel.js';
 
 console.log('[CRaC] coordinator.js loaded');
@@ -61,8 +62,10 @@ const state = {
 // =============================================================================
 
 const alerts = new AlertRegistry();
+const connection = new ConnectionHealth();
 
 const COMPONENT = {
+    link: 'Collegamento a crac-server',
     telescope: 'Telescopio',
     telescopeSpeed: 'Velocita\' telescopio',
     roof: 'Tetto',
@@ -75,9 +78,23 @@ function recordAlert(component, status) {
     renderAlerts(alerts);
 }
 
+/**
+ * Registra l'esito di una lettura e dice se i dati sono utilizzabili. Quando il
+ * collegamento e' giu' i pannelli restano fermi sugli ultimi valori: la pagina
+ * viene smorzata perche' si veda che quei numeri non sono piu' aggiornati.
+ */
+function received(endpoint, data) {
+    const ok = !isError(data);
+    connection.note(endpoint, ok);
+    const down = connection.isDown();
+    recordAlert(COMPONENT.link, down ? 'SERVER_ERROR' : null);
+    document.body.classList.toggle('data-stale', down);
+    return ok;
+}
+
 async function pollTelescope() {
     const data = await telescopeApi.getStatus();
-    if (data && Object.keys(data).length > 0) {
+    if (received('telescope', data)) {
         updateTelescopeUI(data);
         const telescopeStatus = telescopeStatusToReport(data.status, state.telescopePowerStatus);
         recordAlert(COMPONENT.telescope, telescopeStatus);
@@ -112,7 +129,7 @@ async function pollTelescope() {
 
 async function pollRoof() {
     const data = await roofApi.getStatus();
-    if (data && Object.keys(data).length > 0) {
+    if (received('roof', data)) {
         updateRoofUI(data);
         updateRoofBackground(data.status);
         recordAlert(COMPONENT.roof, data.status);
@@ -121,7 +138,7 @@ async function pollRoof() {
 
 async function pollCurtains() {
     const data = await curtainsApi.getStatus();
-    if (data && Object.keys(data).length > 0) {
+    if (received('curtains', data)) {
         updateCurtainsUI(data);
         (data.curtains || []).forEach(curtain => {
             const component = COMPONENT.curtain[curtain.orientation];
@@ -185,7 +202,7 @@ async function pollButtons() {
 
 async function pollCoverMirror() {
     const data = await coverMirrorApi.getStatus();
-    if (data && Object.keys(data).length > 0) {
+    if (received('cover_mirror', data)) {
         updateCoverMirrorUI(data);
         recordAlert(COMPONENT.coverMirror, data.status);
     }
@@ -193,14 +210,14 @@ async function pollCoverMirror() {
 
 async function pollUps() {
     const data = await upsApi.getStatus();
-    if (data && Object.keys(data).length > 0) {
+    if (received('ups', data)) {
         updateUpsUI(data);
     }
 }
 
 async function pollWeather() {
     const data = await weatherApi.getStatus();
-    if (data && data.charts) {
+    if (received('charts', data) && data.charts) {
         updateGaugesUI(data);
     }
 }

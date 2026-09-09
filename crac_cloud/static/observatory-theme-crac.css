@@ -373,6 +373,12 @@ label[for="Autolight"] {
   cursor: pointer;
 }
 
+/* ── Dati fermi: crac-server non risponde piu' ───────────────── */
+body.data-stale .obs-main > :not(.alerts-panel) {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+
 .alerts-history {
   max-height: 9em;
   overflow-y: auto;
