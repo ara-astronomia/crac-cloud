@@ -187,3 +187,22 @@ test('uno stato sano su un componente mai visto non cambia nulla', () => {
     registry.record(ROOF, 'ROOF_CLOSED', 1000);
     assert.equal(registry.revision, atStart);
 });
+
+import { telescopeStatusToReport } from '../../crac_cloud/static/js/alerts.js';
+
+test('con l\'alimentatore del telescopio spento, irraggiungibile non e\' un guasto', () => {
+    assert.equal(telescopeStatusToReport('LOST', 'OFF'), null);
+    assert.equal(telescopeStatusToReport('ERROR', 'OFF'), null);
+});
+
+test('finche\' non si sa se e\' alimentato non si segnala nulla', () => {
+    assert.equal(telescopeStatusToReport('LOST', undefined), null);
+});
+
+test('con l\'alimentatore acceso, irraggiungibile e\' un guasto', () => {
+    assert.equal(telescopeStatusToReport('LOST', 'ON'), 'LOST');
+});
+
+test('lo stato normale passa comunque, per chiudere gli avvisi aperti', () => {
+    assert.equal(telescopeStatusToReport('PARKED', 'ON'), 'PARKED');
+});

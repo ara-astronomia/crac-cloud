@@ -97,6 +97,18 @@ export class AlertRegistry {
 }
 
 const TELESCOPE_OFF = 'DISCONNECTED';
+const POWER_ON = 'ON';
+
+/**
+ * Un telescopio irraggiungibile e' un guasto solo se lo stiamo alimentando.
+ * A osservatorio spento non risponde perche' non c'e' corrente, e segnalarlo
+ * riempirebbe la sezione di avvisi proprio quando non c'e' niente da vedere.
+ * Finche' lo stato dell'alimentatore non e' noto non si segnala nulla: il
+ * primo polling dei pulsanti arriva entro pochi secondi.
+ */
+export function telescopeStatusToReport(status, powerStatus) {
+    return powerStatus === POWER_ON ? status : null;
+}
 
 /**
  * La velocita' del telescopio dice qualcosa solo mentre il telescopio e'

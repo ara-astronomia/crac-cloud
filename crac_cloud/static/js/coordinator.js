@@ -13,7 +13,7 @@ import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
 import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi } from './api.js';
-import { AlertRegistry, telescopeSpeedToReport } from './alerts.js';
+import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport } from './alerts.js';
 import { renderAlerts } from './status_panel.js';
 
 console.log('[CRaC] coordinator.js loaded');
@@ -51,6 +51,8 @@ const NO_SKY_MAP_STATUSES = [
 const state = {
     lastEqCoords: null,          // per rilevare cambio puntamento
     lastTelStatus: null,         // per rilevare transizioni PARKED/FLATTER <-> altro
+    telescopePowerStatus: undefined,  // ON/OFF dell'alimentatore, per non segnalare
+                                      // come guasto un telescopio che non e' alimentato
     skyMapNeedsRefresh: false,   // flag settato da updateTelescopeUI
     isInitialized: false,
 };
@@ -78,8 +80,12 @@ async function pollTelescope() {
     const data = await telescopeApi.getStatus();
     if (data && Object.keys(data).length > 0) {
         updateTelescopeUI(data);
-        recordAlert(COMPONENT.telescope, data.status);
-        recordAlert(COMPONENT.telescopeSpeed, telescopeSpeedToReport(data.status, data.speed));
+        const telescopeStatus = telescopeStatusToReport(data.status, state.telescopePowerStatus);
+        recordAlert(COMPONENT.telescope, telescopeStatus);
+        recordAlert(
+            COMPONENT.telescopeSpeed,
+            telescopeStatus === null ? null : telescopeSpeedToReport(data.status, data.speed),
+        );
         // Controlla se le coordinate sono cambiate per triggerare il refresh skymap
         const eq = data.eq_coords;
         // Stessa condizione di /maps/sky_map_fixed: in questi casi il server
@@ -131,6 +137,8 @@ async function pollButtons() {
     if (data && data.buttons) {
         console.log('[Coordinator] Buttons data received:', data.buttons.length, 'items');
         updateButtonsUI(data.buttons);
+        const telescopePower = data.buttons.find(button => button.key === 'KEY_TELE_SWITCH');
+        if (telescopePower) state.telescopePowerStatus = telescopePower.status;
     } else {
         console.warn('[Coordinator] No buttons data from API, using fallback');
         // Fallback: mostra pulsanti in stato "Spento" con colori rossi
