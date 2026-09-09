@@ -1,15 +1,13 @@
 // =============================================================================
-// api.js - Layer centralizzato per tutte le chiamate HTTP verso il backend
-// Tutti gli altri moduli importano da qui. Nessun fetch() altrove.
+// api.js - The one place where crac-cloud is called. No fetch() anywhere else.
 // =============================================================================
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
 /**
- * Fetch con timeout automatico.
- * @returns {Promise<any>} JSON parsato, o { error } se la risposta non arriva
- * (non lancia mai). E' la stessa forma che crac-cloud usa quando e' crac-server
- * a non rispondere, cosi' un solo controllo copre entrambi i casi.
+ * Never throws: a request that does not come back resolves to { error }, the
+ * same shape crac-cloud already answers with when crac-server is unreachable,
+ * so a single check covers both.
  */
 async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
     const controller = new AbortController();
@@ -27,23 +25,17 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_M
 }
 
 /**
- * Vero quando la risposta non porta dati utilizzabili: crac-cloud risponde 200
- * anche quando il gRPC verso crac-server fallisce, e mette il motivo in `error`.
+ * True when a response carries no usable data. crac-cloud answers 200 even when
+ * its gRPC call to crac-server fails, and puts the reason in `error`.
  */
 export function isError(payload) {
     return !payload || typeof payload !== 'object' || 'error' in payload || Object.keys(payload).length === 0;
 }
 
-/**
- * GET generico — restituisce sempre un oggetto (mai undefined/null).
- */
 export async function apiGet(endpoint, timeoutMs = DEFAULT_TIMEOUT_MS) {
     return fetchWithTimeout(endpoint, {}, timeoutMs);
 }
 
-/**
- * POST generico — restituisce sempre un oggetto (mai undefined/null).
- */
 export async function apiPost(endpoint, data = {}) {
     return fetchWithTimeout(endpoint, {
         method: 'POST',
@@ -52,11 +44,6 @@ export async function apiPost(endpoint, data = {}) {
     });
 }
 
-// =============================================================================
-// API specifiche per dominio — nomi espliciti, nessun magic string altrove
-// =============================================================================
-
-// --- Telescopio ---
 export const telescopeApi = {
     getStatus: ()                         => apiGet('/telescope/status'),
     connect:   ()                         => apiPost('/telescope/set_action', { action: 'TELESCOPE_CONNECT' }),
@@ -66,48 +53,42 @@ export const telescopeApi = {
     check:     (autolight = false)        => apiPost('/telescope/set_action', { action: 'CHECK_TELESCOPE', autolight }),
 };
 
-// --- Tetto ---
 export const roofApi = {
     getStatus: () => apiGet('/roof/status'),
     open:      () => apiPost('/roof/set_action', { action: 'ROOF_OPEN' }),
     close:     () => apiPost('/roof/set_action', { action: 'ROOF_CLOSE' }),
 };
 
-// --- Tende ---
 export const curtainsApi = {
     getStatus: () => apiGet('/curtains/status'),
     enable:    () => apiPost('/curtains/control', { action: 'ENABLE' }),
     disable:   () => apiPost('/curtains/control', { action: 'DISABLE' }),
 };
 
-// --- Cover Mirror ---
 export const coverMirrorApi = {
     getStatus: () => apiGet('/cover_mirror/status'),
     open:      () => apiPost('/cover_mirror/set_action', { action: 'OPEN_COVER_MIRROR' }),
     close:     () => apiPost('/cover_mirror/set_action', { action: 'CLOSE_COVER_MIRROR' }),
 };
 
-// --- Pulsanti / Switch ---
 export const buttonsApi = {
     getStatus:   ()                          => apiGet('/buttons/status', 15000),
     toggle:      (key, action = 'TURN_ON')   => apiPost('/buttons/set_action', { key, action }),
 };
 
-// --- UPS ---
 export const upsApi = {
     getStatus: () => apiGet('/ups/status'),
 };
 
-// --- Meteo / Gauge ---
 export const weatherApi = {
     getStatus:   () => apiGet('/charts/status'),
     getGaugeConfig: () => apiGet('/charts/gauge-config'),
 };
 
-// --- Mappe ---
+const cacheBuster = () => `t=${Date.now()}`;
+
 export const mapsApi = {
-    // Restituisce URL con cache-buster per forzare il reload dell'<img>
-    trackingChartUrl: () => `/maps/tracking_chart?t=${Date.now()}`,
-    skyMapUrl:        () => `/maps/sky_map_fixed?t=${Date.now()}`,
-    getAirmass:       () => apiGet(`/maps/airmass?t=${Date.now()}`),
+    trackingChartUrl: () => `/maps/tracking_chart?${cacheBuster()}`,
+    skyMapUrl:        () => `/maps/sky_map_fixed?${cacheBuster()}`,
+    getAirmass:       () => apiGet(`/maps/airmass?${cacheBuster()}`),
 };

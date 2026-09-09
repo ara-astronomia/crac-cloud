@@ -1,9 +1,8 @@
 // =============================================================================
-// connection.js - Salute del collegamento con crac-server
+// connection.js - Is crac-server still answering?
 //
-// Nessun accesso al DOM: qui si decide soltanto se le risposte stanno ancora
-// arrivando. Un fallimento isolato non conta: con il telescopio interrogato
-// ogni secondo aprirebbe e chiuderebbe avvisi a ogni singolo pacchetto perso.
+// No DOM here. A single failed read does not count: the telescope is polled
+// every second, so one lost packet would open and close an alert right away.
 // =============================================================================
 
 const DEFAULT_TOLERANCE = 2;

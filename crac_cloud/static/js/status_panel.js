@@ -1,10 +1,10 @@
 // =============================================================================
-// status_panel.js - Disegna gli avvisi di "Stato di CRaC"
-// La decisione di cosa segnalare sta in alerts.js: qui si scrive soltanto.
+// status_panel.js - Draws the alerts of "Stato di CRaC". What is worth
+// reporting is decided in alerts.js; this file only writes.
 //
-// Lo storico si ridisegna solo quando cambia: il rendering viene chiamato piu'
-// volte al secondo e rifare la lista azzera lo scorrimento di chi la sta
-// leggendo.
+// The history is redrawn only when it changes: rendering runs several times a
+// second, and rebuilding the list would reset the scrolling of whoever is
+// reading it.
 // =============================================================================
 
 import { alertText, noAlertText } from './alerts.js';
