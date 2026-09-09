@@ -1,6 +1,10 @@
 // =============================================================================
 // status_panel.js - Disegna gli avvisi di "Stato di CRaC"
 // La decisione di cosa segnalare sta in alerts.js: qui si scrive soltanto.
+//
+// Lo storico si ridisegna solo quando cambia davvero: il polling chiama il
+// rendering piu' volte al secondo e rifare la lista azzererebbe lo scorrimento
+// proprio mentre la si legge.
 // =============================================================================
 
 import { alertText, noAlertText } from './alerts.js';
@@ -30,6 +34,8 @@ function historyItem(alert) {
     return item;
 }
 
+let renderedHistoryRevision = null;
+
 export function renderAlerts(registry) {
     const summary = document.getElementById('lbl_status');
     const currentList = document.getElementById('alerts-current');
@@ -44,5 +50,8 @@ export function renderAlerts(registry) {
     summary.classList.toggle('status-label-warning', current.length > 0 && !current.some(a => a.severity === 'error'));
 
     currentList.replaceChildren(...current.map(currentItem));
+
+    if (renderedHistoryRevision === registry.revision) return;
+    renderedHistoryRevision = registry.revision;
     historyList.replaceChildren(...registry.history().map(historyItem));
 }

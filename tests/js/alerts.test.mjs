@@ -145,3 +145,45 @@ test('uno stato senza testo dedicato non stampa undefined', () => {
 test('a riposo la sezione ha il suo messaggio', () => {
     assert.equal(noAlertText(), 'Nessun errore riscontrato');
 });
+
+import { telescopeSpeedToReport } from '../../crac_cloud/static/js/alerts.js';
+
+test('a telescopio spento la velocita\' non e\' un guasto', () => {
+    assert.equal(telescopeSpeedToReport('DISCONNECTED', 'SPEED_ERROR'), null);
+});
+
+test('a telescopio gia\' in avviso la velocita\' non ne aggiunge un secondo', () => {
+    assert.equal(telescopeSpeedToReport('LOST', 'SPEED_ERROR'), null);
+    assert.equal(telescopeSpeedToReport('ERROR', 'SPEED_ERROR'), null);
+});
+
+test('a telescopio operativo la velocita\' illeggibile e\' un guasto suo', () => {
+    assert.equal(telescopeSpeedToReport('PARKED', 'SPEED_ERROR'), 'SPEED_ERROR');
+    assert.equal(telescopeSpeedToReport('EAST', 'SPEED_TRACKING'), 'SPEED_TRACKING');
+});
+
+test('le ripetizioni non contano come cambiamenti dello storico', () => {
+    const registry = new AlertRegistry();
+    registry.record(ROOF, 'ROOF_ERROR', 1000);
+    const afterFirst = registry.revision;
+    registry.record(ROOF, 'ROOF_ERROR', 2000);
+    registry.record(ROOF, 'ROOF_ERROR', 3000);
+    assert.equal(registry.revision, afterFirst);
+});
+
+test('aprire e chiudere un avviso cambia la revisione dello storico', () => {
+    const registry = new AlertRegistry();
+    const atStart = registry.revision;
+    registry.record(ROOF, 'ROOF_ERROR', 1000);
+    const afterOpen = registry.revision;
+    assert.notEqual(afterOpen, atStart);
+    registry.record(ROOF, 'ROOF_CLOSED', 2000);
+    assert.notEqual(registry.revision, afterOpen);
+});
+
+test('uno stato sano su un componente mai visto non cambia nulla', () => {
+    const registry = new AlertRegistry();
+    const atStart = registry.revision;
+    registry.record(ROOF, 'ROOF_CLOSED', 1000);
+    assert.equal(registry.revision, atStart);
+});

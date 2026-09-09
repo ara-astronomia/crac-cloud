@@ -13,7 +13,7 @@ import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
 import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi } from './api.js';
-import { AlertRegistry } from './alerts.js';
+import { AlertRegistry, telescopeSpeedToReport } from './alerts.js';
 import { renderAlerts } from './status_panel.js';
 
 console.log('[CRaC] coordinator.js loaded');
@@ -79,7 +79,7 @@ async function pollTelescope() {
     if (data && Object.keys(data).length > 0) {
         updateTelescopeUI(data);
         recordAlert(COMPONENT.telescope, data.status);
-        recordAlert(COMPONENT.telescopeSpeed, data.speed);
+        recordAlert(COMPONENT.telescopeSpeed, telescopeSpeedToReport(data.status, data.speed));
         // Controlla se le coordinate sono cambiate per triggerare il refresh skymap
         const eq = data.eq_coords;
         // Stessa condizione di /maps/sky_map_fixed: in questi casi il server

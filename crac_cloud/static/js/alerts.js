@@ -43,6 +43,7 @@ export class AlertRegistry {
     constructor({ historyLimit = DEFAULT_HISTORY_LIMIT } = {}) {
         this._historyLimit = historyLimit;
         this._entries = [];
+        this.revision = 0;
     }
 
     /**
@@ -61,8 +62,10 @@ export class AlertRegistry {
         }
         if (open) {
             open.resolvedAt = at;
+            this.revision += 1;
         }
         if (severity !== HEALTHY) {
+            this.revision += 1;
             this._entries.push({
                 component, status, severity,
                 firstSeenAt: at, lastSeenAt: at,
@@ -91,6 +94,19 @@ export class AlertRegistry {
             this._entries.splice(oldest, 1);
         }
     }
+}
+
+const TELESCOPE_OFF = 'DISCONNECTED';
+
+/**
+ * La velocita' del telescopio dice qualcosa solo mentre il telescopio e'
+ * operativo: da spento resta SPEED_ERROR per costruzione, e un telescopio
+ * gia' perso o in errore non ha bisogno di un secondo avviso che ripeta lo
+ * stesso guasto con altre parole.
+ */
+export function telescopeSpeedToReport(status, speed) {
+    if (status === TELESCOPE_OFF || severityOf(status) !== HEALTHY) return null;
+    return speed;
 }
 
 export function alertText({ component, status }) {
