@@ -2,9 +2,9 @@
 // status_panel.js - Disegna gli avvisi di "Stato di CRaC"
 // La decisione di cosa segnalare sta in alerts.js: qui si scrive soltanto.
 //
-// Lo storico si ridisegna solo quando cambia davvero: il polling chiama il
-// rendering piu' volte al secondo e rifare la lista azzererebbe lo scorrimento
-// proprio mentre la si legge.
+// Lo storico si ridisegna solo quando cambia: il rendering viene chiamato piu'
+// volte al secondo e rifare la lista azzera lo scorrimento di chi la sta
+// leggendo.
 // =============================================================================
 
 import { alertText, noAlertText } from './alerts.js';

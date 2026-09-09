@@ -1,10 +1,9 @@
 // =============================================================================
 // alerts.js - Registro degli avvisi mostrati in "Stato di CRaC"
 //
-// Nessun accesso al DOM: qui si decide *cosa* segnalare, il disegno sta
-// altrove. Ogni componente ha al massimo un avviso aperto, come nel vecchio
-// crac-client, ma senza il suo difetto: lì lo slot era unico e il pannello
-// che stava bene cancellava l'avviso di quello guasto.
+// Nessun accesso al DOM: qui si decide cosa segnalare, il disegno sta altrove.
+// Ogni componente ha un avviso proprio, così un componente sano non zittisce
+// quello guasto.
 // =============================================================================
 
 export const SEVERITY = {
@@ -47,9 +46,9 @@ export class AlertRegistry {
     }
 
     /**
-     * Registra lo stato letto per un componente. Chiamata a ogni polling:
-     * uno stato che non cambia aggiorna il conteggio invece di aggiungere
-     * una voce, altrimenti un guasto di dieci minuti ne produrrebbe centinaia.
+     * Registra lo stato letto per un componente. Chiamata a ogni polling: uno
+     * stato che non cambia aggiorna il conteggio invece di aggiungere una voce,
+     * altrimenti un guasto di dieci minuti ne produrrebbe centinaia.
      */
     record(component, status, at) {
         const open = this._openEntryFor(component);
@@ -100,11 +99,10 @@ const TELESCOPE_OFF = 'DISCONNECTED';
 const POWER_ON = 'ON';
 
 /**
- * Un telescopio irraggiungibile e' un guasto solo se lo stiamo alimentando.
- * A osservatorio spento non risponde perche' non c'e' corrente, e segnalarlo
- * riempirebbe la sezione di avvisi proprio quando non c'e' niente da vedere.
- * Finche' lo stato dell'alimentatore non e' noto non si segnala nulla: il
- * primo polling dei pulsanti arriva entro pochi secondi.
+ * Un telescopio irraggiungibile e' un guasto solo se lo stiamo alimentando: a
+ * osservatorio spento non risponde perche' non c'e' corrente. Finche' lo stato
+ * dell'alimentatore non e' noto non si segnala nulla, cosi' non compare un
+ * avviso che sparisce da solo al primo polling dei pulsanti.
  */
 export function telescopeStatusToReport(status, powerStatus) {
     return powerStatus === POWER_ON ? status : null;

@@ -51,8 +51,7 @@ const NO_SKY_MAP_STATUSES = [
 const state = {
     lastEqCoords: null,          // per rilevare cambio puntamento
     lastTelStatus: null,         // per rilevare transizioni PARKED/FLATTER <-> altro
-    telescopePowerStatus: undefined,  // ON/OFF dell'alimentatore, per non segnalare
-                                      // come guasto un telescopio che non e' alimentato
+    telescopePowerStatus: undefined,  // ON/OFF dell'alimentatore del telescopio
     skyMapNeedsRefresh: false,   // flag settato da updateTelescopeUI
     isInitialized: false,
 };
