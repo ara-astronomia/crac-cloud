@@ -13,6 +13,8 @@ import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
 import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi } from './api.js';
+import { AlertRegistry } from './alerts.js';
+import { renderAlerts } from './status_panel.js';
 
 console.log('[CRaC] coordinator.js loaded');
 
@@ -57,10 +59,27 @@ const state = {
 // LOOP DI POLLING — ogni funzione è autonoma e non blocca le altre
 // =============================================================================
 
+const alerts = new AlertRegistry();
+
+const COMPONENT = {
+    telescope: 'Telescopio',
+    telescopeSpeed: 'Velocita\' telescopio',
+    roof: 'Tetto',
+    coverMirror: 'Copertura specchio',
+    curtain: { CURTAIN_EAST: 'Tenda est', CURTAIN_WEST: 'Tenda ovest' },
+};
+
+function recordAlert(component, status) {
+    alerts.record(component, status, Date.now());
+    renderAlerts(alerts);
+}
+
 async function pollTelescope() {
     const data = await telescopeApi.getStatus();
     if (data && Object.keys(data).length > 0) {
         updateTelescopeUI(data);
+        recordAlert(COMPONENT.telescope, data.status);
+        recordAlert(COMPONENT.telescopeSpeed, data.speed);
         // Controlla se le coordinate sono cambiate per triggerare il refresh skymap
         const eq = data.eq_coords;
         // Stessa condizione di /maps/sky_map_fixed: in questi casi il server
@@ -91,6 +110,7 @@ async function pollRoof() {
     if (data && Object.keys(data).length > 0) {
         updateRoofUI(data);
         updateRoofBackground(data.status);
+        recordAlert(COMPONENT.roof, data.status);
     }
 }
 
@@ -98,6 +118,10 @@ async function pollCurtains() {
     const data = await curtainsApi.getStatus();
     if (data && Object.keys(data).length > 0) {
         updateCurtainsUI(data);
+        (data.curtains || []).forEach(curtain => {
+            const component = COMPONENT.curtain[curtain.orientation];
+            if (component) recordAlert(component, curtain.status);
+        });
     }
 }
 
@@ -156,6 +180,7 @@ async function pollCoverMirror() {
     const data = await coverMirrorApi.getStatus();
     if (data && Object.keys(data).length > 0) {
         updateCoverMirrorUI(data);
+        recordAlert(COMPONENT.coverMirror, data.status);
     }
 }
 
