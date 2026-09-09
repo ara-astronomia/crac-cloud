@@ -32,10 +32,15 @@
     <p>{{ result }}</p>
 
     <div class="container">
-        <div class="border-with-text-ext" data-text="Stato di CRaC">  
-            <label title="indica se il telescopio è connesso a CRaC" id="lbl_status"
+        <div class="border-with-text-ext" data-text="Stato di CRaC">
+            <label title="riepilogo degli avvisi attivi sui componenti" id="lbl_status"
                    style="display: block; margin: 0 auto; text-align: center;"
-                   class="status-label">Nessun Errore Riscontrato</label>
+                   class="status-label">Nessun errore riscontrato</label>
+            <ul id="alerts-current" class="alerts-current"></ul>
+            <details class="alerts-history-box">
+                <summary>Storico avvisi</summary>
+                <ul id="alerts-history" class="alerts-history"></ul>
+            </details>
         </div>
     </div>
 
