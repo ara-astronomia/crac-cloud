@@ -36,6 +36,15 @@ test('endpoint diversi contano separatamente', () => {
     assert.equal(connection.isDown(), false);
 });
 
+test('la risposta di un endpoint qualsiasi riporta su il collegamento, senza aspettare il piu\' lento', () => {
+    const connection = new ConnectionHealth();
+    connection.note(ROOF, false);
+    connection.note(ROOF, false);
+    assert.equal(connection.isDown(), true);
+    connection.note(TELESCOPE, true);
+    assert.equal(connection.isDown(), false);
+});
+
 test('un endpoint giu\' basta a dichiarare giu\' il collegamento', () => {
     const connection = new ConnectionHealth();
     connection.note(TELESCOPE, true);
