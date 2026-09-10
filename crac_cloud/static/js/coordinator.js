@@ -46,16 +46,6 @@ const state = {
 const alerts = new AlertRegistry();
 const connection = new ConnectionHealth();
 
-const ALL_SWITCHES_OFF = ['KEY_TELE_SWITCH', 'KEY_CCD_SWITCH', 'KEY_FLAT_LIGHT', 'KEY_DOME_LIGHT'].map(key => ({
-    key,
-    status: 'OFF',
-    button_gui: {
-        label: 'LABEL_OFF',
-        is_disabled: false,
-        button_color: { text_color: 'white', background_color: 'red' },
-    },
-}));
-
 const COMPONENT = {
     cloudLink: 'Collegamento a crac-cloud',
     serverLink: 'Collegamento a crac-server',
@@ -158,8 +148,7 @@ async function pollButtons() {
         const telescopePower = data.buttons.find(button => button.key === 'KEY_TELE_SWITCH');
         if (telescopePower) state.telescopePowerStatus = telescopePower.status;
     } else {
-        console.warn('[Coordinator] No buttons data from API, using fallback');
-        updateButtonsUI(ALL_SWITCHES_OFF);
+        console.warn('[Coordinator] No buttons data from API');
     }
 }
 

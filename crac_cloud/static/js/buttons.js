@@ -36,7 +36,8 @@ export function updateButtonsUI(buttons) {
         const btn = document.getElementById(btnId);
         if (!btn) return;
 
-        const gui = button.button_gui || {};
+        if (button.error || !button.button_gui) return;   // meglio l'ultimo valore noto di uno inventato
+        const gui = button.button_gui;
         const label = LABEL_MAP[gui.label] || gui.label || '';
         if (btn.textContent !== label) btn.textContent = label;
         btn.disabled = gui.is_disabled || false;
