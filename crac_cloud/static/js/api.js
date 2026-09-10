@@ -5,6 +5,15 @@
 const DEFAULT_TIMEOUT_MS = 10000;
 
 /**
+ * The browser gives an origin six sockets: a status read left hanging on a
+ * dying crac-server holds one of them, and the health probe ends up queued
+ * behind reads that will never come back. Giving up early hands the socket
+ * back - and a reading older than a few seconds is of no use to a panel that
+ * refreshes every second anyway.
+ */
+const STATUS_TIMEOUT_MS = 3000;
+
+/**
  * Never throws: a request that does not come back resolves to { error }, the
  * same shape crac-cloud already answers with when crac-server is unreachable,
  * so a single check covers both.
@@ -60,7 +69,7 @@ export async function apiPost(endpoint, data = {}) {
 }
 
 export const telescopeApi = {
-    getStatus: ()                         => apiGet('/telescope/status'),
+    getStatus: ()                         => apiGet('/telescope/status', STATUS_TIMEOUT_MS),
     connect:   ()                         => apiPost('/telescope/set_action', { action: 'TELESCOPE_CONNECT' }),
     disconnect:()                         => apiPost('/telescope/set_action', { action: 'TELESCOPE_DISCONNECT' }),
     park:      (autolight = false)        => apiPost('/telescope/set_action', { action: 'PARK_POSITION', autolight }),
@@ -69,34 +78,34 @@ export const telescopeApi = {
 };
 
 export const roofApi = {
-    getStatus: () => apiGet('/roof/status'),
+    getStatus: () => apiGet('/roof/status', STATUS_TIMEOUT_MS),
     open:      () => apiPost('/roof/set_action', { action: 'ROOF_OPEN' }),
     close:     () => apiPost('/roof/set_action', { action: 'ROOF_CLOSE' }),
 };
 
 export const curtainsApi = {
-    getStatus: () => apiGet('/curtains/status'),
+    getStatus: () => apiGet('/curtains/status', STATUS_TIMEOUT_MS),
     enable:    () => apiPost('/curtains/control', { action: 'ENABLE' }),
     disable:   () => apiPost('/curtains/control', { action: 'DISABLE' }),
 };
 
 export const coverMirrorApi = {
-    getStatus: () => apiGet('/cover_mirror/status'),
+    getStatus: () => apiGet('/cover_mirror/status', STATUS_TIMEOUT_MS),
     open:      () => apiPost('/cover_mirror/set_action', { action: 'OPEN_COVER_MIRROR' }),
     close:     () => apiPost('/cover_mirror/set_action', { action: 'CLOSE_COVER_MIRROR' }),
 };
 
 export const buttonsApi = {
-    getStatus:   ()                          => apiGet('/buttons/status', 15000),
+    getStatus:   ()                          => apiGet('/buttons/status', STATUS_TIMEOUT_MS),
     toggle:      (key, action = 'TURN_ON')   => apiPost('/buttons/set_action', { key, action }),
 };
 
 export const upsApi = {
-    getStatus: () => apiGet('/ups/status'),
+    getStatus: () => apiGet('/ups/status', STATUS_TIMEOUT_MS),
 };
 
 export const weatherApi = {
-    getStatus:   () => apiGet('/charts/status'),
+    getStatus:   () => apiGet('/charts/status', STATUS_TIMEOUT_MS),
     getGaugeConfig: () => apiGet('/charts/gauge-config'),
 };
 

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 
-import { isError, mapsApi, outcomeOf, apiGet, healthApi } from '../../crac_cloud/static/js/api.js';
+import { isError, mapsApi, outcomeOf, apiGet, healthApi, roofApi } from '../../crac_cloud/static/js/api.js';
 
 test('una risposta con i dati non e\' un errore', () => {
     assert.equal(isError({ status: 'ROOF_CLOSED' }), false);
@@ -76,4 +76,28 @@ test('la sonda di salute in timeout dice irraggiungibile: quella rotta non parla
         });
     });
     assert.equal(await healthApi.probe(), 'unreachable');
+});
+
+test('le letture di stato mollano dopo 3 secondi: il socket serve alla sonda', async () => {
+    globalThis.fetch = (url, options) => new Promise((_, reject) => {
+        options.signal.addEventListener('abort', () => {
+            const abort = new Error('aborted');
+            abort.name = 'AbortError';
+            reject(abort);
+        });
+    });
+    const t0 = Date.now();
+    const risposta = await roofApi.getStatus();
+    assert.match(risposta.error, /entro 3000ms/);
+    assert.ok(Date.now() - t0 < 4000, 'ha aspettato piu\' di quanto dichiara');
+});
+
+test('i comandi invece hanno tutto il tempo: crac-server ci mette fino a 5s a rispondere', async () => {
+    let deadline;
+    globalThis.fetch = async (url, options) => {
+        deadline = options.signal;
+        return { ok: true, json: async () => ({ status: 'ROOF_OPEN' }) };
+    };
+    await roofApi.open();
+    assert.equal(deadline.aborted, false);
 });
