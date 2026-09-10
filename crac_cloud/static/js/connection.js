@@ -1,5 +1,9 @@
 // =============================================================================
-// connection.js - Is crac-server still answering?
+// connection.js - Which of the two links is down?
+//
+// The browser talks to crac-cloud, crac-cloud talks to crac-server, and the
+// page must not blame the wrong one: an answer that arrived over HTTP, even a
+// failing one, proves the browser side is fine.
 //
 // No DOM here. A single failed read does not count: the telescope is polled
 // every second, so one lost packet would open and close an alert right away.
@@ -13,19 +17,31 @@
 
 const DEFAULT_TOLERANCE = 2;
 
+export const CLOUD = 'cloud';
+export const SERVER = 'server';
+
 export class ConnectionHealth {
 
     constructor({ tolerance = DEFAULT_TOLERANCE } = {}) {
         this._tolerance = tolerance;
-        this._consecutiveFailures = new Map();
+        this._failures = new Map();
+        this._browserOffline = false;
     }
 
-    note(endpoint, ok) {
-        if (ok) return this._consecutiveFailures.clear();
-        this._consecutiveFailures.set(endpoint, (this._consecutiveFailures.get(endpoint) || 0) + 1);
+    note(endpoint, outcome) {
+        if (outcome === 'ok') return this._failures.clear();
+        const previous = this._failures.get(endpoint);
+        this._failures.set(endpoint, { count: (previous ? previous.count : 0) + 1, outcome });
     }
 
-    isDown() {
-        return [...this._consecutiveFailures.values()].some(failures => failures >= this._tolerance);
+    setBrowserOffline(isOffline) {
+        this._browserOffline = isOffline;
+    }
+
+    culprit() {
+        if (this._browserOffline) return CLOUD;
+        const lasting = [...this._failures.values()].filter(failure => failure.count >= this._tolerance);
+        if (lasting.length === 0) return null;
+        return lasting.some(failure => failure.outcome !== 'unreachable') ? SERVER : CLOUD;
     }
 }

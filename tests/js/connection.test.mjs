@@ -6,58 +6,72 @@ import { ConnectionHealth } from '../../crac_cloud/static/js/connection.js';
 const ROOF = 'roof';
 const TELESCOPE = 'telescope';
 
-test('un fallimento isolato non dichiara giu\' il collegamento', () => {
+test('un fallimento isolato non incolpa nessuno', () => {
     const connection = new ConnectionHealth();
-    connection.note(ROOF, false);
-    assert.equal(connection.isDown(), false);
+    connection.note(ROOF, 'error');
+    assert.equal(connection.culprit(), null);
 });
 
-test('due fallimenti di fila sullo stesso endpoint dichiarano giu\' il collegamento', () => {
+test('due risposte di errore di fila incolpano crac-server: se ha risposto, il browser parla', () => {
     const connection = new ConnectionHealth();
-    connection.note(ROOF, false);
-    connection.note(ROOF, false);
-    assert.equal(connection.isDown(), true);
+    connection.note(ROOF, 'error');
+    connection.note(ROOF, 'error');
+    assert.equal(connection.culprit(), 'server');
 });
 
-test('una risposta buona azzera il conteggio e riporta su il collegamento', () => {
+test('due fallimenti di trasporto di fila incolpano il collegamento col browser', () => {
     const connection = new ConnectionHealth();
-    connection.note(ROOF, false);
-    connection.note(ROOF, false);
-    connection.note(ROOF, true);
-    assert.equal(connection.isDown(), false);
-    connection.note(ROOF, false);
-    assert.equal(connection.isDown(), false);
+    connection.note(ROOF, 'unreachable');
+    connection.note(ROOF, 'unreachable');
+    assert.equal(connection.culprit(), 'cloud');
+});
+
+test('se qualcuno ha risposto HTTP la colpa resta di crac-server, anche con altri irraggiungibili', () => {
+    const connection = new ConnectionHealth();
+    connection.note(ROOF, 'error');
+    connection.note(ROOF, 'error');
+    connection.note(TELESCOPE, 'unreachable');
+    connection.note(TELESCOPE, 'unreachable');
+    assert.equal(connection.culprit(), 'server');
+});
+
+test('una risposta buona chiude tutto, senza aspettare l\'endpoint piu\' lento', () => {
+    const connection = new ConnectionHealth();
+    connection.note(ROOF, 'unreachable');
+    connection.note(ROOF, 'unreachable');
+    connection.note(TELESCOPE, 'ok');
+    assert.equal(connection.culprit(), null);
 });
 
 test('endpoint diversi contano separatamente', () => {
     const connection = new ConnectionHealth();
-    connection.note(ROOF, false);
-    connection.note(TELESCOPE, false);
-    assert.equal(connection.isDown(), false);
+    connection.note(ROOF, 'error');
+    connection.note(TELESCOPE, 'error');
+    assert.equal(connection.culprit(), null);
 });
 
-test('la risposta di un endpoint qualsiasi riporta su il collegamento, senza aspettare il piu\' lento', () => {
+test('il browser che si dichiara offline non aspetta la tolleranza', () => {
     const connection = new ConnectionHealth();
-    connection.note(ROOF, false);
-    connection.note(ROOF, false);
-    assert.equal(connection.isDown(), true);
-    connection.note(TELESCOPE, true);
-    assert.equal(connection.isDown(), false);
+    connection.setBrowserOffline(true);
+    assert.equal(connection.culprit(), 'cloud');
 });
 
-test('un endpoint giu\' basta a dichiarare giu\' il collegamento', () => {
+test('il browser che torna online non basta: la colpa la decidono le letture', () => {
     const connection = new ConnectionHealth();
-    connection.note(TELESCOPE, true);
-    connection.note(ROOF, false);
-    connection.note(ROOF, false);
-    assert.equal(connection.isDown(), true);
+    connection.setBrowserOffline(true);
+    connection.note(ROOF, 'unreachable');
+    connection.note(ROOF, 'unreachable');
+    connection.setBrowserOffline(false);
+    assert.equal(connection.culprit(), 'cloud');
+    connection.note(ROOF, 'ok');
+    assert.equal(connection.culprit(), null);
 });
 
 test('la tolleranza e\' configurabile', () => {
     const connection = new ConnectionHealth({ tolerance: 3 });
-    connection.note(ROOF, false);
-    connection.note(ROOF, false);
-    assert.equal(connection.isDown(), false);
-    connection.note(ROOF, false);
-    assert.equal(connection.isDown(), true);
+    connection.note(ROOF, 'error');
+    connection.note(ROOF, 'error');
+    assert.equal(connection.culprit(), null);
+    connection.note(ROOF, 'error');
+    assert.equal(connection.culprit(), 'server');
 });

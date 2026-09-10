@@ -17,8 +17,11 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_M
         if (!response.ok) throw new Error(`HTTP ${response.status} at ${url}`);
         return await response.json();
     } catch (err) {
-        if (err.name !== 'AbortError') console.warn(`[API] Errore fetch ${url}:`, err.message);
-        return { error: err.name === 'AbortError' ? `nessuna risposta entro ${timeoutMs}ms` : err.message };
+        if (err.name === 'AbortError') return { error: `nessuna risposta entro ${timeoutMs}ms` };
+        console.warn(`[API] Errore fetch ${url}:`, err.message);
+        return err instanceof TypeError
+            ? { error: err.message, unreachable: true }
+            : { error: err.message };
     } finally {
         clearTimeout(timer);
     }
@@ -30,6 +33,17 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_M
  */
 export function isError(payload) {
     return !payload || typeof payload !== 'object' || 'error' in payload || Object.keys(payload).length === 0;
+}
+
+/**
+ * How a read went: 'ok', 'error' when crac-cloud answered but the data is
+ * unusable, 'unreachable' when the browser could not reach crac-cloud at all.
+ * A timeout stays 'error': with crac-server down /roof/status takes 14.7s to
+ * answer and the client gives up at 10s, with crac-cloud perfectly alive.
+ */
+export function outcomeOf(payload) {
+    if (payload && payload.unreachable) return 'unreachable';
+    return isError(payload) ? 'error' : 'ok';
 }
 
 export async function apiGet(endpoint, timeoutMs = DEFAULT_TIMEOUT_MS) {

@@ -11,9 +11,9 @@ import { initUps, updateUpsUI }                       from './ups.js';
 import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
-import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi, isError } from './api.js';
+import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi, isError, outcomeOf } from './api.js';
 import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport } from './alerts.js';
-import { ConnectionHealth } from './connection.js';
+import { ConnectionHealth, CLOUD, SERVER } from './connection.js';
 import { renderAlerts } from './status_panel.js';
 
 console.log('[CRaC] coordinator.js loaded');
@@ -61,7 +61,8 @@ const ALL_SWITCHES_OFF = ['KEY_TELE_SWITCH', 'KEY_CCD_SWITCH', 'KEY_FLAT_LIGHT',
 }));
 
 const COMPONENT = {
-    link: 'Collegamento a crac-server',
+    cloudLink: 'Collegamento a crac-cloud',
+    serverLink: 'Collegamento a crac-server',
     telescope: 'Telescopio',
     telescopeSpeed: 'Velocita\' telescopio',
     roof: 'Tetto',
@@ -75,17 +76,35 @@ function recordAlert(component, status) {
 }
 
 /**
- * Records how a read went and answers whether its data can be used. While the
+ * Records how a read went and answers whether its data can be used. While a
  * link is down the panels keep their last values: the page is dimmed so those
  * numbers are seen for what they are, no longer updated.
  */
 function received(endpoint, data) {
-    const ok = !isError(data);
-    connection.note(endpoint, ok);
-    const down = connection.isDown();
-    recordAlert(COMPONENT.link, down ? 'SERVER_ERROR' : null);
-    document.body.classList.toggle('data-stale', down);
-    return ok;
+    connection.note(endpoint, outcomeOf(data));
+    showConnectionAlert();
+    return !isError(data);
+}
+
+function showConnectionAlert() {
+    const culprit = connection.culprit();
+    recordAlert(COMPONENT.cloudLink, culprit === CLOUD ? 'CLOUD_ERROR' : null);
+    recordAlert(COMPONENT.serverLink, culprit === SERVER ? 'SERVER_ERROR' : null);
+    document.body.classList.toggle('data-stale', culprit !== null);
+}
+
+/**
+ * The browser knows it lost the network before any read can time out, and it
+ * knows it for certain: no need to wait for two failed polls to say so.
+ */
+function watchBrowserConnectivity() {
+    const tell = isOffline => {
+        connection.setBrowserOffline(isOffline);
+        showConnectionAlert();
+    };
+    window.addEventListener('offline', () => tell(true));
+    window.addEventListener('online', () => tell(false));
+    tell(!navigator.onLine);
 }
 
 async function pollTelescope() {
@@ -241,6 +260,7 @@ async function init() {
 
     console.log('[CRaC] Inizializzazione coordinator...');
 
+    watchBrowserConnectivity();
     initRoofControl();
     initCurtains();
     initTelescopeControl();
