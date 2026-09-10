@@ -1,7 +1,5 @@
-// =============================================================================
 // coordinator.js - The only file the page loads (besides D3): it wires the
 // modules together and owns the polling timings.
-// =============================================================================
 
 import { initRoofControl, updateRoofUI }             from './roof_control.js';
 import { initCurtains, updateCurtainsUI, updateRoofBackground } from './curtains.js';
@@ -18,11 +16,8 @@ import { renderAlerts } from './status_panel.js';
 
 console.log('[CRaC] coordinator.js loaded');
 
-/**
- * Polling intervals in ms, paced on how often crac-server itself refreshes:
- * telescope 0.15s server side, UPS 60s, weather 660s. Maps are expensive (they
- * download DSS plates), so the sky map is refreshed only on a new pointing.
- */
+/** Paced on how often crac-server refreshes: telescope 0.15s, UPS 60s, weather
+ *  660s. Maps download DSS plates, so the sky map waits for a new pointing. */
 const INTERVALS = {
     telescope:      1000,
     roof:           3000,
@@ -76,11 +71,8 @@ function recordAlert(component, status) {
     renderAlerts(alerts);
 }
 
-/**
- * Records how a read went and answers whether its data can be used. While a
- * link is down the panels keep their last values: the page is dimmed so those
- * numbers are seen for what they are, no longer updated.
- */
+/** Records how a read went and answers whether its data can be used. With a
+ *  link down the panels keep their last values, and the page is dimmed. */
 function received(endpoint, data) {
     connection.note(endpoint, outcomeOf(data));
     showConnectionAlert();
@@ -94,10 +86,8 @@ function showConnectionAlert() {
     document.body.classList.toggle('data-stale', culprit !== null);
 }
 
-/**
- * The browser knows it lost the network before any read can time out, and it
- * knows it for certain: no need to wait for two failed polls to say so.
- */
+/** The browser knows it lost the network for certain, and knows it before any
+ *  read can time out. */
 function watchBrowserConnectivity() {
     const tell = isOffline => {
         connection.setBrowserOffline(isOffline);
@@ -199,10 +189,8 @@ async function pollTrackingChart() {
     refreshTrackingChart();
 }
 
-/**
- * With the telescope not connected the endpoint answers with an error instead
- * of a value: that is a legitimate state, not a broken link.
- */
+/** Not connected: the endpoint answers with an error instead of a value, which
+ *  is a legitimate state and not a broken link. */
 async function pollAirmass() {
     const data = await mapsApi.getAirmass();
     const el = document.getElementById('airmass');
@@ -220,12 +208,8 @@ async function checkSkyMapRefresh() {
 
 const EQ_THRESHOLD = 1e-4;   // ~0.36 arcseconds
 
-/**
- * While the telescope tracks, eq_coords stays put on a fixed RA/DEC: the alt/az
- * drift that takes it out of PARKED/FLATTER is invisible to _eqCoordsChanged,
- * and the placeholder image the server serves for those states would stay on
- * screen. The status needs a trigger of its own.
- */
+/** While tracking, eq_coords stays on a fixed RA/DEC, so the drift out of
+ *  PARKED/FLATTER is invisible to _eqCoordsChanged and needs its own trigger. */
 function _telescopeStatusChanged(status) {
     if (status === undefined || status === state.lastTelStatus) return false;
     state.lastTelStatus = status;

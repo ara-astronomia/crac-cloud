@@ -1,6 +1,4 @@
-// =============================================================================
-// buttons.js - Modulo puro per gli switch alimentatori e luci
-// =============================================================================
+// buttons.js - The power and light switches.
 
 import { buttonsApi, coverMirrorApi } from './api.js';
 
@@ -19,9 +17,6 @@ const LABEL_MAP = {
     'LABEL_OFF': 'Spento',
 };
 
-// =============================================================================
-// INIT
-// =============================================================================
 export function initButtons() {
     BUTTON_IDS.forEach(id => {
         const btn = document.getElementById(id);
@@ -32,9 +27,6 @@ export function initButtons() {
     console.log('[Buttons] Inizializzato.');
 }
 
-// =============================================================================
-// UPDATE — chiamato dal coordinator
-// =============================================================================
 export function updateButtonsUI(buttons) {
     if (!Array.isArray(buttons)) return;
 
@@ -57,9 +49,6 @@ export function updateButtonsUI(buttons) {
     });
 }
 
-// =============================================================================
-// CLICK HANDLER — toggle in base allo stato attuale
-// =============================================================================
 async function handleButtonClick(btn) {
     if (btn.disabled) return;
 

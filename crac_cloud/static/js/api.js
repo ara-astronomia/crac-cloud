@@ -1,23 +1,13 @@
-// =============================================================================
 // api.js - The one place where crac-cloud is called. No fetch() anywhere else.
-// =============================================================================
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
-/**
- * The browser gives an origin six sockets: a status read left hanging on a
- * dying crac-server holds one of them, and the health probe ends up queued
- * behind reads that will never come back. Giving up early hands the socket
- * back - and a reading older than a few seconds is of no use to a panel that
- * refreshes every second anyway.
- */
+// A hanging read holds one of the six sockets the browser grants per origin,
+// and the health probe queues behind it.
 const STATUS_TIMEOUT_MS = 3000;
 
-/**
- * Never throws: a request that does not come back resolves to { error }, the
- * same shape crac-cloud already answers with when crac-server is unreachable,
- * so a single check covers both.
- */
+/** Never throws: a request that does not come back resolves to { error }, the
+ *  shape crac-cloud already answers with when crac-server is unreachable. */
 async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -36,20 +26,14 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_M
     }
 }
 
-/**
- * True when a response carries no usable data. crac-cloud answers 200 even when
- * its gRPC call to crac-server fails, and puts the reason in `error`.
- */
+/** crac-cloud answers 200 even when its gRPC call to crac-server fails, and
+ *  puts the reason in `error`. */
 export function isError(payload) {
     return !payload || typeof payload !== 'object' || 'error' in payload || Object.keys(payload).length === 0;
 }
 
-/**
- * How a read went. 'error' is the only outcome that proves crac-cloud is
- * answering, and 'timeout' proves nothing at all: with crac-server down
- * /roof/status takes 14.7s while crac-cloud is perfectly alive, and a browser
- * whose packets go nowhere looks exactly the same from here.
- */
+/** Only 'error' proves crac-cloud answered. A timeout proves nothing: with
+ *  crac-server down /roof/status takes 14.7s while crac-cloud is fine. */
 export function outcomeOf(payload) {
     if (payload && payload.unreachable) return 'unreachable';
     if (payload && payload.timedOut) return 'timeout';
@@ -109,22 +93,16 @@ export const weatherApi = {
     getGaugeConfig: () => apiGet('/charts/gauge-config'),
 };
 
-/**
- * Assigning an <img> the same src it already has requests nothing, so the two
- * map images need a URL that changes. The JSON endpoints do not: crac-cloud
- * answers them with Cache-Control: no-store.
- */
-/**
- * The health route answers without leaving crac-cloud, so any way it can fail -
- * a rejected fetch, a timeout, an error status - means the same thing: the
- * browser is not reaching the service. Hence the short deadline.
- */
+// This route never leaves crac-cloud, so however it fails the answer is the
+// same: the browser is not reaching the service.
 const HEALTH_TIMEOUT_MS = 2000;
 
 export const healthApi = {
     probe: async () => (isError(await apiGet('/health', HEALTH_TIMEOUT_MS)) ? 'unreachable' : 'ok'),
 };
 
+// An <img> given the src it already has requests nothing; the JSON endpoints
+// need none of this, they come with Cache-Control: no-store.
 const cacheBuster = () => `t=${Date.now()}`;
 
 export const mapsApi = {

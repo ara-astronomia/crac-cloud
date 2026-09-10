@@ -56,9 +56,7 @@ async function fetchStatus(endpoint) {
     } catch (error) {
         console.error('Errore nella richiesta di stato:', error);
         
-        // 🎯 GESTIONE DI SICUREZZA: Restituisce un oggetto strutturato vuoto
-        // In questo modo, chartStatus non è undefined e il controllo 'if (chartStatus && chartStatus.charts)'
-        // può procedere senza bloccarsi.
+        // An empty shape, so the caller's check finds a value and moves on.
         return {}; 
     }
 }
@@ -130,9 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // 2. Logica per i GAUGE (Indicatori D3.js)
-            // I gauge sono identificati da una "key" nel gauges.js.
-            // Dobbiamo estrarre la chiave (es. "temperature", "humidity") dal chart.urn o chart.title
+            // Gauges are keyed by name in gauges.js: the key comes out of the urn.
             
             const gaugeKey = chart.urn.split('/').pop(); // Esempio: "crac:weather/temperature" -> "temperature"
             const gaugeId = `gauge-${gaugeKey}`; // Es: "gauge-temperature"

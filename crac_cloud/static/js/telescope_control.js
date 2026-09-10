@@ -1,7 +1,4 @@
-// =============================================================================
-// telescope_control.js - Modulo puro per il controllo del telescopio
-// NON fa polling autonomo. Espone init() e updateTelescopeUI().
-// =============================================================================
+// telescope_control.js - The telescope. Draws what the coordinator hands over, polls nothing.
 
 import { STATUS_LABELS_MAP, BUTTON_KEY_MAP, TELESCOPE_ACTION_MAP } from './gui_constants.js';
 import { telescopeApi } from './api.js';
@@ -12,9 +9,6 @@ let parkButton = null;
 let flatButton = null;
 let autolightCheckbox = null;
 
-// =============================================================================
-// INIT — registra listener, chiamato una sola volta dal coordinator
-// =============================================================================
 export function initTelescopeControl() {
     connButton        = document.getElementById(BUTTON_KEY_MAP['KEY_TELESCOPE_CONNECTION_TOGGLE']);
     parkButton        = document.getElementById(BUTTON_KEY_MAP['KEY_PARK']);
@@ -40,9 +34,6 @@ export function initTelescopeControl() {
     console.log('[Telescope] Inizializzato.');
 }
 
-// =============================================================================
-// UPDATE — chiamato dal coordinator con i dati freschi del server
-// =============================================================================
 export function updateTelescopeUI(data) {
     if (!data || Object.keys(data).length === 0) return;
 
@@ -121,9 +112,6 @@ export function updateTelescopeUI(data) {
     }
 }
 
-// =============================================================================
-// CLICK HANDLERS
-// =============================================================================
 async function handleConnClick() {
     if (!connButton || connButton.disabled) return;
     const action = connButton.dataset.action;
@@ -165,9 +153,6 @@ async function handleAutolightChange() {
     }
 }
 
-// =============================================================================
-// UTILITY
-// =============================================================================
 function _applyLabel(elementId, statusKey) {
     const el = document.getElementById(elementId);
     if (!el) return;

@@ -1,7 +1,4 @@
-// =============================================================================
-// gauges.js - Gauge D3.js per i dati meteo
-// Dipende da D3 caricato globalmente nell'HTML.
-// =============================================================================
+// gauges.js - The weather gauges. Needs D3 loaded globally by the page.
 
 import { weatherApi, isError } from './api.js';
 
@@ -26,9 +23,6 @@ const GAUGE_META = {
 // Registro interno dei gauge creati
 const gaugeRegistry = {};
 
-// =============================================================================
-// INIT — carica la configurazione dal server e crea i gauge
-// =============================================================================
 export async function initGauges() {
     if (typeof d3 === 'undefined') {
         console.error('[Gauges] D3.js non disponibile.');
@@ -54,9 +48,6 @@ export async function initGauges() {
     console.log(`[Gauges] Inizializzati ${Object.keys(gaugeRegistry).length} gauge.`);
 }
 
-// =============================================================================
-// UPDATE — chiamato dal coordinator con i dati freschi del server
-// =============================================================================
 export function updateGaugesUI(data) {
     if (!data || !data.charts) return;
 
@@ -87,9 +78,6 @@ function _translateWeatherStatus(status) {
     return map[status] || status;
 }
 
-// =============================================================================
-// CREAZIONE GAUGE D3 (logica invariata rispetto all'originale)
-// =============================================================================
 function _createGauge(key, config, meta) {
     const id        = `gauge-${key}`;
     const container = d3.select(`#${id}`);

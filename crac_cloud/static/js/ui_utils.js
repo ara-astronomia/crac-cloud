@@ -1,9 +1,4 @@
-/**
- * Aggiorna lo stato, il testo e i colori di un singolo pulsante dell'interfaccia.
- * @param {object} guiItem - L'oggetto GUI specifico per il pulsante (da server).
- * @param {HTMLElement} button - L'elemento DOM del pulsante.
- * @param {string} telescopeStatus - Lo stato globale del telescopio (es. 'PARKED', 'TRACKING').
- */
+/** Applies to one button the label and colours the server decided for it. */
 export function updateSingleButtonUI(guiItem, button, telescopeStatus) {
     console.log('chiamata updateSingleButton in utils.js')
     let newClass = 'status-default';

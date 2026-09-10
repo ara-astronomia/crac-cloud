@@ -1,10 +1,5 @@
-// =============================================================================
-// alerts.js - The alerts shown in "Stato di CRaC"
-//
-// No DOM here: this file decides what is worth reporting, the drawing lives
-// elsewhere. Every component owns its alert, so a healthy one cannot silence
-// a broken one.
-// =============================================================================
+// alerts.js - What is worth reporting in "Stato di CRaC". No DOM here.
+// Every component owns its alert, so a healthy one cannot silence a broken one.
 
 export const SEVERITY = {
     ERROR: 'error',
@@ -47,11 +42,8 @@ export class AlertRegistry {
         this.revision = 0;
     }
 
-    /**
-     * Called on every poll: a status that does not change bumps the count
-     * instead of adding an entry, otherwise a ten-minute fault would leave
-     * hundreds of them behind.
-     */
+    /** A status that does not change bumps the count instead of adding an
+     *  entry: a ten-minute fault would otherwise leave hundreds behind. */
     record(component, status, at) {
         const open = this._openEntryFor(component);
         const severity = severityOf(status);
@@ -100,21 +92,14 @@ export class AlertRegistry {
 const TELESCOPE_OFF = 'DISCONNECTED';
 const POWER_ON = 'ON';
 
-/**
- * An unreachable telescope is a fault only while we are powering it: with the
- * observatory off it stays silent because it has no power. Until the power
- * status is known nothing is reported, so no alert shows up just to disappear
- * on the first poll of the switches.
- */
+/** An unreachable telescope is a fault only while we are powering it, and
+ *  until the power status is known there is nothing to report. */
 export function telescopeStatusToReport(status, powerStatus) {
     return powerStatus === POWER_ON ? status : null;
 }
 
-/**
- * Telescope speed says something only while the telescope is running: powered
- * off it stays SPEED_ERROR by construction, and one already lost or faulty
- * does not need a second alert repeating the same fault in other words.
- */
+/** Speed says something only while the telescope runs: powered off it is
+ *  SPEED_ERROR by construction, and a lost one needs no second alert. */
 export function telescopeSpeedToReport(status, speed) {
     if (status === TELESCOPE_OFF || severityOf(status) !== HEALTHY) return null;
     return speed;

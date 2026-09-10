@@ -1,6 +1,4 @@
-// =============================================================================
-// curtains.js - Modulo puro per il controllo delle tende
-// =============================================================================
+// curtains.js - The curtains: controls and canvas drawing.
 
 import { curtainsApi } from './api.js';
 import { STATUS_LABELS_MAP } from './gui_constants.js';
@@ -21,9 +19,6 @@ const config = {
 let curtainButton = null;
 let curtainsEnabled = false;
 
-// =============================================================================
-// INIT
-// =============================================================================
 export function initCurtains() {
     curtainButton = document.getElementById('btn-curtains');
     canvas = document.getElementById('curtainsCanvas');
@@ -46,9 +41,6 @@ export function initCurtains() {
     console.log('[Curtains] Inizializzato.');
 }
 
-// =============================================================================
-// UPDATE — chiamato dal coordinator
-// =============================================================================
 export function updateCurtainsUI(data) {
     if (!data || !data.curtains) return;
 
@@ -62,9 +54,7 @@ export function updateCurtainsUI(data) {
         curtainButton.textContent = labelData.text || enableGui.label;
         curtainButton.disabled = enableGui.is_disabled || false;
         if (enableGui.button_color) {
-            // 'important' necessario per vincere su altre regole CSS che
-            // altrimenti sovrascrivono il colore (stesso motivo per cui
-            // buttons.js usa setProperty con priorità 'important').
+            // 'important' beats the stylesheet rules that would override the colour.
             curtainButton.style.setProperty('background-color', enableGui.button_color.background_color || '', 'important');
             curtainButton.style.setProperty('color', enableGui.button_color.text_color || '', 'important');
         }
@@ -100,9 +90,6 @@ export function updateCurtainsUI(data) {
     }
 }
 
-// =============================================================================
-// CLICK HANDLER
-// =============================================================================
 async function handleCurtainClick() {
     console.log('[Curtains] Click - curtainsEnabled:', curtainsEnabled, '- label:', curtainButton.textContent);
     if (!curtainButton || curtainButton.disabled) return;
@@ -118,10 +105,6 @@ async function handleCurtainClick() {
         curtainButton.disabled = false;
     }
 }
-
-// =============================================================================
-// DISEGNO CANVAS (logica invariata, solo refactored)
-// =============================================================================
 
 function _drawCurtains(alphaEast, alphaWest) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);

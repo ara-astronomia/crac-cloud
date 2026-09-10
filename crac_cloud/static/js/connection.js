@@ -1,25 +1,6 @@
-// =============================================================================
-// connection.js - Which of the two links is down?
-//
-// The browser talks to crac-cloud, crac-cloud talks to crac-server, and the
-// page must not blame the wrong one: an answer that arrived over HTTP, even a
-// failing one, proves the browser side is fine.
-//
-// A read that never comes back proves nothing by itself, because crac-cloud
-// waits on crac-server for seconds before giving up. That is what the health
-// probe is for: it answers without leaving crac-cloud, so its silence can only
-// mean the browser is cut off.
-//
-// No DOM here. A single failed read does not count: the telescope is polled
-// every second, so one lost packet would open and close an alert right away.
-//
-// One answer proves the link is alive, so it clears the failures counted for
-// every endpoint: the slowest of them is polled once a minute, and waiting for
-// it would keep claiming the server is silent minutes after it came back. The
-// price is that a single broken endpoint stays unreported while the others
-// answer, which is the job of per-panel freshness, not of this file.
-// =============================================================================
+// connection.js - Which of the two links is down. No DOM here.
 
+// The telescope is polled every second: one lost packet must not open an alert.
 const DEFAULT_TOLERANCE = 2;
 
 export const CLOUD = 'cloud';
