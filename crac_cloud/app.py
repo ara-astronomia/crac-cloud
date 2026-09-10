@@ -81,6 +81,14 @@ app.include_router(ups_router.router)
 app.include_router(map_router.router) #, prefix="/maps", tags=["maps"])
 app.include_router(cover_mirror_router.router)
 
+@app.get("/health")
+async def health():
+    """Answers without touching gRPC, so that a page which stops getting an
+    answer here knows the break is between the browser and crac-cloud, and not
+    crac-server taking its time."""
+    return {"ok": True}
+
+
 @app.get("/")
 async def get_root(request: Request):
     # Passa un dizionario vuoto per 'items' al template per prevenire l'errore

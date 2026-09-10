@@ -215,3 +215,9 @@ test('il collegamento perso e\' un errore, e il testo dice che i valori sono fer
     assert.equal(alertText({ component: LINK, status: 'SERVER_ERROR' }),
                  `${LINK}: nessuna risposta, i valori a schermo sono fermi`);
 });
+
+test('il collegamento col servizio perso ha un testo suo, che non nomina crac-server', () => {
+    const CLOUD_LINK = 'Collegamento a crac-cloud';
+    assert.equal(alertText({ component: CLOUD_LINK, status: 'CLOUD_ERROR' }),
+                 `${CLOUD_LINK}: la pagina non riesce a parlare col servizio, i valori a schermo sono fermi`);
+});

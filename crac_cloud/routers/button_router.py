@@ -182,7 +182,7 @@ async def set_action(request: ButtonActionRequest, service: get_grpc_container =
     return {"status": "error", "message": f"Action '{request.action}' not handled by this router."}
 
 @router.get("/status")
-async def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc_container)):
+def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc_container)):
     """
     Recupera lo stato attuale di tutti gli interruttori (e i loro dati GUI) per l'aggiornamento master.
     """

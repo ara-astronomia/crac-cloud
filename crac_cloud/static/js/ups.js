@@ -1,6 +1,4 @@
-// =============================================================================
-// ups.js - Modulo puro per lo stato UPS
-// =============================================================================
+// ups.js - The UPS readings.
 
 export function initUps() {
     console.log('[UPS] Inizializzato.');

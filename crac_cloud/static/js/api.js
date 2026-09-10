@@ -1,14 +1,17 @@
-// =============================================================================
 // api.js - The one place where crac-cloud is called. No fetch() anywhere else.
-// =============================================================================
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
-/**
- * Never throws: a request that does not come back resolves to { error }, the
- * same shape crac-cloud already answers with when crac-server is unreachable,
- * so a single check covers both.
- */
+// A hanging read holds one of the six sockets the browser grants per origin,
+// and the health probe queues behind it.
+const STATUS_TIMEOUT_MS = 3000;
+
+// This read makes eight gRPC round trips - four switches plus the autolight -
+// so the other deadlines are no measure for it.
+const BUTTONS_TIMEOUT_MS = 9000;
+
+/** Never throws: a request that does not come back resolves to { error }, the
+ *  shape crac-cloud already answers with when crac-server is unreachable. */
 async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -17,19 +20,28 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_M
         if (!response.ok) throw new Error(`HTTP ${response.status} at ${url}`);
         return await response.json();
     } catch (err) {
-        if (err.name !== 'AbortError') console.warn(`[API] Errore fetch ${url}:`, err.message);
-        return { error: err.name === 'AbortError' ? `nessuna risposta entro ${timeoutMs}ms` : err.message };
+        if (err.name === 'AbortError') return { error: `nessuna risposta entro ${timeoutMs}ms`, timedOut: true };
+        console.warn(`[API] Errore fetch ${url}:`, err.message);
+        return err instanceof TypeError
+            ? { error: err.message, unreachable: true }
+            : { error: err.message };
     } finally {
         clearTimeout(timer);
     }
 }
 
-/**
- * True when a response carries no usable data. crac-cloud answers 200 even when
- * its gRPC call to crac-server fails, and puts the reason in `error`.
- */
+/** crac-cloud answers 200 even when its gRPC call to crac-server fails, and
+ *  puts the reason in `error`. */
 export function isError(payload) {
     return !payload || typeof payload !== 'object' || 'error' in payload || Object.keys(payload).length === 0;
+}
+
+/** Only 'error' proves crac-cloud answered. A timeout proves nothing: with
+ *  crac-server down /roof/status takes 14.7s while crac-cloud is fine. */
+export function outcomeOf(payload) {
+    if (payload && payload.unreachable) return 'unreachable';
+    if (payload && payload.timedOut) return 'timeout';
+    return isError(payload) ? 'error' : 'ok';
 }
 
 export async function apiGet(endpoint, timeoutMs = DEFAULT_TIMEOUT_MS) {
@@ -45,7 +57,7 @@ export async function apiPost(endpoint, data = {}) {
 }
 
 export const telescopeApi = {
-    getStatus: ()                         => apiGet('/telescope/status'),
+    getStatus: ()                         => apiGet('/telescope/status', STATUS_TIMEOUT_MS),
     connect:   ()                         => apiPost('/telescope/set_action', { action: 'TELESCOPE_CONNECT' }),
     disconnect:()                         => apiPost('/telescope/set_action', { action: 'TELESCOPE_DISCONNECT' }),
     park:      (autolight = false)        => apiPost('/telescope/set_action', { action: 'PARK_POSITION', autolight }),
@@ -54,46 +66,56 @@ export const telescopeApi = {
 };
 
 export const roofApi = {
-    getStatus: () => apiGet('/roof/status'),
+    getStatus: () => apiGet('/roof/status', STATUS_TIMEOUT_MS),
     open:      () => apiPost('/roof/set_action', { action: 'ROOF_OPEN' }),
     close:     () => apiPost('/roof/set_action', { action: 'ROOF_CLOSE' }),
 };
 
 export const curtainsApi = {
-    getStatus: () => apiGet('/curtains/status'),
+    getStatus: () => apiGet('/curtains/status', STATUS_TIMEOUT_MS),
     enable:    () => apiPost('/curtains/control', { action: 'ENABLE' }),
     disable:   () => apiPost('/curtains/control', { action: 'DISABLE' }),
 };
 
 export const coverMirrorApi = {
-    getStatus: () => apiGet('/cover_mirror/status'),
+    getStatus: () => apiGet('/cover_mirror/status', STATUS_TIMEOUT_MS),
     open:      () => apiPost('/cover_mirror/set_action', { action: 'OPEN_COVER_MIRROR' }),
     close:     () => apiPost('/cover_mirror/set_action', { action: 'CLOSE_COVER_MIRROR' }),
 };
 
 export const buttonsApi = {
-    getStatus:   ()                          => apiGet('/buttons/status', 15000),
+    getStatus:   ()                          => apiGet('/buttons/status', BUTTONS_TIMEOUT_MS),
     toggle:      (key, action = 'TURN_ON')   => apiPost('/buttons/set_action', { key, action }),
 };
 
 export const upsApi = {
-    getStatus: () => apiGet('/ups/status'),
+    getStatus: () => apiGet('/ups/status', STATUS_TIMEOUT_MS),
 };
 
 export const weatherApi = {
-    getStatus:   () => apiGet('/charts/status'),
-    getGaugeConfig: () => apiGet('/charts/gauge-config'),
+    getStatus:   () => apiGet('/charts/status', STATUS_TIMEOUT_MS),
+    getGaugeConfig: () => apiGet('/charts/gauge-config', STATUS_TIMEOUT_MS),
 };
 
-/**
- * Assigning an <img> the same src it already has requests nothing, so the two
- * map images need a URL that changes. The JSON endpoints do not: crac-cloud
- * answers them with Cache-Control: no-store.
- */
+// This route never leaves crac-cloud, so however it fails the answer is the
+// same: the browser is not reaching the service.
+const HEALTH_TIMEOUT_MS = 2000;
+
+// Any HTTP answer, a 404 included, proves the browser reaches the service:
+// only silence - a rejection or a deadline - says it does not.
+export const healthApi = {
+    probe: async () => {
+        const esito = outcomeOf(await apiGet('/health', HEALTH_TIMEOUT_MS));
+        return esito === 'timeout' || esito === 'unreachable' ? 'unreachable' : 'ok';
+    },
+};
+
+// An <img> given the src it already has requests nothing; the JSON endpoints
+// need none of this, they come with Cache-Control: no-store.
 const cacheBuster = () => `t=${Date.now()}`;
 
 export const mapsApi = {
     trackingChartUrl: () => `/maps/tracking_chart?${cacheBuster()}`,
     skyMapUrl:        () => `/maps/sky_map_fixed?${cacheBuster()}`,
-    getAirmass:       () => apiGet('/maps/airmass'),
+    getAirmass:       () => apiGet('/maps/airmass', STATUS_TIMEOUT_MS),
 };

@@ -1,7 +1,5 @@
-// =============================================================================
 // coordinator.js - The only file the page loads (besides D3): it wires the
 // modules together and owns the polling timings.
-// =============================================================================
 
 import { initRoofControl, updateRoofUI }             from './roof_control.js';
 import { initCurtains, updateCurtainsUI, updateRoofBackground } from './curtains.js';
@@ -11,18 +9,15 @@ import { initUps, updateUpsUI }                       from './ups.js';
 import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
-import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi, isError } from './api.js';
+import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi, isError, outcomeOf, healthApi } from './api.js';
 import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport } from './alerts.js';
-import { ConnectionHealth } from './connection.js';
+import { ConnectionHealth, CLOUD, SERVER } from './connection.js';
 import { renderAlerts } from './status_panel.js';
 
 console.log('[CRaC] coordinator.js loaded');
 
-/**
- * Polling intervals in ms, paced on how often crac-server itself refreshes:
- * telescope 0.15s server side, UPS 60s, weather 660s. Maps are expensive (they
- * download DSS plates), so the sky map is refreshed only on a new pointing.
- */
+/** Paced on how often crac-server refreshes: telescope 0.15s, UPS 60s, weather
+ *  660s. Maps download DSS plates, so the sky map waits for a new pointing. */
 const INTERVALS = {
     telescope:      1000,
     roof:           3000,
@@ -33,6 +28,7 @@ const INTERVALS = {
     trackingChart: 30000,
     airmass:        5000,
     cover_mirror:   3000,
+    health:         3000,
 };
 
 const STATUSES_SERVED_AS_PLACEHOLDER_IMAGE = [
@@ -50,18 +46,9 @@ const state = {
 const alerts = new AlertRegistry();
 const connection = new ConnectionHealth();
 
-const ALL_SWITCHES_OFF = ['KEY_TELE_SWITCH', 'KEY_CCD_SWITCH', 'KEY_FLAT_LIGHT', 'KEY_DOME_LIGHT'].map(key => ({
-    key,
-    status: 'OFF',
-    button_gui: {
-        label: 'LABEL_OFF',
-        is_disabled: false,
-        button_color: { text_color: 'white', background_color: 'red' },
-    },
-}));
-
 const COMPONENT = {
-    link: 'Collegamento a crac-server',
+    cloudLink: 'Collegamento a crac-cloud',
+    serverLink: 'Collegamento a crac-server',
     telescope: 'Telescopio',
     telescopeSpeed: 'Velocita\' telescopio',
     roof: 'Tetto',
@@ -74,18 +61,36 @@ function recordAlert(component, status) {
     renderAlerts(alerts);
 }
 
-/**
- * Records how a read went and answers whether its data can be used. While the
- * link is down the panels keep their last values: the page is dimmed so those
- * numbers are seen for what they are, no longer updated.
- */
+/** Records how a read went and answers whether its data can be used. With a
+ *  link down the panels keep their last values, and the page is dimmed. */
 function received(endpoint, data) {
-    const ok = !isError(data);
-    connection.note(endpoint, ok);
-    const down = connection.isDown();
-    recordAlert(COMPONENT.link, down ? 'SERVER_ERROR' : null);
-    document.body.classList.toggle('data-stale', down);
-    return ok;
+    connection.note(endpoint, outcomeOf(data));
+    showConnectionAlert();
+    return !isError(data);
+}
+
+function showConnectionAlert() {
+    const culprit = connection.culprit();
+    recordAlert(COMPONENT.cloudLink, culprit === CLOUD ? 'CLOUD_ERROR' : null);
+    recordAlert(COMPONENT.serverLink, culprit === SERVER ? 'SERVER_ERROR' : null);
+    document.body.classList.toggle('data-stale', culprit !== null);
+}
+
+/** The browser knows it lost the network for certain, and knows it before any
+ *  read can time out. */
+function watchBrowserConnectivity() {
+    const tell = isOffline => {
+        connection.setBrowserOffline(isOffline);
+        showConnectionAlert();
+    };
+    window.addEventListener('offline', () => tell(true));
+    window.addEventListener('online', () => tell(false));
+    tell(!navigator.onLine);
+}
+
+async function pollHealth() {
+    connection.noteHealth(await healthApi.probe());
+    showConnectionAlert();
 }
 
 async function pollTelescope() {
@@ -143,8 +148,7 @@ async function pollButtons() {
         const telescopePower = data.buttons.find(button => button.key === 'KEY_TELE_SWITCH');
         if (telescopePower) state.telescopePowerStatus = telescopePower.status;
     } else {
-        console.warn('[Coordinator] No buttons data from API, using fallback');
-        updateButtonsUI(ALL_SWITCHES_OFF);
+        console.warn('[Coordinator] No buttons data from API');
     }
 }
 
@@ -174,10 +178,8 @@ async function pollTrackingChart() {
     refreshTrackingChart();
 }
 
-/**
- * With the telescope not connected the endpoint answers with an error instead
- * of a value: that is a legitimate state, not a broken link.
- */
+/** Not connected: the endpoint answers with an error instead of a value, which
+ *  is a legitimate state and not a broken link. */
 async function pollAirmass() {
     const data = await mapsApi.getAirmass();
     const el = document.getElementById('airmass');
@@ -195,12 +197,8 @@ async function checkSkyMapRefresh() {
 
 const EQ_THRESHOLD = 1e-4;   // ~0.36 arcseconds
 
-/**
- * While the telescope tracks, eq_coords stays put on a fixed RA/DEC: the alt/az
- * drift that takes it out of PARKED/FLATTER is invisible to _eqCoordsChanged,
- * and the placeholder image the server serves for those states would stay on
- * screen. The status needs a trigger of its own.
- */
+/** While tracking, eq_coords stays on a fixed RA/DEC, so the drift out of
+ *  PARKED/FLATTER is invisible to _eqCoordsChanged and needs its own trigger. */
 function _telescopeStatusChanged(status) {
     if (status === undefined || status === state.lastTelStatus) return false;
     state.lastTelStatus = status;
@@ -241,6 +239,7 @@ async function init() {
 
     console.log('[CRaC] Inizializzazione coordinator...');
 
+    watchBrowserConnectivity();
     initRoofControl();
     initCurtains();
     initTelescopeControl();
@@ -250,7 +249,8 @@ async function init() {
     await initGauges();   // async: carica gauge-config dal server
     initMaps();
 
-    setTimeout(() => schedule(pollTelescope,    INTERVALS.telescope),    0);
+    setTimeout(() => schedule(pollHealth,       INTERVALS.health),       0);
+    setTimeout(() => schedule(pollTelescope,    INTERVALS.telescope),    250);
     setTimeout(() => schedule(pollRoof,         INTERVALS.roof),         500);
     setTimeout(() => schedule(pollCurtains,     INTERVALS.curtains),     1000);
     setTimeout(() => schedule(pollButtons,      INTERVALS.buttons),      1500);

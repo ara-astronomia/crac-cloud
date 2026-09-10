@@ -1,11 +1,5 @@
-// =============================================================================
-// status_panel.js - Draws the alerts of "Stato di CRaC". What is worth
-// reporting is decided in alerts.js; this file only writes.
-//
-// The history is redrawn only when it changes: rendering runs several times a
-// second, and rebuilding the list would reset the scrolling of whoever is
-// reading it.
-// =============================================================================
+// status_panel.js - Draws what alerts.js decided.
+// The history is redrawn only on change: rebuilding it resets the reader's scroll.
 
 import { alertText, noAlertText } from './alerts.js';
 

@@ -1,8 +1,4 @@
-// =============================================================================
-// roof_control.js - Modulo puro per il controllo del tetto
-// NON fa polling autonomo. Espone init() e updateRoofUI().
-// Il coordinator chiama updateRoofUI() con i dati freschi.
-// =============================================================================
+// roof_control.js - The roof. Draws what the coordinator hands over, polls nothing.
 
 import { STATUS_LABELS_MAP, ROOF_STATE_TO_ACTION_MAP } from './gui_constants.js';
 import { roofApi } from './api.js';
@@ -10,9 +6,6 @@ import { roofApi } from './api.js';
 let lastKnownRoofState = 'ROOF_DEFAULT_STATUS';
 let roofButton = null;
 
-// =============================================================================
-// INIT — registra listener click, chiamato una sola volta dal coordinator
-// =============================================================================
 export function initRoofControl() {
     roofButton = document.getElementById('btn-tetto');
     if (!roofButton) {
@@ -23,9 +16,6 @@ export function initRoofControl() {
     console.log('[Roof] Inizializzato.');
 }
 
-// =============================================================================
-// UPDATE — chiamato dal coordinator con i dati freschi del server
-// =============================================================================
 export function updateRoofUI(data) {
     if (!roofButton || !data) return;
 
@@ -41,10 +31,8 @@ export function updateRoofUI(data) {
     roofButton.textContent = buttonText;
     roofButton.disabled = isDisabled;
 
-    // Colore solido, come gli altri pulsanti (tende, alimentatori, specchio).
-    // Il server manda ancora il colore rosso/verde dello stato precedente durante
-    // OPENING/CLOSING (vedi roof_converter.py), quindi qui lo sovrascriviamo con
-    // l'arancione locale finché non arriva lo stato finale.
+    // While OPENING/CLOSING the server still sends the previous red/green, so
+    // the orange is put on here until the final status arrives.
     let color = gui.button_color;
     if (serverState.includes('ING')) {
         color = { background_color: 'orange', text_color: 'white' };
@@ -55,9 +43,6 @@ export function updateRoofUI(data) {
     }
 }
 
-// =============================================================================
-// CLICK HANDLER
-// =============================================================================
 async function handleRoofClick() {
     if (roofButton.disabled) return;
 

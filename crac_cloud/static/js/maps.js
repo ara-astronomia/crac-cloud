@@ -1,6 +1,4 @@
-// =============================================================================
-// maps.js - Modulo puro per il refresh delle mappe astronomiche
-// =============================================================================
+// maps.js - Refresh of the astronomical maps.
 
 import { mapsApi } from './api.js';
 
@@ -22,11 +20,7 @@ export function initMaps() {
     console.log('[Maps] Inizializzato.');
 }
 
-/**
- * Modale fullscreen con l'immagine del campo inquadrato a piena
- * risoluzione, creata al volo la prima volta che serve (nessun markup
- * aggiuntivo da mantenere in index.html).
- */
+/** Built on first use, so index.html carries no markup for it. */
 function openSkyMapModal() {
     if (!zoomable) return;
     if (!modalOverlay) {
@@ -49,10 +43,8 @@ function closeSkyMapModal() {
     if (modalOverlay) modalOverlay.classList.remove('open');
 }
 
-/**
- * Quando il server risponde con una PNG segnaposto (telescopio non connesso,
- * in park o in flat) al posto della mappa vera, ingrandirla non ha senso.
- */
+/** Enlarging the placeholder PNG the server sends instead of the map - not
+ *  connected, parked, flat - makes no sense. */
 export function setSkyMapZoomable(value) {
     zoomable = value;
     if (!skyMapImg) return;
@@ -60,18 +52,13 @@ export function setSkyMapZoomable(value) {
     skyMapImg.title = value ? 'Clic per ingrandire' : '';
 }
 
-/**
- * Aggiorna il grafico di tracking (chiamato dal coordinator ogni 30s).
- * Usa un cache-buster nell'URL per forzare il reload dell'<img>.
- */
+/** The changing URL is what makes the <img> reload. */
 export function refreshTrackingChart() {
     if (!trackingImg) return;
     trackingImg.src = mapsApi.trackingChartUrl();
 }
 
-/**
- * Aggiorna la sky map — chiamato dal coordinator solo se le coordinate sono cambiate.
- */
+/** Called only when the pointing changed. */
 export function refreshSkyMap() {
     if (!skyMapImg) return;
     skyMapImg.src = mapsApi.skyMapUrl();

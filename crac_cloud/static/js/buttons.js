@@ -1,6 +1,4 @@
-// =============================================================================
-// buttons.js - Modulo puro per gli switch alimentatori e luci
-// =============================================================================
+// buttons.js - The power and light switches.
 
 import { buttonsApi, coverMirrorApi } from './api.js';
 
@@ -19,9 +17,6 @@ const LABEL_MAP = {
     'LABEL_OFF': 'Spento',
 };
 
-// =============================================================================
-// INIT
-// =============================================================================
 export function initButtons() {
     BUTTON_IDS.forEach(id => {
         const btn = document.getElementById(id);
@@ -32,9 +27,6 @@ export function initButtons() {
     console.log('[Buttons] Inizializzato.');
 }
 
-// =============================================================================
-// UPDATE — chiamato dal coordinator
-// =============================================================================
 export function updateButtonsUI(buttons) {
     if (!Array.isArray(buttons)) return;
 
@@ -44,7 +36,8 @@ export function updateButtonsUI(buttons) {
         const btn = document.getElementById(btnId);
         if (!btn) return;
 
-        const gui = button.button_gui || {};
+        const gui = button.button_gui;
+        if (!gui || !gui.label) return;   // a known old value beats an invented one
         const label = LABEL_MAP[gui.label] || gui.label || '';
         if (btn.textContent !== label) btn.textContent = label;
         btn.disabled = gui.is_disabled || false;
@@ -57,9 +50,6 @@ export function updateButtonsUI(buttons) {
     });
 }
 
-// =============================================================================
-// CLICK HANDLER — toggle in base allo stato attuale
-// =============================================================================
 async function handleButtonClick(btn) {
     if (btn.disabled) return;
 

@@ -50,8 +50,8 @@ async def _get_all_required_data() -> dict:
     geo_task = asyncio.create_task(geo_client.get_geographic_data())
     ccd_task = asyncio.create_task(image_config_client.get_ccd_image_data())    
 
-    # Recupera lo stato telescopio (sincrono per ora)
-    telescope_status = telescope_client.get_status()
+    # Il client del telescopio e' sincrono: sul loop terrebbe fermo tutto il resto
+    telescope_status = await asyncio.to_thread(telescope_client.get_status)
 
     # Attendi risposte asincrone
     geo_data, ccd_data = await asyncio.gather(geo_task, ccd_task)

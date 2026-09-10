@@ -1,7 +1,11 @@
-import { test } from 'node:test';
+import { test, afterEach } from 'node:test';
 import assert from 'node:assert';
 
-import { isError, mapsApi } from '../../crac_cloud/static/js/api.js';
+import { isError, mapsApi, outcomeOf, apiGet, healthApi, roofApi } from '../../crac_cloud/static/js/api.js';
+
+// Senza ripristino un test eredita in silenzio la fetch finta di quello prima.
+const fetchVera = globalThis.fetch;
+afterEach(() => { globalThis.fetch = fetchVera; });
 
 test('una risposta con i dati non e\' un errore', () => {
     assert.equal(isError({ status: 'ROOF_CLOSED' }), false);
@@ -37,4 +41,72 @@ test('l\'airmass invece no: a non farla rileggere dalla cache pensa il server', 
     };
     assert.deepEqual(await mapsApi.getAirmass(), { airmass: 1.2 });
     assert.deepEqual(chiamate, ['/maps/airmass']);
+});
+
+test('una risposta HTTP, anche di errore, dice che crac-cloud e\' raggiungibile', () => {
+    assert.equal(outcomeOf({ status: 'ROOF_CLOSED' }), 'ok');
+    assert.equal(outcomeOf({ error: 'Deadline Exceeded' }), 'error');
+    assert.equal(outcomeOf({ error: 'HTTP 500 at /maps/airmass' }), 'error');
+});
+
+test('solo il rigetto di fetch dice che crac-cloud non si raggiunge', () => {
+    assert.equal(outcomeOf({ error: 'Failed to fetch', unreachable: true }), 'unreachable');
+});
+
+test('il timeout e\' un esito a se\': non dice chi dei due tace', async () => {
+    globalThis.fetch = (url, options) => new Promise((_, reject) => {
+        options.signal.addEventListener('abort', () => {
+            const abort = new Error('aborted');
+            abort.name = 'AbortError';
+            reject(abort);
+        });
+    });
+    const risposta = await apiGet('/roof/status', 10);
+    assert.equal(outcomeOf(risposta), 'timeout');
+    assert.equal(risposta.unreachable, undefined);
+});
+
+test('la sonda di salute che risponde dice ok', async () => {
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ ok: true }) });
+    assert.equal(await healthApi.probe(), 'ok');
+});
+
+test('la sonda di salute in timeout dice irraggiungibile: quella rotta non parla con crac-server', async () => {
+    globalThis.fetch = (url, options) => new Promise((_, reject) => {
+        options.signal.addEventListener('abort', () => {
+            const abort = new Error('aborted');
+            abort.name = 'AbortError';
+            reject(abort);
+        });
+    });
+    assert.equal(await healthApi.probe(), 'unreachable');
+});
+
+test('le letture di stato mollano dopo 3 secondi: il socket serve alla sonda', async () => {
+    globalThis.fetch = (url, options) => new Promise((_, reject) => {
+        options.signal.addEventListener('abort', () => {
+            const abort = new Error('aborted');
+            abort.name = 'AbortError';
+            reject(abort);
+        });
+    });
+    const t0 = Date.now();
+    const risposta = await roofApi.getStatus();
+    assert.match(risposta.error, /entro 3000ms/);
+    assert.ok(Date.now() - t0 < 4000, 'ha aspettato piu\' di quanto dichiara');
+});
+
+test('i comandi invece hanno tutto il tempo: crac-server ci mette fino a 5s a rispondere', async () => {
+    let deadline;
+    globalThis.fetch = async (url, options) => {
+        deadline = options.signal;
+        return { ok: true, json: async () => ({ status: 'ROOF_OPEN' }) };
+    };
+    await roofApi.open();
+    assert.equal(deadline.aborted, false);
+});
+
+test('una sonda che risponde 404 dice comunque che crac-cloud si raggiunge', async () => {
+    globalThis.fetch = async () => ({ ok: false, status: 404, json: async () => ({}) });
+    assert.equal(await healthApi.probe(), 'ok');
 });
