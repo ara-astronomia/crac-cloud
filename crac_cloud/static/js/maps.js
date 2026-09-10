@@ -66,13 +66,7 @@ export function setSkyMapZoomable(value) {
  */
 export function refreshTrackingChart() {
     if (!trackingImg) return;
-    const newUrl = mapsApi.trackingChartUrl();
-    // Cambia src solo se l'URL è diverso (evita reload inutili)
-    if (!trackingImg.src.startsWith(window.location.origin + '/maps/tracking_chart')) {
-        trackingImg.src = newUrl;
-    } else {
-        trackingImg.src = newUrl; // il cache-buster assicura il reload
-    }
+    trackingImg.src = mapsApi.trackingChartUrl();
 }
 
 /**

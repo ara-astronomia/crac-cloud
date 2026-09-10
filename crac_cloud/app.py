@@ -58,6 +58,16 @@ async def no_cache_static(request: Request, call_next):
         response.headers["Expires"] = "0"
     return response
 
+@app.middleware("http")
+async def no_store_json(request: Request, call_next):
+    """A reused status response would put an old value back on screen as if it
+    had just arrived, which is exactly what the interface must never do."""
+    response = await call_next(request)
+    if response.headers.get("content-type", "").startswith("application/json"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 # Configura il motore di template, puntando alla cartella dei template
 templates = Jinja2Templates(directory="crac_cloud/templates")
 

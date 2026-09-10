@@ -85,10 +85,15 @@ export const weatherApi = {
     getGaugeConfig: () => apiGet('/charts/gauge-config'),
 };
 
+/**
+ * Assigning an <img> the same src it already has requests nothing, so the two
+ * map images need a URL that changes. The JSON endpoints do not: crac-cloud
+ * answers them with Cache-Control: no-store.
+ */
 const cacheBuster = () => `t=${Date.now()}`;
 
 export const mapsApi = {
     trackingChartUrl: () => `/maps/tracking_chart?${cacheBuster()}`,
     skyMapUrl:        () => `/maps/sky_map_fixed?${cacheBuster()}`,
-    getAirmass:       () => apiGet(`/maps/airmass?${cacheBuster()}`),
+    getAirmass:       () => apiGet('/maps/airmass'),
 };
