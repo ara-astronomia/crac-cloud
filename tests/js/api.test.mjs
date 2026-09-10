@@ -105,3 +105,8 @@ test('i comandi invece hanno tutto il tempo: crac-server ci mette fino a 5s a ri
     await roofApi.open();
     assert.equal(deadline.aborted, false);
 });
+
+test('una sonda che risponde 404 dice comunque che crac-cloud si raggiunge', async () => {
+    globalThis.fetch = async () => ({ ok: false, status: 404, json: async () => ({}) });
+    assert.equal(await healthApi.probe(), 'ok');
+});

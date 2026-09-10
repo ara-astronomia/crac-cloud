@@ -6,6 +6,10 @@ const DEFAULT_TIMEOUT_MS = 10000;
 // and the health probe queues behind it.
 const STATUS_TIMEOUT_MS = 3000;
 
+// This read makes eight gRPC round trips - four switches plus the autolight -
+// so the other deadlines are no measure for it.
+const BUTTONS_TIMEOUT_MS = 9000;
+
 /** Never throws: a request that does not come back resolves to { error }, the
  *  shape crac-cloud already answers with when crac-server is unreachable. */
 async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
@@ -80,7 +84,7 @@ export const coverMirrorApi = {
 };
 
 export const buttonsApi = {
-    getStatus:   ()                          => apiGet('/buttons/status', STATUS_TIMEOUT_MS),
+    getStatus:   ()                          => apiGet('/buttons/status', BUTTONS_TIMEOUT_MS),
     toggle:      (key, action = 'TURN_ON')   => apiPost('/buttons/set_action', { key, action }),
 };
 
@@ -90,15 +94,20 @@ export const upsApi = {
 
 export const weatherApi = {
     getStatus:   () => apiGet('/charts/status', STATUS_TIMEOUT_MS),
-    getGaugeConfig: () => apiGet('/charts/gauge-config'),
+    getGaugeConfig: () => apiGet('/charts/gauge-config', STATUS_TIMEOUT_MS),
 };
 
 // This route never leaves crac-cloud, so however it fails the answer is the
 // same: the browser is not reaching the service.
 const HEALTH_TIMEOUT_MS = 2000;
 
+// Any HTTP answer, a 404 included, proves the browser reaches the service:
+// only silence - a rejection or a deadline - says it does not.
 export const healthApi = {
-    probe: async () => (isError(await apiGet('/health', HEALTH_TIMEOUT_MS)) ? 'unreachable' : 'ok'),
+    probe: async () => {
+        const esito = outcomeOf(await apiGet('/health', HEALTH_TIMEOUT_MS));
+        return esito === 'timeout' || esito === 'unreachable' ? 'unreachable' : 'ok';
+    },
 };
 
 // An <img> given the src it already has requests nothing; the JSON endpoints
@@ -108,5 +117,5 @@ const cacheBuster = () => `t=${Date.now()}`;
 export const mapsApi = {
     trackingChartUrl: () => `/maps/tracking_chart?${cacheBuster()}`,
     skyMapUrl:        () => `/maps/sky_map_fixed?${cacheBuster()}`,
-    getAirmass:       () => apiGet('/maps/airmass'),
+    getAirmass:       () => apiGet('/maps/airmass', STATUS_TIMEOUT_MS),
 };
