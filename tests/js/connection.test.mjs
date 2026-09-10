@@ -143,3 +143,11 @@ test('se dopo crac-server cade anche il collegamento, la colpa passa al collegam
     connection.note(ROOF, 'unreachable');
     assert.equal(connection.culprit(), 'cloud');
 });
+
+test('se le letture rispondono, una sonda che fallisce da sola non incolpa nessuno', () => {
+    const connection = new ConnectionHealth();
+    connection.note(ROOF, 'ok');
+    connection.noteHealth('unreachable');
+    connection.noteHealth('unreachable');
+    assert.equal(connection.culprit(), null);
+});

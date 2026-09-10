@@ -1,7 +1,11 @@
-import { test } from 'node:test';
+import { test, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 import { isError, mapsApi, outcomeOf, apiGet, healthApi, roofApi } from '../../crac_cloud/static/js/api.js';
+
+// Senza ripristino un test eredita in silenzio la fetch finta di quello prima.
+const fetchVera = globalThis.fetch;
+afterEach(() => { globalThis.fetch = fetchVera; });
 
 test('una risposta con i dati non e\' un errore', () => {
     assert.equal(isError({ status: 'ROOF_CLOSED' }), false);

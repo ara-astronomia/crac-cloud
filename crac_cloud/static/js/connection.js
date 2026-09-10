@@ -36,7 +36,7 @@ export class ConnectionHealth {
 
     culprit() {
         if (this._browserOffline) return CLOUD;
-        const cloudJustAnswered = this._lastOutcome === 'error';
+        const cloudJustAnswered = this._lastOutcome === 'ok' || this._lastOutcome === 'error';
         if (this._healthFailures >= this._tolerance && !cloudJustAnswered) return CLOUD;
         const lasting = [...this._failures.values()].filter(failure => failure.count >= this._tolerance);
         if (lasting.length === 0) return null;
