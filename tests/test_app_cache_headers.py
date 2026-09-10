@@ -24,3 +24,11 @@ def test_the_page_itself_keeps_its_own_caching():
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/html")
     assert "cache-control" not in resp.headers
+
+
+def test_health_answers_without_talking_to_crac_server():
+    with patch.object(roof_router.roof_client.stub, "SetAction", side_effect=AssertionError("gRPC non deve essere toccato")):
+        resp = http.get("/health")
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+    assert resp.headers["cache-control"] == "no-store"

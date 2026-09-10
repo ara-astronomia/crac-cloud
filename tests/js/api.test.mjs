@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 
-import { isError, mapsApi, outcomeOf, apiGet } from '../../crac_cloud/static/js/api.js';
+import { isError, mapsApi, outcomeOf, apiGet, healthApi } from '../../crac_cloud/static/js/api.js';
 
 test('una risposta con i dati non e\' un errore', () => {
     assert.equal(isError({ status: 'ROOF_CLOSED' }), false);
@@ -49,7 +49,7 @@ test('solo il rigetto di fetch dice che crac-cloud non si raggiunge', () => {
     assert.equal(outcomeOf({ error: 'Failed to fetch', unreachable: true }), 'unreachable');
 });
 
-test('il timeout non incolpa il browser: con crac-server giu\' il tetto risponde in 14.7s', async () => {
+test('il timeout e\' un esito a se\': non dice chi dei due tace', async () => {
     globalThis.fetch = (url, options) => new Promise((_, reject) => {
         options.signal.addEventListener('abort', () => {
             const abort = new Error('aborted');
@@ -58,6 +58,22 @@ test('il timeout non incolpa il browser: con crac-server giu\' il tetto risponde
         });
     });
     const risposta = await apiGet('/roof/status', 10);
-    assert.equal(outcomeOf(risposta), 'error');
+    assert.equal(outcomeOf(risposta), 'timeout');
     assert.equal(risposta.unreachable, undefined);
+});
+
+test('la sonda di salute che risponde dice ok', async () => {
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ ok: true }) });
+    assert.equal(await healthApi.probe(), 'ok');
+});
+
+test('la sonda di salute in timeout dice irraggiungibile: quella rotta non parla con crac-server', async () => {
+    globalThis.fetch = (url, options) => new Promise((_, reject) => {
+        options.signal.addEventListener('abort', () => {
+            const abort = new Error('aborted');
+            abort.name = 'AbortError';
+            reject(abort);
+        });
+    });
+    assert.equal(await healthApi.probe(), 'unreachable');
 });

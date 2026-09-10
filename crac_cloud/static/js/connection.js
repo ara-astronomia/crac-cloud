@@ -5,6 +5,11 @@
 // page must not blame the wrong one: an answer that arrived over HTTP, even a
 // failing one, proves the browser side is fine.
 //
+// A read that never comes back proves nothing by itself, because crac-cloud
+// waits on crac-server for seconds before giving up. That is what the health
+// probe is for: it answers without leaving crac-cloud, so its silence can only
+// mean the browser is cut off.
+//
 // No DOM here. A single failed read does not count: the telescope is polled
 // every second, so one lost packet would open and close an alert right away.
 //
@@ -25,13 +30,23 @@ export class ConnectionHealth {
     constructor({ tolerance = DEFAULT_TOLERANCE } = {}) {
         this._tolerance = tolerance;
         this._failures = new Map();
+        this._healthFailures = 0;
+        this._lastOutcome = null;
         this._browserOffline = false;
     }
 
     note(endpoint, outcome) {
-        if (outcome === 'ok') return this._failures.clear();
+        this._lastOutcome = outcome;
+        if (outcome === 'ok') {
+            this._healthFailures = 0;
+            return this._failures.clear();
+        }
         const previous = this._failures.get(endpoint);
         this._failures.set(endpoint, { count: (previous ? previous.count : 0) + 1, outcome });
+    }
+
+    noteHealth(outcome) {
+        this._healthFailures = outcome === 'ok' ? 0 : this._healthFailures + 1;
     }
 
     setBrowserOffline(isOffline) {
@@ -40,8 +55,11 @@ export class ConnectionHealth {
 
     culprit() {
         if (this._browserOffline) return CLOUD;
+        const cloudJustAnswered = this._lastOutcome === 'error';
+        if (this._healthFailures >= this._tolerance && !cloudJustAnswered) return CLOUD;
         const lasting = [...this._failures.values()].filter(failure => failure.count >= this._tolerance);
         if (lasting.length === 0) return null;
-        return lasting.some(failure => failure.outcome !== 'unreachable') ? SERVER : CLOUD;
+        if (cloudJustAnswered) return SERVER;
+        return lasting.some(failure => failure.outcome === 'unreachable') ? CLOUD : SERVER;
     }
 }

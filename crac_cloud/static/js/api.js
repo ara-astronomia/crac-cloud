@@ -17,7 +17,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_M
         if (!response.ok) throw new Error(`HTTP ${response.status} at ${url}`);
         return await response.json();
     } catch (err) {
-        if (err.name === 'AbortError') return { error: `nessuna risposta entro ${timeoutMs}ms` };
+        if (err.name === 'AbortError') return { error: `nessuna risposta entro ${timeoutMs}ms`, timedOut: true };
         console.warn(`[API] Errore fetch ${url}:`, err.message);
         return err instanceof TypeError
             ? { error: err.message, unreachable: true }
@@ -36,13 +36,14 @@ export function isError(payload) {
 }
 
 /**
- * How a read went: 'ok', 'error' when crac-cloud answered but the data is
- * unusable, 'unreachable' when the browser could not reach crac-cloud at all.
- * A timeout stays 'error': with crac-server down /roof/status takes 14.7s to
- * answer and the client gives up at 10s, with crac-cloud perfectly alive.
+ * How a read went. 'error' is the only outcome that proves crac-cloud is
+ * answering, and 'timeout' proves nothing at all: with crac-server down
+ * /roof/status takes 14.7s while crac-cloud is perfectly alive, and a browser
+ * whose packets go nowhere looks exactly the same from here.
  */
 export function outcomeOf(payload) {
     if (payload && payload.unreachable) return 'unreachable';
+    if (payload && payload.timedOut) return 'timeout';
     return isError(payload) ? 'error' : 'ok';
 }
 
@@ -104,6 +105,17 @@ export const weatherApi = {
  * map images need a URL that changes. The JSON endpoints do not: crac-cloud
  * answers them with Cache-Control: no-store.
  */
+/**
+ * The health route answers without leaving crac-cloud, so any way it can fail -
+ * a rejected fetch, a timeout, an error status - means the same thing: the
+ * browser is not reaching the service. Hence the short deadline.
+ */
+const HEALTH_TIMEOUT_MS = 2000;
+
+export const healthApi = {
+    probe: async () => (isError(await apiGet('/health', HEALTH_TIMEOUT_MS)) ? 'unreachable' : 'ok'),
+};
+
 const cacheBuster = () => `t=${Date.now()}`;
 
 export const mapsApi = {

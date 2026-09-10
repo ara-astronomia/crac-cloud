@@ -11,7 +11,7 @@ import { initUps, updateUpsUI }                       from './ups.js';
 import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
-import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi, isError, outcomeOf } from './api.js';
+import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi, isError, outcomeOf, healthApi } from './api.js';
 import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport } from './alerts.js';
 import { ConnectionHealth, CLOUD, SERVER } from './connection.js';
 import { renderAlerts } from './status_panel.js';
@@ -33,6 +33,7 @@ const INTERVALS = {
     trackingChart: 30000,
     airmass:        5000,
     cover_mirror:   3000,
+    health:         3000,
 };
 
 const STATUSES_SERVED_AS_PLACEHOLDER_IMAGE = [
@@ -105,6 +106,11 @@ function watchBrowserConnectivity() {
     window.addEventListener('offline', () => tell(true));
     window.addEventListener('online', () => tell(false));
     tell(!navigator.onLine);
+}
+
+async function pollHealth() {
+    connection.noteHealth(await healthApi.probe());
+    showConnectionAlert();
 }
 
 async function pollTelescope() {
@@ -270,7 +276,8 @@ async function init() {
     await initGauges();   // async: carica gauge-config dal server
     initMaps();
 
-    setTimeout(() => schedule(pollTelescope,    INTERVALS.telescope),    0);
+    setTimeout(() => schedule(pollHealth,       INTERVALS.health),       0);
+    setTimeout(() => schedule(pollTelescope,    INTERVALS.telescope),    250);
     setTimeout(() => schedule(pollRoof,         INTERVALS.roof),         500);
     setTimeout(() => schedule(pollCurtains,     INTERVALS.curtains),     1000);
     setTimeout(() => schedule(pollButtons,      INTERVALS.buttons),      1500);
