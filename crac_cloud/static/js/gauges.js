@@ -3,7 +3,7 @@
 // Dipende da D3 caricato globalmente nell'HTML.
 // =============================================================================
 
-import { weatherApi } from './api.js';
+import { weatherApi, isError } from './api.js';
 
 const KEY_MAPPING = {
     'weather.chart.temperature': 'temperature',
@@ -36,7 +36,7 @@ export async function initGauges() {
     }
 
     const configs = await weatherApi.getGaugeConfig();
-    if (!configs || Object.keys(configs).length === 0) {
+    if (isError(configs)) {
         console.warn('[Gauges] Configurazione gauge non disponibile (server offline?)');
         return;
     }

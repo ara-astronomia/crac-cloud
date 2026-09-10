@@ -1,7 +1,6 @@
 // =============================================================================
-// coordinator.js - Orchestratore centrale di CRaC
-// È l'UNICO file incluso nell'HTML (oltre a D3).
-// Importa tutti i moduli e gestisce i timing di polling.
+// coordinator.js - The only file the page loads (besides D3): it wires the
+// modules together and owns the polling timings.
 // =============================================================================
 
 import { initRoofControl, updateRoofUI }             from './roof_control.js';
@@ -12,22 +11,18 @@ import { initUps, updateUpsUI }                       from './ups.js';
 import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
-import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi } from './api.js';
+import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi, isError } from './api.js';
 import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport } from './alerts.js';
+import { ConnectionHealth } from './connection.js';
 import { renderAlerts } from './status_panel.js';
 
 console.log('[CRaC] coordinator.js loaded');
 
-// =============================================================================
-// INTERVALLI DI POLLING (ms)
-// Basati sull'analisi del server:
-//   - telescopio: polling_interval=0.15s server-side → 1s client è più che sufficiente
-//   - meteo: time_expired=660s → 60s client
-//   - UPS: time_expired=60s → 30s client
-//   - tetto/tende: stato discreto → 3s
-//   - bottoni: stato GPIO → 3s
-//   - mappe: pesanti (DSS download) → tracking 30s, skymap solo se coords cambiano
-// =============================================================================
+/**
+ * Polling intervals in ms, paced on how often crac-server itself refreshes:
+ * telescope 0.15s server side, UPS 60s, weather 660s. Maps are expensive (they
+ * download DSS plates), so the sky map is refreshed only on a new pointing.
+ */
 const INTERVALS = {
     telescope:      1000,
     roof:           3000,
@@ -40,29 +35,33 @@ const INTERVALS = {
     cover_mirror:   3000,
 };
 
-// =============================================================================
-// STATO INTERNO DEL COORDINATOR
-// =============================================================================
-// Stati in cui il server risponde con una PNG segnaposto invece della sky map
-const NO_SKY_MAP_STATUSES = [
+const STATUSES_SERVED_AS_PLACEHOLDER_IMAGE = [
     'DISCONNECTED', 'ERROR', 'CRITICAL_ERROR', 'LOST', 'PARKED', 'FLATTER',
 ];
 
 const state = {
-    lastEqCoords: null,          // per rilevare cambio puntamento
-    lastTelStatus: null,         // per rilevare transizioni PARKED/FLATTER <-> altro
-    telescopePowerStatus: undefined,  // ON/OFF dell'alimentatore del telescopio
-    skyMapNeedsRefresh: false,   // flag settato da updateTelescopeUI
+    lastEqCoords: null,
+    lastTelStatus: null,
+    telescopePowerStatus: undefined,
+    skyMapNeedsRefresh: false,
     isInitialized: false,
 };
 
-// =============================================================================
-// LOOP DI POLLING — ogni funzione è autonoma e non blocca le altre
-// =============================================================================
-
 const alerts = new AlertRegistry();
+const connection = new ConnectionHealth();
+
+const ALL_SWITCHES_OFF = ['KEY_TELE_SWITCH', 'KEY_CCD_SWITCH', 'KEY_FLAT_LIGHT', 'KEY_DOME_LIGHT'].map(key => ({
+    key,
+    status: 'OFF',
+    button_gui: {
+        label: 'LABEL_OFF',
+        is_disabled: false,
+        button_color: { text_color: 'white', background_color: 'red' },
+    },
+}));
 
 const COMPONENT = {
+    link: 'Collegamento a crac-server',
     telescope: 'Telescopio',
     telescopeSpeed: 'Velocita\' telescopio',
     roof: 'Tetto',
@@ -75,9 +74,23 @@ function recordAlert(component, status) {
     renderAlerts(alerts);
 }
 
+/**
+ * Records how a read went and answers whether its data can be used. While the
+ * link is down the panels keep their last values: the page is dimmed so those
+ * numbers are seen for what they are, no longer updated.
+ */
+function received(endpoint, data) {
+    const ok = !isError(data);
+    connection.note(endpoint, ok);
+    const down = connection.isDown();
+    recordAlert(COMPONENT.link, down ? 'SERVER_ERROR' : null);
+    document.body.classList.toggle('data-stale', down);
+    return ok;
+}
+
 async function pollTelescope() {
     const data = await telescopeApi.getStatus();
-    if (data && Object.keys(data).length > 0) {
+    if (received('telescope', data)) {
         updateTelescopeUI(data);
         const telescopeStatus = telescopeStatusToReport(data.status, state.telescopePowerStatus);
         recordAlert(COMPONENT.telescope, telescopeStatus);
@@ -85,26 +98,17 @@ async function pollTelescope() {
             COMPONENT.telescopeSpeed,
             telescopeStatus === null ? null : telescopeSpeedToReport(data.status, data.speed),
         );
-        // Controlla se le coordinate sono cambiate per triggerare il refresh skymap
         const eq = data.eq_coords;
-        // Stessa condizione di /maps/sky_map_fixed: in questi casi il server
-        // manda un segnaposto statico, non la mappa → niente zoom.
         setSkyMapZoomable(
             !!eq && eq.ra !== undefined && eq.dec !== undefined &&
-            !NO_SKY_MAP_STATUSES.includes(data.status)
+            !STATUSES_SERVED_AS_PLACEHOLDER_IMAGE.includes(data.status)
         );
         if (eq && eq.ra !== undefined && eq.dec !== undefined) {
             if (_eqCoordsChanged(eq)) {
                 state.skyMapNeedsRefresh = true;
             }
         }
-        // eq_coords resta fermo mentre il telescopio traccia (segue una RA/DEC
-        // fissa): la deriva alt/az che fa uscire da PARKED/FLATTER (es. verso
-        // SECURE) non viene mai rilevata dal controllo sopra, lasciando la
-        // foto statica "in park"/"in flat" mostrata dal server congelata
-        // sullo schermo. Serve un trigger indipendente sul cambio di status.
-        if (data.status !== undefined && data.status !== state.lastTelStatus) {
-            state.lastTelStatus = data.status;
+        if (_telescopeStatusChanged(data.status)) {
             state.skyMapNeedsRefresh = true;
         }
     }
@@ -112,7 +116,7 @@ async function pollTelescope() {
 
 async function pollRoof() {
     const data = await roofApi.getStatus();
-    if (data && Object.keys(data).length > 0) {
+    if (received('roof', data)) {
         updateRoofUI(data);
         updateRoofBackground(data.status);
         recordAlert(COMPONENT.roof, data.status);
@@ -121,7 +125,7 @@ async function pollRoof() {
 
 async function pollCurtains() {
     const data = await curtainsApi.getStatus();
-    if (data && Object.keys(data).length > 0) {
+    if (received('curtains', data)) {
         updateCurtainsUI(data);
         (data.curtains || []).forEach(curtain => {
             const component = COMPONENT.curtain[curtain.orientation];
@@ -140,52 +144,13 @@ async function pollButtons() {
         if (telescopePower) state.telescopePowerStatus = telescopePower.status;
     } else {
         console.warn('[Coordinator] No buttons data from API, using fallback');
-        // Fallback: mostra pulsanti in stato "Spento" con colori rossi
-        const fallbackButtons = [
-            {
-                key: 'KEY_TELE_SWITCH',
-                status: 'OFF',
-                button_gui: {
-                    label: 'LABEL_OFF',
-                    is_disabled: false,
-                    button_color: { text_color: 'white', background_color: 'red' }
-                }
-            },
-            {
-                key: 'KEY_CCD_SWITCH',
-                status: 'OFF',
-                button_gui: {
-                    label: 'LABEL_OFF',
-                    is_disabled: false,
-                    button_color: { text_color: 'white', background_color: 'red' }
-                }
-            },
-            {
-                key: 'KEY_FLAT_LIGHT',
-                status: 'OFF',
-                button_gui: {
-                    label: 'LABEL_OFF',
-                    is_disabled: false,
-                    button_color: { text_color: 'white', background_color: 'red' }
-                }
-            },
-            {
-                key: 'KEY_DOME_LIGHT',
-                status: 'OFF',
-                button_gui: {
-                    label: 'LABEL_OFF',
-                    is_disabled: false,
-                    button_color: { text_color: 'white', background_color: 'red' }
-                }
-            }
-        ];
-        updateButtonsUI(fallbackButtons);
+        updateButtonsUI(ALL_SWITCHES_OFF);
     }
 }
 
 async function pollCoverMirror() {
     const data = await coverMirrorApi.getStatus();
-    if (data && Object.keys(data).length > 0) {
+    if (received('cover_mirror', data)) {
         updateCoverMirrorUI(data);
         recordAlert(COMPONENT.coverMirror, data.status);
     }
@@ -193,32 +158,34 @@ async function pollCoverMirror() {
 
 async function pollUps() {
     const data = await upsApi.getStatus();
-    if (data && Object.keys(data).length > 0) {
+    if (received('ups', data)) {
         updateUpsUI(data);
     }
 }
 
 async function pollWeather() {
     const data = await weatherApi.getStatus();
-    if (data && data.charts) {
+    if (received('charts', data) && data.charts) {
         updateGaugesUI(data);
     }
 }
 
 async function pollTrackingChart() {
-    refreshTrackingChart();  // aggiorna src dell'<img>, non-blocking
+    refreshTrackingChart();
 }
 
+/**
+ * With the telescope not connected the endpoint answers with an error instead
+ * of a value: that is a legitimate state, not a broken link.
+ */
 async function pollAirmass() {
     const data = await mapsApi.getAirmass();
     const el = document.getElementById('airmass');
     if (!el || !data) return;
-    // telescopio non connesso: l'endpoint risponde con error, non con un valore
     if (data.error) el.textContent = 'N/D';
     else if (data.airmass !== undefined) el.textContent = data.airmass;
 }
 
-// Skymap: refresh solo se le coordinate sono cambiate
 async function checkSkyMapRefresh() {
     if (state.skyMapNeedsRefresh) {
         state.skyMapNeedsRefresh = false;
@@ -226,10 +193,19 @@ async function checkSkyMapRefresh() {
     }
 }
 
-// =============================================================================
-// UTILITY — rilevamento cambio coordinate
-// =============================================================================
-const EQ_THRESHOLD = 1e-4; // ~0.36 arcsecondi — soglia ragionevole
+const EQ_THRESHOLD = 1e-4;   // ~0.36 arcseconds
+
+/**
+ * While the telescope tracks, eq_coords stays put on a fixed RA/DEC: the alt/az
+ * drift that takes it out of PARKED/FLATTER is invisible to _eqCoordsChanged,
+ * and the placeholder image the server serves for those states would stay on
+ * screen. The status needs a trigger of its own.
+ */
+function _telescopeStatusChanged(status) {
+    if (status === undefined || status === state.lastTelStatus) return false;
+    state.lastTelStatus = status;
+    return true;
+}
 
 function _eqCoordsChanged(newCoords) {
     if (!state.lastEqCoords) {
@@ -246,10 +222,6 @@ function _eqCoordsChanged(newCoords) {
     return changed;
 }
 
-// =============================================================================
-// AVVIO SCHEDULATO — ogni poll è indipendente con il proprio setTimeout ricorsivo
-// =============================================================================
-
 function schedule(fn, intervalMs) {
     const loop = async () => {
         try {
@@ -260,13 +232,8 @@ function schedule(fn, intervalMs) {
             setTimeout(loop, intervalMs);
         }
     };
-    // Prima esecuzione immediata
     loop();
 }
-
-// =============================================================================
-// INIZIALIZZAZIONE
-// =============================================================================
 
 async function init() {
     if (state.isInitialized) return;
@@ -274,7 +241,6 @@ async function init() {
 
     console.log('[CRaC] Inizializzazione coordinator...');
 
-    // 1. Inizializza tutti i moduli (listener click, canvas, gauge, ecc.)
     initRoofControl();
     initCurtains();
     initTelescopeControl();
@@ -284,7 +250,6 @@ async function init() {
     await initGauges();   // async: carica gauge-config dal server
     initMaps();
 
-    // 2. Avvia i loop di polling con i rispettivi intervalli
     setTimeout(() => schedule(pollTelescope,    INTERVALS.telescope),    0);
     setTimeout(() => schedule(pollRoof,         INTERVALS.roof),         500);
     setTimeout(() => schedule(pollCurtains,     INTERVALS.curtains),     1000);
@@ -295,11 +260,9 @@ async function init() {
     setTimeout(() => schedule(pollTrackingChart,INTERVALS.trackingChart),3500);
     setTimeout(() => schedule(pollAirmass,      INTERVALS.airmass),      4000);
 
-    // 3. Controllo skymap ogni secondo (leggero, aggiorna solo se flag=true)
     setInterval(checkSkyMapRefresh, 1000);
 
     console.log('[CRaC] Coordinator avviato. Intervalli:', INTERVALS);
 }
 
-// Avvio quando il DOM è pronto
 document.addEventListener('DOMContentLoaded', init);
