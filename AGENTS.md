@@ -39,6 +39,14 @@ pointed at the real observatory and nothing ever deployed from it.
 
 There are two test suites and both are quick, so run both before calling a change done. Neither talks to a real gRPC server: the Python ones stub the client stubs, the JS ones stub `fetch`. What they cannot cover — the UI actually reacting to a live server — stays a manual check against `../crac-test-stack`.
 
+**CI does not cover you while the work is in progress.** `docker-build.yml`
+runs `uv run pytest` — and only that, never `node --test` — on a push to
+`main`, so in practice at merge, and on a PR only once someone adds the
+`build-docker` label (it triggers on the label, not on later commits).
+Pushing a feature branch runs nothing. A red suite does block the Docker Hub
+image, since `build-and-push` needs the `test` job, but by then the merge has
+already happened: run both suites locally before opening the PR.
+
 ## Architecture
 
 ```
