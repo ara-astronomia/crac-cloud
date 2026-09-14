@@ -46,6 +46,11 @@ means Python *and* JS passed. Run them locally anyway before pushing — the
 round trip through Actions is slower than `uv run pytest`, and a push from a
 fork does not trigger the workflow in this repo.
 
+`main` is protected: no direct pushes, every change goes through a PR, and
+the `test` check must be green and the branch up to date before the merge
+button unlocks. It applies to admins too — an emergency bypass means turning
+the rule off in the repo settings, not pushing past it.
+
 The image is a separate job: `build-and-push` needs `test` and only fires on
 `main`, on a `v*` tag, or on a PR labelled `build-docker` (a one-off build
 from a branch; the label is removed afterwards). So a feature branch gets
