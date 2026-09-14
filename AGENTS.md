@@ -8,60 +8,93 @@
 
 ```bash
 # Install (uv preferred)
-uv sync
-# or
-pip install -e ".[dev]"
+uv sync --extra dev
 
 # Run development server
-uvicorn crac_cloud.app:app --reload --host localhost --port 8000
+uv run uvicorn crac_cloud.app:app --reload --host localhost --port 8000
 
-# Regenerate protobuf stubs (when crac-protobuf changes)
-python -m grpc_tools.protoc -I proto --python_out=. --grpc_python_out=. proto/*.proto
+# Python tests (pytest, testpaths = tests/)
+uv run pytest
+
+# JS tests (node:test, no package.json and no npm install needed).
+# Pass the files, not the directory: Node 24 does not discover from a dir.
+node --test tests/js/*.test.mjs
 
 # Format code
-autopep8 --in-place --recursive crac_cloud/
+uv run autopep8 --in-place --recursive crac_cloud/
+
+# Container against the local simulated stack
+docker compose -f ../crac-test-stack/docker-compose.yml up -d crac-cloud
 ```
 
-No automated test suite exists — testing is manual against a live or mocked gRPC server.
+**This repo ships a `Dockerfile` but no `docker-compose.yml`, on purpose.**
+There is no compose file here to run: development goes through
+`../crac-test-stack`, which builds this same `Dockerfile` against the
+simulated `crac-server` (`SERVER_IP=crac-server`) and bind-mounts `static/`
+and `templates/`, so CSS/JS/template edits need only a browser reload.
+Production runs its own compose, kept on the server and not versioned here,
+off the `araroma/crac-cloud` image that `.github/workflows/docker-build.yml`
+pushes to Docker Hub on every `main` (and on a PR labelled `build-docker`).
+Do not add a compose file back for convenience: the one that used to be here
+pointed at the real observatory and nothing ever deployed from it.
+
+There are two test suites and both are quick, so run both before calling a change done. Neither talks to a real gRPC server: the Python ones stub the client stubs, the JS ones stub `fetch`. What they cannot cover — the UI actually reacting to a live server — stays a manual check against `../crac-test-stack`.
+
+**CI runs both suites on every push, on any branch**
+(`.github/workflows/docker-build.yml`, job `test`), so the green tick on a PR
+means Python *and* JS passed. Run them locally anyway before pushing — the
+round trip through Actions is slower than `uv run pytest`, and a push from a
+fork does not trigger the workflow in this repo.
+
+`main` is protected: no direct pushes, every change goes through a PR, and
+the `test` check must be green and the branch up to date before the merge
+button unlocks. It applies to admins too — an emergency bypass means turning
+the rule off in the repo settings, not pushing past it.
+
+The image is a separate job: `build-and-push` needs `test` and only fires on
+`main`, on a `v*` tag, or on a PR labelled `build-docker` (a one-off build
+from a branch; the label is removed afterwards). So a feature branch gets
+tested without pushing anything to Docker Hub.
 
 ## Architecture
 
 ```
 FastAPI app (app.py)
-  ├─ 7 routers (crac_cloud/routers/)
-  │    button, telescope, roof, curtains, ups, chart, map
-  ├─ GrpcServiceContainer (grpc_service.py) — singleton holding all gRPC clients
-  │    └─ 8 clients in crac_cloud/grpc_cloud/
+  ├─ 8 routers (crac_cloud/routers/*_router.py)
+  │    button, telescope, roof, curtains, ups, chart, map, cover_mirror
+  ├─ GrpcServiceContainer (grpc_service.py) — singleton holding all 9 gRPC clients
+  │    └─ crac_cloud/grpc_cloud/
   │         ButtonClient, TelescopeClient, RoofClient, CurtainsClient,
-  │         UpsClient, ChartClient, GeographicClient, ImageConfigClient
+  │         UpsClient, ChartClient, GeographicClient, ImageConfigClient,
+  │         CoverMirrorClient
   ├─ image_generator.py — generates sky maps / airmass plots via astropy + astroplan
-  ├─ static/js/ — 13 JS modules for UI, API polling, gauges
-  └─ templates/index.html — single-page UI with tabs (Tetto, Telescopio, Tende)
+  ├─ static/js/ — 16 ES modules for UI, API polling, gauges
+  └─ templates/index.html — single page, sections Tetto / Telescopio / Tende
 ```
 
 **Data flow**: Browser JS polls FastAPI endpoints → routers call gRPC clients → CRaC server at `config.ini [server]` ip:port.
 
-**Key singleton**: `GrpcServiceContainer` in `grpc_service.py` is instantiated once at startup and injected via FastAPI dependency (`Depends(get_grpc_container)`). Never create manual gRPC channels directly in a router — always go through the container.
+**Key singleton**: `GrpcServiceContainer` in `grpc_service.py` is instantiated once at import and injected via FastAPI dependency (`Depends(get_grpc_container)`). Only `button_router.py` actually uses it: the other seven routers build their own client at module level, so those channels exist twice. The container is the direction to converge on — use it in new routers, and when you touch an old one — but do not expect to find it there.
 
 **Async/sync matching**: if a router endpoint uses a synchronous gRPC client call, define it as `def` (not `async def`); if `async def`, ensure the gRPC call is properly awaited (`grpc.aio`). The codebase currently mixes both depending on the specific client method being called — check the existing pattern in the router you're touching before assuming one or the other.
 
-**Error handling convention**: input validation errors use `HTTPException` (e.g. invalid action name → 400). Backend/gRPC communication errors (server unreachable) instead return a 200 response with a `{"status": "ERROR", ...}` payload — this is intentional, not an inconsistency: it keeps the frontend's polling loop working (a raised exception would break the poll cycle) while still surfacing the error state in the UI.
+**Error handling convention**: input validation errors use `HTTPException` (e.g. invalid action name → 400). Backend/gRPC communication errors (server unreachable) instead return a 200 response carrying an `error` key, `{"error": "<grpc details>"}` — this is intentional, not an inconsistency: it keeps the frontend's polling loop working (a raised exception would break the poll cycle) while still surfacing the error state in the UI. The key is the contract: `isError()` in `static/js/api.js` decides on the presence of `error`, so a client that swallows a gRPC failure and returns a plausible-looking payload makes the UI show stale data as if it were fresh.
 
 ## Configuration
 
-`config.ini` is the primary config file. Sections: `[server]`, `[web_gui]`, `[automazione]`, `[encoder_step]`, `[tende]`.
+`crac_cloud/config.ini` is the primary config file — inside the package, not at the repo root, and it is committed. Sections: `[server]`, `[web_gui]`, `[automazione]`, `[encoder_step]`, `[tende]`.
 
-Any config key can be overridden with env vars using the pattern `{SECTION}_{KEY}` (e.g., `AUTOMAZIONE_SLEEP=200`).
+Any config key can be overridden with env vars using the pattern `{SECTION}_{KEY}` (e.g. `AUTOMAZIONE_SLEEP=200`, `SERVER_IP=...`). That is how the container is pointed at a gRPC server without editing the file.
 
-`.env` controls logging: `LOG_LEVEL` (default `WARNING`) and `LOG_TO_FILE` (default `false`; writes rotating logs to `logs/crac_cloud.log`).
+`.env` (untracked, loaded by `Config`) controls logging: `LOG_LEVEL` (code default `WARNING`) and `LOG_TO_FILE` (default `false`; writes rotating logs to `logs/crac_cloud.log`). The local `.env` sets `CRITICAL`, so an app that looks silent is usually just configured that way.
 
 ## Protobuf / gRPC
 
-Stubs are generated from the custom `crac-protobuf` package (GitHub dependency — check the exact branch/ref in `pyproject.toml`, it changes often during feature work; verify it matches the crac-protobuf branch you actually want to test against). The generated Python files live in `crac_cloud/grpc_cloud/`. When the proto definitions change, regenerate the stubs with `grpcio-tools`.
+Stubs are generated from the custom `crac-protobuf` package (GitHub dependency pinned to a **tag** in `pyproject.toml`, e.g. `@0.1.22` — never `@main`: moving to a new contract must be an explicit commit, not a side effect of `uv lock --upgrade`. To test against work in progress, point it at that branch temporarily and put the tag back before merging). The generated Python files live in `crac_cloud/grpc_cloud/`. When the proto definitions change, regenerate the stubs with `grpcio-tools`.
 
 ## Frontend
 
-The UI is a single HTML page (`templates/index.html`) enhanced by ES module JS files in `static/js/`. There is no Node.js build step — files are served directly as static assets by FastAPI. CSS themes are in `static/css/` (default: `observatory-theme`, alternative: `blue-dark`).
+The UI is a single HTML page (`templates/index.html`) enhanced by ES modules in `static/js/`. There is no Node.js build step and no `package.json` — files are served directly as static assets by FastAPI, and the JS tests run on the stdlib `node:test` runner. Two stylesheets, both loaded together: `static/style.css` and `static/observatory-theme-crac.css`.
 
 Generated astronomical maps (sky charts, airmass plots, field images) are written to `static/maps/` at runtime by `image_generator.py`.
 
@@ -69,7 +102,7 @@ Generated astronomical maps (sky charts, airmass plots, field images) are writte
 
 - **Never run `git push`** unless it's the explicit step the user just asked for — it's not implied by an earlier approval.
 - Verify `git config user.email` before committing, if relevant.
-- Only commit if the relevant tests/manual checks pass (see "no automated test suite" above — this means a manual smoke check against a running/mocked server, not skipping verification).
+- Only commit if `uv run pytest` and `node --test tests/js/*.test.mjs` pass, plus a manual check against `../crac-test-stack` for anything the suites cannot reach (real gRPC traffic, browser behaviour).
 - Prefer small, descriptive commits over one large catch-all commit.
 - Never stage/commit config files (`config.ini`, `.env`) unless the change is a structural key addition/removal explicitly requested by the user.
 

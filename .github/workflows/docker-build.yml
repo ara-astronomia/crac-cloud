@@ -1,15 +1,12 @@
-name: Build and Push Docker Image
+name: CI
 
+# I test girano a ogni push, su qualunque branch, cosi' il check e' verde (o
+# rosso) prima del merge e non dopo. L'immagine invece si costruisce solo
+# dove serve davvero: main, tag v*, o una PR con la label build-docker.
 on:
   push:
-    branches:
-      - main
-    tags:
-      - "v*"
   pull_request:
     types: [labeled]
-    branches:
-      - main
 
 env:
   IMAGE_NAME: araroma/crac-cloud
@@ -17,9 +14,6 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'push' ||
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'build-docker'))
 
     steps:
       - uses: actions/checkout@v4
@@ -29,16 +23,31 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
       - name: Install dependencies
         run: uv sync --extra dev
 
-      - name: Run tests
+      - name: Run Python tests
         run: uv run pytest
         timeout-minutes: 10
+
+      # Nessun package.json: il runner e' quello della stdlib di Node. I file
+      # vanno elencati, su Node 24 la cartella non fa discovery.
+      - name: Run JS tests
+        run: node --test tests/js/*.test.mjs
+        timeout-minutes: 5
 
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
+    if: |
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'build-docker'))
     permissions:
       contents: read
 
