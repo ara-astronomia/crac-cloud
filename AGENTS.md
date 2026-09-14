@@ -22,18 +22,20 @@ node --test tests/js/
 # Format code
 uv run autopep8 --in-place --recursive crac_cloud/
 
-# Container against the local simulated stack (never the repo's own
-# docker-compose.yml, see below)
+# Container against the local simulated stack
 docker compose -f ../crac-test-stack/docker-compose.yml up -d crac-cloud
 ```
 
-**The repo's own `docker-compose.yml` points at the real observatory**
-(`SERVER_IP=192.168.178.22`): bringing it up gives a GUI whose buttons drive
-the real roof, curtains and telescope. For development use
+**This repo ships a `Dockerfile` but no `docker-compose.yml`, on purpose.**
+There is no compose file here to run: development goes through
 `../crac-test-stack`, which builds this same `Dockerfile` against the
-simulated `crac-server` (`SERVER_IP=crac-server`) and bind-mounts
-`static/` and `templates/`, so CSS/JS/template edits need only a browser
-reload.
+simulated `crac-server` (`SERVER_IP=crac-server`) and bind-mounts `static/`
+and `templates/`, so CSS/JS/template edits need only a browser reload.
+Production runs its own compose, kept on the server and not versioned here,
+off the `araroma/crac-cloud` image that `.github/workflows/docker-build.yml`
+pushes to Docker Hub on every `main` (and on a PR labelled `build-docker`).
+Do not add a compose file back for convenience: the one that used to be here
+pointed at the real observatory and nothing ever deployed from it.
 
 There are two test suites and both are quick, so run both before calling a change done. Neither talks to a real gRPC server: the Python ones stub the client stubs, the JS ones stub `fetch`. What they cannot cover — the UI actually reacting to a live server — stays a manual check against `../crac-test-stack`.
 
