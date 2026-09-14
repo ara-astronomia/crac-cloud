@@ -57,7 +57,7 @@ Any config key can be overridden with env vars using the pattern `{SECTION}_{KEY
 
 ## Protobuf / gRPC
 
-Stubs are generated from the custom `crac-protobuf` package (GitHub dependency — check the exact branch/ref in `pyproject.toml`, it changes often during feature work; verify it matches the crac-protobuf branch you actually want to test against). The generated Python files live in `crac_cloud/grpc_cloud/`. When the proto definitions change, regenerate the stubs with `grpcio-tools`.
+Stubs are generated from the custom `crac-protobuf` package (GitHub dependency pinned to a **tag** in `pyproject.toml`, e.g. `@0.1.22` — never `@main`: moving to a new contract must be an explicit commit, not a side effect of `uv lock --upgrade`. To test against work in progress, point it at that branch temporarily and put the tag back before merging). The generated Python files live in `crac_cloud/grpc_cloud/`. When the proto definitions change, regenerate the stubs with `grpcio-tools`.
 
 ## Frontend
 
