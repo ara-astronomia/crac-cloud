@@ -16,8 +16,9 @@ uv run uvicorn crac_cloud.app:app --reload --host localhost --port 8000
 # Python tests (pytest, testpaths = tests/)
 uv run pytest
 
-# JS tests (node:test, no package.json and no npm install needed)
-node --test tests/js/
+# JS tests (node:test, no package.json and no npm install needed).
+# Pass the files, not the directory: Node 24 does not discover from a dir.
+node --test tests/js/*.test.mjs
 
 # Format code
 uv run autopep8 --in-place --recursive crac_cloud/
@@ -96,7 +97,7 @@ Generated astronomical maps (sky charts, airmass plots, field images) are writte
 
 - **Never run `git push`** unless it's the explicit step the user just asked for — it's not implied by an earlier approval.
 - Verify `git config user.email` before committing, if relevant.
-- Only commit if `uv run pytest` and `node --test tests/js/` pass, plus a manual check against `../crac-test-stack` for anything the suites cannot reach (real gRPC traffic, browser behaviour).
+- Only commit if `uv run pytest` and `node --test tests/js/*.test.mjs` pass, plus a manual check against `../crac-test-stack` for anything the suites cannot reach (real gRPC traffic, browser behaviour).
 - Prefer small, descriptive commits over one large catch-all commit.
 - Never stage/commit config files (`config.ini`, `.env`) unless the change is a structural key addition/removal explicitly requested by the user.
 

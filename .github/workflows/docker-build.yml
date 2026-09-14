@@ -35,9 +35,10 @@ jobs:
         run: uv run pytest
         timeout-minutes: 10
 
-      # Nessun package.json: il runner e' quello della stdlib di Node.
+      # Nessun package.json: il runner e' quello della stdlib di Node. I file
+      # vanno elencati, su Node 24 la cartella non fa discovery.
       - name: Run JS tests
-        run: node --test tests/js/
+        run: node --test tests/js/*.test.mjs
         timeout-minutes: 5
 
   build-and-push:
