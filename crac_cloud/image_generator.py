@@ -60,7 +60,7 @@ def generate_telescope_maps(
 
     Args:
         geo_data: Dati geografici (latitude, longitude, elevation).
-        current_eq_coords: Coordinate attuali del telescopio (ra, dec in gradi decimali).
+        current_eq_coords: Coordinate attuali del telescopio (ra in ore decimali, dec in gradi decimali).
         ccd_data: Dati del campo visivo (width, height in minuti d'arco).
 
     Returns:
@@ -83,8 +83,8 @@ def generate_telescope_maps(
     
     # Coordinate del centro/puntamento (convertite in oggetti SkyCoord)
     center_coord = SkyCoord(
-        ra=current_eq_coords['ra'] * u.deg, 
-        dec=current_eq_coords['dec'] * u.deg, 
+        ra=current_eq_coords['ra'] * u.hourangle,
+        dec=current_eq_coords['dec'] * u.deg,
         frame='icrs'
     )
     logger.info(f"Center Coord: RA={center_coord.ra.deg}, DEC={center_coord.dec.deg}")
@@ -119,12 +119,8 @@ def _generate_field_map(center_coord, save_path, field_width_deg, field_height_d
 
     logger.info(f"Downloading DSS image for RA={center_coord.ra.deg}, DEC={center_coord.dec.deg}")
     logger.debug(f"Map size: {width} x {height}")
-    ra_val = float(center_coord.ra.deg)
-    ra_val_hour=ra_val *u.hour 
-    dec_val = (center_coord.dec) 
-    telescope_coord = SkyCoord(ra=ra_val_hour, dec=dec_val, frame='icrs')
-    target = FixedTarget(name='Telescope', coord=telescope_coord)
-    
+    target = FixedTarget(name='Telescope', coord=center_coord)
+
 
     rect_width_arcmin = field_width_deg * u.arcmin
     rect_height_arcmin = field_height_deg * u.arcmin
@@ -188,12 +184,8 @@ def _generate_field_map(center_coord, save_path, field_width_deg, field_height_d
 def _generate_tracking_chart(observer, center_coord, current_time, save_path):
 
     # 1. Definisci il Target del Telescopio
-    ra_val = float(center_coord.ra.deg)
-    ra_val_hour=ra_val *u.hour 
-    dec_val = (center_coord.dec) 
-    telescope_coord = SkyCoord(ra=ra_val_hour, dec=dec_val, frame='icrs')
-    telescope_target = FixedTarget(name='Telescope', coord=telescope_coord)
-    times = current_time + np.linspace(-12, 12, 100) * u.hour 
+    telescope_target = FixedTarget(name='Telescope', coord=center_coord)
+    times = current_time + np.linspace(-12, 12, 100) * u.hour
  
     # 3. Genera il Grafico
     fig, ax = plt.subplots(1, 1, figsize=(5, 5))
@@ -282,15 +274,11 @@ def compute_airmass(
     
     # Coordinate del centro/puntamento (convertite in oggetti SkyCoord)
     center_coord = SkyCoord(
-        ra=current_eq_coords['ra'] * u.deg, 
-        dec=current_eq_coords['dec'] * u.deg, 
+        ra=current_eq_coords['ra'] * u.hourangle,
+        dec=current_eq_coords['dec'] * u.deg,
         frame='icrs'
-    )    
-    ra_val = float(center_coord.ra.deg)
-    ra_val_hour=ra_val *u.hour 
-    dec_val = (center_coord.dec) 
-    telescope_coord = SkyCoord(ra=ra_val_hour, dec=dec_val, frame='icrs')
-    telescope_target = FixedTarget(name='Telescope', coord=telescope_coord)
+    )
+    telescope_target = FixedTarget(name='Telescope', coord=center_coord)
     altaz_now = observer.altaz(current_time, telescope_target.coord)
     airmass_now = altaz_now.secz.value
     logger.debug(f"Computed airmass: {airmass_now}")
