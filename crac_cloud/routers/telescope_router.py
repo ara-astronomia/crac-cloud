@@ -76,16 +76,3 @@ def set_telescope_action(data: TelescopeActionModel):
     except Exception as e:
         logger.error(f" ❌ Error during action {data.action} on the telescope: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to execute action: {e}")
-
-# L'endpoint power_on è asincrono e dovrebbe usare HTTPException
-    
-@router.post("/telescope/power_on")
-async def power_on_telescope():
-    # Chiama la logica del client/simulatore
-    try:
-        response_data = await telescope_client.power_on()
-        return {"message": "Telescope powered on successfully", "status": response_data}
-    except Exception as e:
-        logger.error(f"❌ Error while powering on the telescope: {e}")
-        # Gestione degli errori, se il simulatore non risponde
-        raise HTTPException(status_code=500, detail=f"Failed to power on: {e}")
