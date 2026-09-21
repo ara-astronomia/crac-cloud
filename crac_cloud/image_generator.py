@@ -39,6 +39,15 @@ warnings.filterwarnings('ignore', message='.*TimeDelta.*', category=AstropyWarni
 
 logger = logging.getLogger(__name__)
 
+
+def _telescope_coord(current_eq_coords: Dict[str, float]) -> SkyCoord:
+    """Builds a SkyCoord from crac-server's eq_coords (ra in decimal hours, dec in decimal degrees)."""
+    return SkyCoord(
+        ra=current_eq_coords['ra'] * u.hourangle,
+        dec=current_eq_coords['dec'] * u.deg,
+        frame='icrs'
+    )
+
 # --- CONFIGURAZIONE ---
 # Directory dove verranno salvate le immagini generate
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -82,11 +91,7 @@ def generate_telescope_maps(
     current_time = Time.now()
     
     # Coordinate del centro/puntamento (convertite in oggetti SkyCoord)
-    center_coord = SkyCoord(
-        ra=current_eq_coords['ra'] * u.hourangle,
-        dec=current_eq_coords['dec'] * u.deg,
-        frame='icrs'
-    )
+    center_coord = _telescope_coord(current_eq_coords)
     logger.info(f"Center Coord: RA={center_coord.ra.deg}, DEC={center_coord.dec.deg}")
     # Dimensioni del campo visivo (convertite da minuti d'arco a gradi)
     field_width_deg = ccd_data['width'] 
@@ -120,7 +125,6 @@ def _generate_field_map(center_coord, save_path, field_width_deg, field_height_d
     logger.info(f"Downloading DSS image for RA={center_coord.ra.deg}, DEC={center_coord.dec.deg}")
     logger.debug(f"Map size: {width} x {height}")
     target = FixedTarget(name='Telescope', coord=center_coord)
-
 
     rect_width_arcmin = field_width_deg * u.arcmin
     rect_height_arcmin = field_height_deg * u.arcmin
@@ -273,11 +277,7 @@ def compute_airmass(
     current_time = Time.now()
     
     # Coordinate del centro/puntamento (convertite in oggetti SkyCoord)
-    center_coord = SkyCoord(
-        ra=current_eq_coords['ra'] * u.hourangle,
-        dec=current_eq_coords['dec'] * u.deg,
-        frame='icrs'
-    )
+    center_coord = _telescope_coord(current_eq_coords)
     telescope_target = FixedTarget(name='Telescope', coord=center_coord)
     altaz_now = observer.altaz(current_time, telescope_target.coord)
     airmass_now = altaz_now.secz.value

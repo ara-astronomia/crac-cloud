@@ -195,7 +195,12 @@ async function checkSkyMapRefresh() {
     }
 }
 
-const EQ_THRESHOLD = 1e-4;   // ~0.36 arcseconds
+// Max drift allowed before the sky map is considered stale: 1 arcmin on either axis.
+// ra is in decimal hours (1h = 15deg), dec in decimal degrees, so the same
+// arcmin budget converts to a different raw threshold per axis.
+const EQ_THRESHOLD_ARCMIN = 1;
+const RA_THRESHOLD_HOURS = (EQ_THRESHOLD_ARCMIN / 60) / 15;
+const DEC_THRESHOLD_DEG = EQ_THRESHOLD_ARCMIN / 60;
 
 /** While tracking, eq_coords stays on a fixed RA/DEC, so the drift out of
  *  PARKED/FLATTER is invisible to _eqCoordsChanged and needs its own trigger. */
@@ -211,8 +216,8 @@ function _eqCoordsChanged(newCoords) {
         return true;
     }
     const changed = (
-        Math.abs(newCoords.ra  - state.lastEqCoords.ra)  > EQ_THRESHOLD ||
-        Math.abs(newCoords.dec - state.lastEqCoords.dec) > EQ_THRESHOLD
+        Math.abs(newCoords.ra  - state.lastEqCoords.ra)  > RA_THRESHOLD_HOURS ||
+        Math.abs(newCoords.dec - state.lastEqCoords.dec) > DEC_THRESHOLD_DEG
     );
     if (changed) {
         state.lastEqCoords = { ...newCoords };
