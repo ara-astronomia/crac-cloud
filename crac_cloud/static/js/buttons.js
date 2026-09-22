@@ -1,6 +1,7 @@
 // buttons.js - The power and light switches.
 
 import { buttonsApi, coverMirrorApi } from './api.js';
+import { labelText } from './gui_constants.js';
 
 const BUTTON_IDS = ['btn-tele-switch', 'btn-ccd-switch', 'btn-flat-light', 'btn-dome-light'];
 
@@ -10,11 +11,6 @@ const KEY_TO_ID = {
     'KEY_FLAT_LIGHT':  'btn-flat-light',
     'KEY_DOME_LIGHT':  'btn-dome-light',
     'KEY_COVER_MIRROR': 'btn-cover-mirror',
-};
-
-const LABEL_MAP = {
-    'LABEL_ON':  'Acceso',
-    'LABEL_OFF': 'Spento',
 };
 
 export function initButtons() {
@@ -38,7 +34,7 @@ export function updateButtonsUI(buttons) {
 
         const gui = button.button_gui;
         if (!gui || !gui.label) return;   // a known old value beats an invented one
-        const label = LABEL_MAP[gui.label] || gui.label || '';
+        const label = labelText(gui.label);
         if (btn.textContent !== label) btn.textContent = label;
         btn.disabled = gui.is_disabled || false;
 
@@ -98,14 +94,7 @@ export function updateCoverMirrorUI(data) {
     if (!btn || !data.gui) return;
 
     const gui = data.gui;
-    const labelMap = {
-        'LABEL_OPEN':    'Aperto',
-        'LABEL_CLOSE':   'Chiuso',
-        'LABEL_OPENING': 'Apertura...',
-        'LABEL_CLOSING': 'Chiusura...',
-        'LABEL_ERROR':   'Errore',
-    };
-    btn.textContent = labelMap[gui.label] || gui.label || '';
+    btn.textContent = gui.label ? labelText(gui.label) : '';
     btn.disabled = gui.is_disabled || false;
     btn.dataset.action = gui.metadata || '';
 

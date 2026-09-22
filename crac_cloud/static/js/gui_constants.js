@@ -29,14 +29,23 @@ export const STATUS_LABELS_MAP = {
     "TELESCOPE_LOST":{text: "INDIGO OFF", text_color: "white", background_color: "red"},
     "LABEL_CLOSE":{text: "Chiuso", text_color: "black", background_color: "white"},
     "LABEL_OPEN":{text: "Aperto", text_color: "green", background_color: "white"},
-    "LABEL_OPENING":{text: "Chiusura", text_color: "orange", background_color: "white"},
-    "LABEL_CLOSING":{text: "Apertura", text_color: "orange", background_color: "white"},
+    "LABEL_OPENING":{text: "Apertura", text_color: "orange", background_color: "white"},
+    "LABEL_CLOSING":{text: "Chiusura", text_color: "orange", background_color: "white"},
     "LABEL_ERROR":{text: "Errore", text_color: "white", background_color: "red"},
+    "LABEL_ON":{text: "Acceso"},
+    "LABEL_OFF":{text: "Spento"},
     "LABEL_DISABLE": { text: "Disattivate", text_color: "white", background_color: "green" },
     "LABEL_ENABLE":  { text: "Attivate",    text_color: "white", background_color: "red" },
     "ON":{text: "On", text_color: "green", background_color: "white"},
     "OFF":{text: "Off", text_color: "black", background_color: "white"},
     "STAND_BY":{text: "Standby", text_color: "orange", background_color: "white"},
+}
+
+/** The single translation of a label coming from the server. An untranslated
+ *  one goes on screen as it arrives, which names it well enough to be
+ *  recognised and added here. */
+export function labelText(label) {
+    return STATUS_LABELS_MAP[label]?.text || label;
 }
 
 export const BUTTON_KEY_MAP = {
