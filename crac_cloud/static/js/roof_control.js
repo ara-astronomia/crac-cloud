@@ -1,6 +1,6 @@
 // roof_control.js - The roof. Draws what the coordinator hands over, polls nothing.
 
-import { STATUS_LABELS_MAP, ROOF_STATE_TO_ACTION_MAP } from './gui_constants.js';
+import { labelText, ROOF_STATE_TO_ACTION_MAP } from './gui_constants.js';
 import { roofApi } from './api.js';
 
 let lastKnownRoofState = 'ROOF_DEFAULT_STATUS';
@@ -24,11 +24,9 @@ export function updateRoofUI(data) {
 
     const gui = data.gui || {};
     const enumLabel = gui.label || 'DEFAULT_LABEL';
-    const labelData = STATUS_LABELS_MAP[enumLabel] || {};
-    const buttonText = labelData.text || enumLabel;
     const isDisabled = gui.is_disabled !== undefined ? gui.is_disabled : false;
 
-    roofButton.textContent = buttonText;
+    roofButton.textContent = labelText(enumLabel);
     roofButton.disabled = isDisabled;
 
     // While OPENING/CLOSING the server still sends the previous red/green, so
