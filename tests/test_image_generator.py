@@ -61,6 +61,9 @@ class _FakeFigure:
 
 
 def test_save_atomically_replaces_the_file_with_the_whole_image(tmp_path):
+    """Covers the helper only: nothing checks that _generate_field_map and
+    _generate_tracking_chart call it, since running them needs DSS, astroplan
+    and matplotlib. Keep their savefig calls going through _save_atomically."""
     target = tmp_path / "map.png"
     target.write_bytes(b"old")
     figure = _FakeFigure(b"0123456789")
