@@ -22,7 +22,9 @@ geo_client = GeographicClient(host=grpc_host, port=grpc_port)
 image_config_client = ImageConfigClient(host=grpc_host, port=grpc_port)
 telescope_client = TelescopeClient(host=grpc_host, port=grpc_port)
 LAST_EQ_COORDS = None
-MAP_GENERATION_LOCK = asyncio.Lock()
+MAP_GENERATION = asyncio.Condition()
+SKY_MAP_REQUESTS = 0
+SKY_MAP_SERVED = 0
 
 
 def _static_map_response(image_name: str) -> Response:
@@ -91,7 +93,7 @@ async def get_tracking_chart(t: float = None):
         if data["eq_coords"] is None:
             return _static_map_response("airmass_not_available.png")
 
-        async with MAP_GENERATION_LOCK:
+        async with MAP_GENERATION:
             _, map2_path = await asyncio.to_thread(
                 generate_telescope_maps,
                 data["geo_data"],
@@ -113,9 +115,10 @@ async def get_tracking_chart(t: float = None):
 
 @router.get("/sky_map_fixed")
 async def get_fixed_sky_map(t: float = None):
-    """Compares and regenerates under the generation lock, so a request that
-    arrives mid-generation waits and then serves the new map."""
-    global LAST_EQ_COORDS
+    """Only the newest queued request compares and regenerates; the older ones
+    wait for it and serve its map, so a slew or a second viewer never gets a
+    stale map nor a queue of generations."""
+    global LAST_EQ_COORDS, SKY_MAP_REQUESTS, SKY_MAP_SERVED
     try:
         data = await _get_all_required_data()
         if data["eq_coords"] is None:
@@ -126,18 +129,25 @@ async def get_fixed_sky_map(t: float = None):
                 "tele_in_park.png" if tel_status == "PARKED" else "tele_in_flat.png"
             )
 
-        async with MAP_GENERATION_LOCK:
-            if eq_coords_changed(data["eq_coords"]):
-                map1_path, _ = await asyncio.to_thread(
-                    generate_telescope_maps,
-                    data["geo_data"],
-                    data["eq_coords"],
-                    data["ccd_data"]
-                )
-                LAST_EQ_COORDS = data["eq_coords"]
+        SKY_MAP_REQUESTS += 1
+        ticket = SKY_MAP_REQUESTS
+        map1_path = os.path.join(OUTPUT_DIR, MAP1_FILENAME)
+        async with MAP_GENERATION:
+            if ticket != SKY_MAP_REQUESTS:
+                await MAP_GENERATION.wait_for(lambda: SKY_MAP_SERVED >= ticket)
             else:
-                logger.debug("Eq coordinates unchanged, reusing the last generated map.")
-                map1_path = os.path.join(OUTPUT_DIR, MAP1_FILENAME)
+                try:
+                    if eq_coords_changed(data["eq_coords"]):
+                        map1_path, _ = await asyncio.to_thread(
+                            generate_telescope_maps,
+                            data["geo_data"],
+                            data["eq_coords"],
+                            data["ccd_data"]
+                        )
+                        LAST_EQ_COORDS = data["eq_coords"]
+                finally:
+                    SKY_MAP_SERVED = ticket
+                    MAP_GENERATION.notify_all()
 
         with open(map1_path, 'rb') as f:
             image_data = f.read()
