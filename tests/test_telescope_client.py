@@ -1,7 +1,9 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.telescope_cloud import TelescopeClient
+from crac_cloud.grpc_cloud.rpc import FAST_READ_TIMEOUT
 from crac_protobuf import telescope_pb2, button_pb2
+from tests.conftest import FakeRpcError
 
 
 @pytest.fixture(scope="module")
@@ -62,3 +64,46 @@ class TestParseTelescopeResponse:
 
         assert result["buttons_gui"] == []
         assert result["gui"] == {"label": "LABEL_ERROR", "is_disabled": True}
+
+
+class TestGetStatusTimeout:
+    def test_uses_short_timeout_for_a_fast_read(self, client):
+        mock_response, *_ = _make_response(0)
+        captured = {}
+
+        def fake_set_action(request, **kwargs):
+            captured.update(kwargs)
+            return mock_response
+
+        with patch.object(client.stub, "SetAction", side_effect=fake_set_action):
+            client.get_status()
+
+        assert captured["timeout"] == FAST_READ_TIMEOUT
+
+    def test_get_autolight_status_uses_short_timeout_too(self, client):
+        captured = {}
+
+        def fake_set_action(request, **kwargs):
+            captured.update(kwargs)
+            return MagicMock()
+
+        with patch.object(client.stub, "SetAction", side_effect=fake_set_action):
+            client.get_autolight_status()
+
+        assert captured["timeout"] == FAST_READ_TIMEOUT
+
+
+class TestGrpcFailuresReturn200WithError:
+    """Backend communication errors come back as a payload with an 'error' key, not as an exception."""
+
+    def test_set_action_returns_error_instead_of_raising(self, client):
+        with patch.object(client.stub, "SetAction", side_effect=FakeRpcError("boom")):
+            result = client.set_action(telescope_pb2.PARK_POSITION)
+
+        assert result == {"error": "boom"}
+
+    def test_connect_returns_error_instead_of_raising(self, client):
+        with patch.object(client.stub, "SetAction", side_effect=FakeRpcError("boom")):
+            result = client.connect()
+
+        assert result == {"error": "boom"}

@@ -1,9 +1,9 @@
-# grpc_cloud/ups_cloud.py
 import logging
 import grpc
 from crac_protobuf import ups_pb2
 from crac_protobuf import ups_pb2_grpc
 from crac_protobuf import chart_pb2
+from .rpc import SLOW_READ_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +13,12 @@ class UpsClient:
         self.stub = ups_pb2_grpc.UpsStub(self.channel)
 
     def get_status(self):
-        """Ottiene lo stato degli UPS e i dati per i grafici."""
+        """Fetches the UPS status and chart data."""
         request = ups_pb2.UpsRequest()
         try:
-            response = self.stub.GetStatus(request, timeout=5.0)
+            response = self.stub.GetStatus(request, timeout=SLOW_READ_TIMEOUT)
             charts_list = []
             for chart in response.charts:
-                # Parsing della chart
                 chart_data = {
                     "value": chart.chart.value,
                     "title": chart.chart.title,
@@ -30,7 +29,6 @@ class UpsClient:
                     "status": chart_pb2.ChartStatus.Name(chart.chart.status),
                 }
 
-                # Parsing degli stati della batteria
                 battery_statuses_list = [
                     ups_pb2.BatteryStatus.Name(status) for status in chart.battery_statuses
                 ]

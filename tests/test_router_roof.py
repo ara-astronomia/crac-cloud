@@ -1,9 +1,8 @@
-import pytest
-from unittest.mock import MagicMock, patch
+import inspect
+from unittest.mock import patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import crac_cloud.routers.roof_router as roof_router
-from tests.conftest import FakeRpcError
 
 app = FastAPI()
 app.include_router(roof_router.router)
@@ -21,20 +20,21 @@ _PARSED_OK = {
 
 
 class TestGetRoofStatus:
-    def test_returns_parsed_data(self):
-        with patch.object(roof_router.roof_client.stub, "SetAction", return_value=MagicMock()), \
-             patch.object(roof_router.roof_client, "_parse_roof_response", return_value=_PARSED_OK):
+    """Timeouts and error handling are tested on RoofClient.get_status()."""
+
+    def test_delegates_to_the_client(self):
+        with patch.object(roof_router.roof_client, "get_status", return_value=_PARSED_OK) as mock:
             resp = http.get("/roof/status")
+
+        mock.assert_called_once()
         assert resp.status_code == 200
         assert resp.json() == _PARSED_OK
 
-    def test_grpc_error_returns_error_status(self):
-        with patch.object(roof_router.roof_client.stub, "SetAction", side_effect=FakeRpcError()):
-            resp = http.get("/roof/status")
-        body = resp.json()
-        assert resp.status_code == 200
-        assert body["status"] == "ERROR"
-        assert body["gui"]["is_disabled"] is True
+
+class TestSetActionIsSync:
+    def test_route_is_not_a_coroutine(self):
+        """Runs in FastAPI's threadpool, so a slow gRPC call cannot block the event loop."""
+        assert not inspect.iscoroutinefunction(roof_router.set_action)
 
 
 class TestSetRoofAction:

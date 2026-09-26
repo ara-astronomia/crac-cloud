@@ -92,6 +92,8 @@ Any config key can be overridden with env vars using the pattern `{SECTION}_{KEY
 
 Stubs are generated from the custom `crac-protobuf` package (GitHub dependency pinned to a **tag** in `pyproject.toml`, e.g. `@0.1.22` — never `@main`: moving to a new contract must be an explicit commit, not a side effect of `uv lock --upgrade`. To test against work in progress, point it at that branch temporarily and put the tag back before merging). The generated Python files live in `crac_cloud/grpc_cloud/`. When the proto definitions change, regenerate the stubs with `grpcio-tools`.
 
+Every stub call passes a `timeout` from `grpc_cloud/rpc.py`: `FAST_READ_TIMEOUT` for polled reads, `SLOW_READ_TIMEOUT` for UPS and weather, `COMMAND_TIMEOUT` for actions. Without one, a hung crac-server holds the request with no limit.
+
 ## Frontend
 
 The UI is a single HTML page (`templates/index.html`) enhanced by ES modules in `static/js/`. There is no Node.js build step and no `package.json` — files are served directly as static assets by FastAPI, and the JS tests run on the stdlib `node:test` runner. Two stylesheets, both loaded together: `static/style.css` and `static/observatory-theme-crac.css`.

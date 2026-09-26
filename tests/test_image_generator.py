@@ -45,3 +45,39 @@ def test_monkey_patch_strips_grid_before_calling_original():
 
     assert "grid" not in received_kwargs
     assert received_kwargs.get("survey") == "DSS"
+
+
+class _FakeFigure:
+    def __init__(self, content, fail=False):
+        self.content, self.fail, self.saved_to = content, fail, []
+
+    def savefig(self, path, **kwargs):
+        self.saved_to.append(path)
+        with open(path, "wb") as f:
+            f.write(self.content[: len(self.content) // 2])
+            if self.fail:
+                raise OSError("disk full")
+            f.write(self.content[len(self.content) // 2:])
+
+
+def test_save_atomically_replaces_the_file_with_the_whole_image(tmp_path):
+    target = tmp_path / "map.png"
+    target.write_bytes(b"old")
+    figure = _FakeFigure(b"0123456789")
+
+    ig._save_atomically(figure, str(target))
+
+    assert target.read_bytes() == b"0123456789"
+    assert str(target) not in figure.saved_to
+    assert [p.name for p in tmp_path.iterdir()] == ["map.png"]
+
+
+def test_a_failed_save_leaves_the_previous_image_and_no_temporary_file(tmp_path):
+    target = tmp_path / "map.png"
+    target.write_bytes(b"old")
+
+    with pytest.raises(OSError):
+        ig._save_atomically(_FakeFigure(b"0123456789", fail=True), str(target))
+
+    assert target.read_bytes() == b"old"
+    assert [p.name for p in tmp_path.iterdir()] == ["map.png"]

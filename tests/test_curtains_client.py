@@ -1,5 +1,7 @@
 import pytest
+from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.curtains_cloud import CurtainsClient
+from crac_cloud.grpc_cloud.rpc import FAST_READ_TIMEOUT
 from crac_protobuf import curtains_pb2
 
 
@@ -44,3 +46,18 @@ class TestGetEnumName:
 
     def test_unknown_value_returns_string_repr(self, client):
         assert client._get_enum_name(9999, curtains_pb2.CurtainStatus) == "9999"
+
+
+class TestGetStatusTimeout:
+    def test_uses_short_timeout_for_a_fast_read(self, client):
+        response = MagicMock(curtains=[], buttons_gui=[])
+        captured = {}
+
+        def fake_set_action(request, **kwargs):
+            captured.update(kwargs)
+            return response
+
+        with patch.object(client.stub, "SetAction", side_effect=fake_set_action):
+            client.get_status()
+
+        assert captured["timeout"] == FAST_READ_TIMEOUT
