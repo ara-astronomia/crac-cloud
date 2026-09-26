@@ -91,6 +91,7 @@ async def _concurrent_map_generation_scenario():
          patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=_CCD)), \
          patch.object(map_router.telescope_client, "get_status", return_value={"status": "TELESCOPE_TRACKING", "eq_coords": {"ra": 99.0, "dec": 88.0}}), \
          patch.object(map_router, "generate_telescope_maps", generation), \
+         patch.object(map_router, "LAST_EQ_COORDS", None), \
          patch.object(map_router, "MAP_GENERATION", asyncio.Condition()):
         await asyncio.gather(map_router.get_tracking_chart(), map_router.get_fixed_sky_map())
 
@@ -120,7 +121,8 @@ async def _slow_sky_map_scenario():
     with patch.object(map_router.geo_client, "get_geographic_data", AsyncMock(return_value=_GEO)), \
          patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=_CCD)), \
          patch.object(map_router.telescope_client, "get_status", return_value={"status": "TELESCOPE_TRACKING", "eq_coords": {"ra": 1.0, "dec": 2.0}}), \
-         patch.object(map_router, "generate_telescope_maps", slow_generation):
+         patch.object(map_router, "generate_telescope_maps", slow_generation), \
+         patch.object(map_router, "LAST_EQ_COORDS", None):
         await asyncio.gather(map_request(), other_request())
 
     assert order == ["other request", "map"]
