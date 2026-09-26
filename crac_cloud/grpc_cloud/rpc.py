@@ -1,4 +1,4 @@
-"""Timeouts and response shapes shared by the gRPC clients. UPS and weather
+"""Timeouts and the error status payload shared by the gRPC clients. UPS and weather
 reads get SLOW_READ_TIMEOUT: server-side they wait on NUT and on an HTTP fetch."""
 
 FAST_READ_TIMEOUT = 1.5
