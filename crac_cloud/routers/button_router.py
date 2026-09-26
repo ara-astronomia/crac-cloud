@@ -30,6 +30,8 @@ KEY_TO_TYPE_MAP = {
         "KEY_FLAT": "TELE_SWITCH",
     }
 
+POLLED_SWITCHES = ("KEY_TELE_SWITCH", "KEY_CCD_SWITCH", "KEY_FLAT_LIGHT", "KEY_DOME_LIGHT")
+
 def set_autolight_action(autolight_value: bool, telescope_stub):
     """Builds and sends the Autolight gRPC request to the TelescopeService,
     using CHECK_TELESCOPE as a placeholder action."""
@@ -141,17 +143,10 @@ def set_action(request: ButtonActionRequest, service: get_grpc_container = Depen
         return _run_default_action(request, action_enum, service)
     return {"status": "error", "message": f"Action '{request.action}' not handled by this router."}
 
-SWITCH_KEYS = {
-    "KEY_TELE_SWITCH": "TELE_SWITCH",
-    "KEY_CCD_SWITCH": "CCD_SWITCH",
-    "KEY_FLAT_LIGHT": "FLAT_LIGHT",
-    "KEY_DOME_LIGHT": "DOME_LIGHT",
-}
-
-
-def _switch_status(service, key_str, type_str):
+def _switch_status(service, key_str):
     try:
-        return service.button_client.get_single_switch_status(key_str, button_pb2.ButtonType.Value(type_str))
+        type_enum = button_pb2.ButtonType.Value(KEY_TO_TYPE_MAP[key_str])
+        return service.button_client.get_single_switch_status(key_str, type_enum)
     except Exception as e:
         logger.error(f"❌ Error while fetching the status for {key_str}: {e}")
         return {"key": key_str, "status": "ERROR", "button_gui": {}}
@@ -169,8 +164,8 @@ def _autolight_status(service):
 def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc_container)):
     """Fetches all switch statuses and the autolight in parallel, so the poll
     waits at most one read timeout."""
-    with ThreadPoolExecutor(max_workers=len(SWITCH_KEYS) + 1) as pool:
-        switches = [pool.submit(_switch_status, service, key, type_str) for key, type_str in SWITCH_KEYS.items()]
+    with ThreadPoolExecutor(max_workers=len(POLLED_SWITCHES) + 1) as pool:
+        switches = [pool.submit(_switch_status, service, key) for key in POLLED_SWITCHES]
         autolight = pool.submit(_autolight_status, service)
 
     all_statuses = [switch.result() for switch in switches]
