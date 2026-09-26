@@ -167,8 +167,8 @@ def _autolight_status(service):
 
 @router.get("/status")
 def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc_container)):
-    """Fetches all switch statuses and the autolight in parallel: with crac-server
-    hung, the poll costs one read timeout instead of one per switch."""
+    """Fetches all switch statuses and the autolight in parallel, so the poll
+    waits at most one read timeout."""
     with ThreadPoolExecutor(max_workers=len(SWITCH_KEYS) + 1) as pool:
         switches = [pool.submit(_switch_status, service, key, type_str) for key, type_str in SWITCH_KEYS.items()]
         autolight = pool.submit(_autolight_status, service)
