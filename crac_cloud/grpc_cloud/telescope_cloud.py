@@ -3,7 +3,6 @@ import grpc
 from crac_protobuf import telescope_pb2
 from crac_protobuf import telescope_pb2_grpc
 from crac_protobuf import button_pb2
-from crac_protobuf import button_pb2_grpc
 from ..state import GLOBAL_CLIENT_STATE
 from .rpc import FAST_READ_TIMEOUT, COMMAND_TIMEOUT
 
@@ -19,7 +18,6 @@ class TelescopeClient:
     def __init__(self, host: str, port: int):
         self.channel = grpc.insecure_channel(f'{host}:{port}')
         self.stub = telescope_pb2_grpc.TelescopeStub(self.channel)
-        self.button_stub = button_pb2_grpc.ButtonStub(self.channel)
 
     def get_autolight_status(self):
         """Fetches the Autolight flag from the TelescopeService."""
@@ -59,7 +57,7 @@ class TelescopeClient:
             logger.error(f"\n🛑 Uncaught fatal error: {type(general_error).__name__}: {general_error}")
             traceback.print_exc()
             from fastapi import HTTPException
-            raise HTTPException(status_code=500, detail=f"Fatal error in SetAction.")
+            raise HTTPException(status_code=500, detail="Fatal error in SetAction.")
 
     def get_status(self):
         """Fetches the telescope's current operating status and coordinates."""
@@ -67,7 +65,7 @@ class TelescopeClient:
             action=telescope_pb2.CHECK_TELESCOPE
         )
 
-        logger.debug(f"Sending SetAction(CHECK_TELESCOPE) to get the status.")
+        logger.debug("Sending SetAction(CHECK_TELESCOPE) to get the status.")
         try:
             response = self.stub.SetAction(request, timeout=FAST_READ_TIMEOUT)
             return self._parse_response(response)

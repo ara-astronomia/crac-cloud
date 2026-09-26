@@ -5,7 +5,7 @@ from fastapi import APIRouter,Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from crac_protobuf import button_pb2, telescope_pb2
-from crac_cloud.grpc_service import get_grpc_container
+from crac_cloud.grpc_service import GrpcServiceContainer, get_grpc_container
 from crac_cloud.grpc_cloud.rpc import COMMAND_TIMEOUT
 
 logger = logging.getLogger(__name__)
@@ -126,7 +126,7 @@ def _run_default_action(request: ButtonActionRequest, action_enum, service):
 
 
 @router.post("/set_action")
-def set_action(request: ButtonActionRequest, service: get_grpc_container = Depends(get_grpc_container)):
+def set_action(request: ButtonActionRequest, service: GrpcServiceContainer = Depends(get_grpc_container)):
     """Handles all button actions based on what the frontend requests."""
     logger.debug(f"Action requested: {request.action}")
     try:
@@ -161,7 +161,7 @@ def _autolight_status(service):
 
 
 @router.get("/status")
-def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc_container)):
+def get_all_button_statuses(service: GrpcServiceContainer = Depends(get_grpc_container)):
     """Fetches all switch statuses and the autolight in parallel, so the poll
     waits at most one read timeout."""
     with ThreadPoolExecutor(max_workers=len(POLLED_SWITCHES) + 1) as pool:
