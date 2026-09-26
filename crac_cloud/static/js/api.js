@@ -6,6 +6,10 @@ const DEFAULT_TIMEOUT_MS = 10000;
 // and the health probe queues behind it.
 const STATUS_TIMEOUT_MS = 3000;
 
+// crac-server answers UPS and weather only after NUT and a weather fetch, and
+// crac-cloud waits up to 5 s for it: give up just after that, not before.
+const SLOW_STATUS_TIMEOUT_MS = 6000;
+
 // This read makes eight gRPC round trips - four switches plus the autolight -
 // so the other deadlines are no measure for it.
 const BUTTONS_TIMEOUT_MS = 9000;
@@ -89,12 +93,12 @@ export const buttonsApi = {
 };
 
 export const upsApi = {
-    getStatus: () => apiGet('/ups/status', STATUS_TIMEOUT_MS),
+    getStatus: () => apiGet('/ups/status', SLOW_STATUS_TIMEOUT_MS),
 };
 
 export const weatherApi = {
-    getStatus:   () => apiGet('/charts/status', STATUS_TIMEOUT_MS),
-    getGaugeConfig: () => apiGet('/charts/gauge-config', STATUS_TIMEOUT_MS),
+    getStatus:   () => apiGet('/charts/status', SLOW_STATUS_TIMEOUT_MS),
+    getGaugeConfig: () => apiGet('/charts/gauge-config', SLOW_STATUS_TIMEOUT_MS),
 };
 
 // This route never leaves crac-cloud, so however it fails the answer is the
