@@ -1,5 +1,5 @@
 import inspect
-import time
+import threading
 from unittest.mock import MagicMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -75,23 +75,26 @@ class TestGetAllButtonStatuses:
         keys = [button["key"] for button in resp.json()["buttons"]]
         assert keys == ["KEY_TELE_SWITCH", "KEY_CCD_SWITCH", "KEY_FLAT_LIGHT", "KEY_DOME_LIGHT", "KEY_AUTOLIGHT"]
 
-    def test_a_hung_server_costs_one_read_not_five(self):
-        def slow_switch(key, type_enum):
-            time.sleep(0.3)
-            return {"key": key}
+    def test_reads_switches_and_autolight_concurrently(self):
+        """Each fake read waits until all five are in flight: run one after
+        another, the barrier times out and the reads come back as errors."""
+        all_reads_in_flight = threading.Barrier(5, timeout=2)
 
-        def slow_autolight():
-            time.sleep(0.3)
-            return {"key": "KEY_AUTOLIGHT"}
+        def switch_read(key, type_enum):
+            all_reads_in_flight.wait()
+            return {"key": key, "status": "OFF"}
+
+        def autolight_read():
+            all_reads_in_flight.wait()
+            return {"key": "KEY_AUTOLIGHT", "status": "OFF"}
 
         service = MagicMock()
-        service.button_client.get_single_switch_status.side_effect = slow_switch
-        service.telescope_client.get_autolight_status.side_effect = slow_autolight
+        service.button_client.get_single_switch_status.side_effect = switch_read
+        service.telescope_client.get_autolight_status.side_effect = autolight_read
 
-        start = time.monotonic()
-        _http_with(service).get("/buttons/status")
+        resp = _http_with(service).get("/buttons/status")
 
-        assert time.monotonic() - start < 0.6
+        assert [button["status"] for button in resp.json()["buttons"]] == ["OFF"] * 5
 
 
 class TestSetAutolightAction:
