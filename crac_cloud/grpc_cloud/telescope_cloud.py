@@ -64,26 +64,15 @@ class TelescopeClient:
         """Sends an action (PARK or FLAT) to the telescope."""
         request = telescope_pb2.TelescopeRequest(action=action_value, autolight=autolight)
         if self._health.is_down():
-            from fastapi import HTTPException
-            raise HTTPException(status_code=500, detail="gRPC Service Error: crac-server channel is down")
+            return {"error": "crac-server channel is down"}
         try:
             response = self.stub.SetAction(request, timeout=5.0)
             self._health.record_success()
             return self._parse_response(response)
         except grpc.RpcError as e:
-        # 1. ✅ LOGGA L'ERRORE nel terminale Python
             self._health.record_failure()
-            error_details = e.details()
-            error_code = e.code().name
-            logger.error(f"\n🚨 gRPC error detected for action {action.name}: status code: {error_code}, details: {error_details}")
-
-            # 2. ✅ RILANCIA UN'ECCEZIONE HTTP CHE FASTAPI PUÒ GESTIRE
-            from fastapi import HTTPException
-            # Restituisce al frontend un 503 (Servizio non disponibile) o 500
-            raise HTTPException(
-                status_code=500,
-                detail=f"gRPC Service Error ({error_code}): {error_details}"
-            )
+            logger.error(f"\n🚨 gRPC error detected for action {action.name}: status code: {e.code().name}, details: {e.details()}")
+            return {"error": str(e.details())}
         except Exception as general_error:
         # 🚨 Questo blocco è FONDAMENTALE per catturare eccezioni inattese 🚨
             import traceback
@@ -123,8 +112,7 @@ class TelescopeClient:
         logger.debug(f"Sending SetAction(TELESCOPE_CONNECT) to the gRPC server: {request}")
         logger.debug(f"Sending Connect to connect the telescope. {request}")
         if self._health.is_down():
-            from fastapi import HTTPException
-            raise HTTPException(status_code=500, detail="gRPC Service Error: crac-server channel is down")
+            return {"error": "crac-server channel is down"}
         try:
             # Chiama l'RPC Connect
             response = self.stub.SetAction(request, timeout=5.0)
@@ -135,11 +123,7 @@ class TelescopeClient:
         except grpc.RpcError as e:
             self._health.record_failure()
             logger.error(f" ❌ gRPC error (telescope connection): {e.details()}")
-            from fastapi import HTTPException
-            raise HTTPException(
-                status_code=500,
-                detail=f"gRPC Service Error: {e.details()}"
-            )
+            return {"error": str(e.details())}
 
     def disconnect(self):
         """Disconnette il server dal telescopio."""

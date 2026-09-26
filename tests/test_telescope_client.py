@@ -1,4 +1,5 @@
 import pytest
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from fastapi import HTTPException
 from crac_cloud.grpc_cloud.telescope_cloud import TelescopeClient
@@ -111,20 +112,18 @@ class TestFastFailOnDownChannel:
     def test_set_action_skips_the_call(self, client):
         with patch.object(client._health, "is_down", return_value=True), \
              patch.object(client.stub, "SetAction") as mock_set_action:
-            with pytest.raises(HTTPException) as exc_info:
-                client.set_action(telescope_pb2.PARK_POSITION)
+            result = client.set_action(telescope_pb2.PARK_POSITION)
 
         mock_set_action.assert_not_called()
-        assert exc_info.value.status_code == 500
+        assert result == {"error": "crac-server channel is down"}
 
     def test_connect_skips_the_call(self, client):
         with patch.object(client._health, "is_down", return_value=True), \
              patch.object(client.stub, "SetAction") as mock_set_action:
-            with pytest.raises(HTTPException) as exc_info:
-                client.connect()
+            result = client.connect()
 
         mock_set_action.assert_not_called()
-        assert exc_info.value.status_code == 500
+        assert result == {"error": "crac-server channel is down"}
 
     def test_disconnect_skips_the_call(self, client):
         with patch.object(client._health, "is_down", return_value=True), \
@@ -142,6 +141,27 @@ class _BrokenAutolightResponse:
     @property
     def speed(self):
         raise AttributeError("autolight")
+
+
+class TestGrpcFailuresReturn200WithError:
+    """Convenzione del progetto: gli errori di comunicazione col backend
+    ritornano 200 con chiave 'error', non un'eccezione - altrimenti il
+    frontend perde il dettaglio vero dietro un generico 'HTTP 500'."""
+
+    def test_set_action_returns_error_instead_of_raising(self, client):
+        # .name e' letto per il log su errore: serve un oggetto enum, non
+        # l'int nudo usato altrove in questo file (bug preesistente, fuori scope qui).
+        action = SimpleNamespace(value=telescope_pb2.PARK_POSITION, name="PARK_POSITION")
+        with patch.object(client.stub, "SetAction", side_effect=FakeRpcError("boom")):
+            result = client.set_action(action)
+
+        assert result == {"error": "boom"}
+
+    def test_connect_returns_error_instead_of_raising(self, client):
+        with patch.object(client.stub, "SetAction", side_effect=FakeRpcError("boom")):
+            result = client.connect()
+
+        assert result == {"error": "boom"}
 
 
 class TestGetAutolightStatusDoesNotPoisonHealth:
