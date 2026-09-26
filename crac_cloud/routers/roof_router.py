@@ -1,4 +1,3 @@
-# crac_cloud/routers/roof_router.py
 import logging
 from fastapi import APIRouter
 from crac_cloud.grpc_cloud.roof_cloud import RoofClient

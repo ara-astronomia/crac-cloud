@@ -2,17 +2,13 @@ import os
 import logging
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
-from typing import Dict
 import asyncio
-import re
 
 from crac_cloud.config import Config
 from crac_cloud.grpc_cloud.geographic_cloud import GeographicClient
 from crac_cloud.grpc_cloud.image_config_cloud import ImageConfigClient
 from crac_cloud.grpc_cloud.telescope_cloud import TelescopeClient
 from crac_cloud.image_generator import generate_telescope_maps, compute_airmass, MAP1_FILENAME, MAP2_FILENAME, OUTPUT_DIR
-import astroplan
-import sys
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/maps", tags=["Maps"])
@@ -44,7 +40,6 @@ async def _get_all_required_data() -> dict:
     geo_task = asyncio.create_task(geo_client.get_geographic_data())
     ccd_task = asyncio.create_task(image_config_client.get_ccd_image_data())
 
-    # The telescope client is synchronous: staying on the loop would freeze everything else.
     telescope_status = await asyncio.to_thread(telescope_client.get_status)
 
     geo_data, ccd_data = await asyncio.gather(geo_task, ccd_task)

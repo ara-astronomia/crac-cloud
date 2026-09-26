@@ -1,9 +1,8 @@
-# grpc_cloud/chart_cloud.py
 import logging
 import grpc
 from crac_protobuf import chart_pb2
 from crac_protobuf import chart_pb2_grpc
-from .channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE
+from .rpc import SLOW_READ_TIMEOUT
 
 logger = logging.getLogger(__name__)
 WEATHER_STATUS_TRANSLATIONS = {
@@ -17,16 +16,12 @@ class ChartClient:
     def __init__(self, host: str, port: int):
         self.channel = grpc.insecure_channel(f'{host}:{port}')
         self.stub = chart_pb2_grpc.WeatherStub(self.channel)
-        self._health = ChannelHealth()
 
     def get_status(self):
         """Fetches the weather status and chart data."""
         request = chart_pb2.WeatherRequest()
-        if self._health.is_down():
-            return {"error": CHANNEL_DOWN_MESSAGE, "status": "SCONOSCIUTO"}
         try:
-            response = self.stub.GetStatus(request, timeout=5.0)
-            self._health.record_success()
+            response = self.stub.GetStatus(request, timeout=SLOW_READ_TIMEOUT)
 
             charts_list = []
             for chart in response.charts:
@@ -75,6 +70,5 @@ class ChartClient:
                 "interval": response.interval
             }
         except grpc.RpcError as e:
-            self._health.record_failure()
             logger.error(f" ❌ RPC error (ChartStatus): {e.details()}")
             return {"error": str(e.details()), "status": "SCONOSCIUTO"}

@@ -1,5 +1,4 @@
 import inspect
-import pytest
 from unittest.mock import patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -8,13 +7,6 @@ import crac_cloud.routers.roof_router as roof_router
 app = FastAPI()
 app.include_router(roof_router.router)
 http = TestClient(app)
-
-@pytest.fixture(autouse=True)
-def _reset_roof_channel_health():
-    """roof_client is a module-level singleton: a test that makes a real
-    call fail would mark the channel down for subsequent tests too."""
-    roof_router.roof_client._health.record_success()
-
 
 _PARSED_OK = {
     "status": "ROOF_OPEN",
@@ -28,9 +20,7 @@ _PARSED_OK = {
 
 
 class TestGetRoofStatus:
-    """Il comportamento (timeout, fast-fail, gestione errori) e' testato a
-    RoofClient.get_status() level in test_roof_client.py; here I only
-    check that the route delegates to the client."""
+    """Timeouts and error handling are tested on RoofClient.get_status()."""
 
     def test_delegates_to_the_client(self):
         with patch.object(roof_router.roof_client, "get_status", return_value=_PARSED_OK) as mock:
@@ -41,10 +31,9 @@ class TestGetRoofStatus:
         assert resp.json() == _PARSED_OK
 
 
-class TestSetRoofActionRunsInThreadPool:
+class TestSetActionIsSync:
     def test_route_is_not_a_coroutine(self):
-        """The body is entirely synchronous: async def would block the whole
-        event loop of crac-cloud during the command, not just this request."""
+        """Runs in FastAPI's threadpool, so a slow gRPC call cannot block the event loop."""
         assert not inspect.iscoroutinefunction(roof_router.set_action)
 
 

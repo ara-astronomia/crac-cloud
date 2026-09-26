@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.roof_cloud import RoofClient
-from crac_cloud.grpc_cloud.channel_health import CHANNEL_DOWN_MESSAGE
+from crac_cloud.grpc_cloud.rpc import FAST_READ_TIMEOUT
 from crac_protobuf import roof_pb2, button_pb2
 from tests.conftest import FakeRpcError
 
@@ -9,13 +9,6 @@ from tests.conftest import FakeRpcError
 @pytest.fixture(scope="module")
 def client():
     return RoofClient(host="localhost", port=50051)
-
-
-@pytest.fixture(autouse=True)
-def _reset_channel_health(client):
-    """client is module-scoped: a test that marks the channel down must not
-    leak into subsequent tests that don't expect it."""
-    client._health.record_success()
 
 
 def _first_enum_value(enum_type):
@@ -62,16 +55,6 @@ class TestParseRoofResponse:
         }
 
 
-class TestFastFailOnDownChannel:
-    def test_set_action_skips_the_call(self, client):
-        with patch.object(client._health, "is_down", return_value=True), \
-             patch.object(client.stub, "SetAction") as mock_set_action:
-            result = client.set_action(roof_pb2.RoofAction.CLOSE)
-
-        mock_set_action.assert_not_called()
-        assert result == {"error": CHANNEL_DOWN_MESSAGE}
-
-
 class TestGetStatus:
     def test_returns_parsed_data(self, client):
         mock_response, status_name, label_name = _make_response(has_color=True)
@@ -91,31 +74,18 @@ class TestGetStatus:
         with patch.object(client.stub, "SetAction", side_effect=fake_set_action):
             client.get_status()
 
-        assert captured["timeout"] == 1.5
+        assert captured["timeout"] == FAST_READ_TIMEOUT
 
-    def test_skips_the_call_when_the_channel_is_down(self, client):
-        with patch.object(client._health, "is_down", return_value=True), \
-             patch.object(client.stub, "SetAction") as mock_set_action:
-            result = client.get_status()
-
-        mock_set_action.assert_not_called()
-        assert result["status"] == "ERROR"
-        assert result["error"] == CHANNEL_DOWN_MESSAGE
-
-    def test_a_grpc_error_returns_error_status_and_marks_the_channel_down(self, client):
+    def test_a_grpc_error_returns_error_status(self, client):
         with patch.object(client.stub, "SetAction", side_effect=FakeRpcError("boom")):
             result = client.get_status()
 
         assert result["status"] == "ERROR"
         assert result["gui"]["is_disabled"] is True
-        assert client._health.is_down() is True
 
-    def test_a_parsing_error_returns_error_status_without_marking_the_channel_down(self, client):
-        """The RPC succeeded: a bug in parsing the response is not an
-        unreachable crac-server."""
+    def test_a_parsing_error_returns_error_status(self, client):
         with patch.object(client.stub, "SetAction", return_value=MagicMock()), \
              patch.object(client, "_parse_roof_response", side_effect=ValueError("boom")):
             result = client.get_status()
 
         assert result["status"] == "ERROR"
-        assert client._health.is_down() is False

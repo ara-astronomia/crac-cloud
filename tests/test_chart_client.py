@@ -1,22 +1,17 @@
-import pytest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.chart_cloud import ChartClient
-from crac_cloud.grpc_cloud.channel_health import CHANNEL_DOWN_MESSAGE
+from crac_cloud.grpc_cloud.rpc import SLOW_READ_TIMEOUT
 
 
-@pytest.fixture(scope="module")
-def client():
-    return ChartClient(host="localhost", port=50051)
+def test_get_status_uses_the_slow_read_timeout():
+    client = ChartClient(host="localhost", port=50051)
+    captured = {}
 
+    def fake_get_status(request, **kwargs):
+        captured.update(kwargs)
+        return MagicMock(charts=[], status=0)
 
-class TestFastFailOnDownChannel:
-    def test_get_status_skips_the_call(self, client):
-        """Underneath the weather call there's an urllib.request.urlopen with
-        no timeout: fast-failing on a down channel avoids waiting for it
-        anyway when crac-server is unreachable."""
-        with patch.object(client._health, "is_down", return_value=True), \
-             patch.object(client.stub, "GetStatus") as mock_get_status:
-            result = client.get_status()
+    with patch.object(client.stub, "GetStatus", side_effect=fake_get_status):
+        client.get_status()
 
-        mock_get_status.assert_not_called()
-        assert result == {"error": CHANNEL_DOWN_MESSAGE, "status": "SCONOSCIUTO"}
+    assert captured["timeout"] == SLOW_READ_TIMEOUT

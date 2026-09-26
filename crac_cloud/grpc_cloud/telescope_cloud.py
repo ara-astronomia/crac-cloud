@@ -1,23 +1,25 @@
-# grpc_cloud/telescope_cloud.py
 import logging
 import grpc
 from crac_protobuf import telescope_pb2
 from crac_protobuf import telescope_pb2_grpc
 from crac_protobuf import button_pb2
 from crac_protobuf import button_pb2_grpc
-from crac_cloud.config import Config
-from google.protobuf.empty_pb2 import Empty as EmptyMessage
 from ..state import GLOBAL_CLIENT_STATE
-from .channel_health import ChannelHealth, down_error
+from .rpc import FAST_READ_TIMEOUT, COMMAND_TIMEOUT
 
 logger = logging.getLogger(__name__)
+
+
+def _action_value(action) -> int:
+    """Accepts both the TelescopeAction enum wrapper and its bare int value."""
+    return int(getattr(action, "value", action))
+
 
 class TelescopeClient:
     def __init__(self, host: str, port: int):
         self.channel = grpc.insecure_channel(f'{host}:{port}')
         self.stub = telescope_pb2_grpc.TelescopeStub(self.channel)
         self.button_stub = button_pb2_grpc.ButtonStub(self.channel)
-        self._health = ChannelHealth()
 
     def get_autolight_status(self):
         """Fetches the Autolight flag from the TelescopeService."""
@@ -28,12 +30,8 @@ class TelescopeClient:
             autolight=current_autolight_flag
         )
 
-        if self._health.is_down():
-            return {"key": "KEY_AUTOLIGHT", "status": "UNKNOWN"}
-
         try:
-            response = self.stub.SetAction(request, timeout=1.5)
-            self._health.record_success()
+            response = self.stub.SetAction(request, timeout=FAST_READ_TIMEOUT)
             logger.debug(f"telescope_cloud response: {response}")
             logger.debug(f"autolight status: {response.autolight}")
             return {
@@ -41,32 +39,20 @@ class TelescopeClient:
                 "status": "ON" if response.speed == telescope_pb2.TelescopeSpeed.SPEED_TRACKING else "OFF",
                 "is_checkbox": True
             }
-
-        except grpc.RpcError as e:
-            self._health.record_failure()
-            logger.error(f" ❌ Error while fetching the autolight status: {e}")
-            return {"key": "KEY_AUTOLIGHT", "status": "UNKNOWN"}
         except Exception as e:
             logger.error(f" ❌ Error while fetching the autolight status: {e}")
             return {"key": "KEY_AUTOLIGHT", "status": "UNKNOWN"}
 
     def set_action(self, action: telescope_pb2.TelescopeAction, autolight: bool = False):
-        try:
-            action_value = int(action.value)
-        except AttributeError:
-            # No .value (bare int instead of the enum wrapper): convert directly.
-            action_value = int(action)
         """Sends an action (PARK or FLAT) to the telescope."""
+        action_value = _action_value(action)
         request = telescope_pb2.TelescopeRequest(action=action_value, autolight=autolight)
-        if self._health.is_down():
-            return down_error()
         try:
-            response = self.stub.SetAction(request, timeout=5.0)
-            self._health.record_success()
+            response = self.stub.SetAction(request, timeout=COMMAND_TIMEOUT)
             return self._parse_response(response)
         except grpc.RpcError as e:
-            self._health.record_failure()
-            logger.error(f"\n🚨 gRPC error detected for action {action.name}: status code: {e.code().name}, details: {e.details()}")
+            action_name = telescope_pb2.TelescopeAction.Name(action_value)
+            logger.error(f"\n🚨 gRPC error detected for action {action_name}: status code: {e.code().name}, details: {e.details()}")
             return {"error": str(e.details())}
         except Exception as general_error:
             import traceback
@@ -82,14 +68,10 @@ class TelescopeClient:
         )
 
         logger.debug(f"Sending SetAction(CHECK_TELESCOPE) to get the status.")
-        if self._health.is_down():
-            return down_error()
         try:
-            response = self.stub.SetAction(request, timeout=1.5)
-            self._health.record_success()
+            response = self.stub.SetAction(request, timeout=FAST_READ_TIMEOUT)
             return self._parse_response(response)
         except grpc.RpcError as e:
-            self._health.record_failure()
             logger.error(f"❌ gRPC error: the telescope service did not answer. Details: {e.details()}")
             return {"error": str(e.details())}
 
@@ -100,15 +82,11 @@ class TelescopeClient:
 
         logger.debug(f"Sending SetAction(TELESCOPE_CONNECT) to the gRPC server: {request}")
         logger.debug(f"Sending Connect to connect the telescope. {request}")
-        if self._health.is_down():
-            return down_error()
         try:
-            response = self.stub.SetAction(request, timeout=5.0)
-            self._health.record_success()
+            response = self.stub.SetAction(request, timeout=COMMAND_TIMEOUT)
             logger.debug(f"gRPC response: {response}")
             return self._parse_response(response)
         except grpc.RpcError as e:
-            self._health.record_failure()
             logger.error(f" ❌ gRPC error (telescope connection): {e.details()}")
             return {"error": str(e.details())}
 
@@ -116,20 +94,17 @@ class TelescopeClient:
         """Disconnects the server from the telescope."""
         action_enum = telescope_pb2.TELESCOPE_DISCONNECT
         request = telescope_pb2.TelescopeRequest(action=action_enum, autolight=False)
-        if self._health.is_down():
-            return down_error()
         try:
-            response = self.stub.SetAction(request, timeout=5.0)
-            self._health.record_success()
+            response = self.stub.SetAction(request, timeout=COMMAND_TIMEOUT)
             logger.debug(f"gRPC response to the disconnect request: {response}")
             return self._parse_response(response)
         except grpc.RpcError as e:
-            self._health.record_failure()
             logger.error(f" ❌ gRPC error: the service did not answer. {e.details()}")
             return {"error": str(e.details())}
 
     def _parse_response(self, response):
-        """Helper function to parse the common TelescopeResponse."""
+        """Parses a TelescopeResponse. The first button, the CONNECT/DISCONNECT
+        toggle, is also exposed under the top-level 'gui' key read by the frontend."""
         first_button_gui = response.buttons_gui[0] if response.buttons_gui else None
 
         parsed_data = {
@@ -150,7 +125,6 @@ class TelescopeClient:
                 "button_color": self.__button_color(gui)
             })
 
-        # The CONNECT/DISCONNECT button the frontend reads from a top-level 'gui' key.
         if first_button_gui:
             parsed_data["gui"] = {
                 "label": button_pb2.ButtonLabel.Name(first_button_gui.label),

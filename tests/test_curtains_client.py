@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.curtains_cloud import CurtainsClient
-from crac_cloud.grpc_cloud.channel_health import CHANNEL_DOWN_MESSAGE
+from crac_cloud.grpc_cloud.rpc import FAST_READ_TIMEOUT
 from crac_protobuf import curtains_pb2
 
 
@@ -50,9 +50,6 @@ class TestGetEnumName:
 
 class TestGetStatusTimeout:
     def test_uses_short_timeout_for_a_fast_read(self, client):
-        """get_status answers in a few ms on a healthy stack: a 5s timeout is
-        50-1500x more than needed and needlessly delays diagnosis when
-        crac-server is dead."""
         response = MagicMock(curtains=[], buttons_gui=[])
         captured = {}
 
@@ -63,22 +60,4 @@ class TestGetStatusTimeout:
         with patch.object(client.stub, "SetAction", side_effect=fake_set_action):
             client.get_status()
 
-        assert captured["timeout"] == 1.5
-
-
-class TestFastFailOnDownChannel:
-    def test_set_action_skips_the_call(self, client):
-        with patch.object(client._health, "is_down", return_value=True), \
-             patch.object(client.stub, "SetAction") as mock_set_action:
-            result = client.set_action(curtains_pb2.CurtainsAction.ENABLE)
-
-        mock_set_action.assert_not_called()
-        assert result == {"error": CHANNEL_DOWN_MESSAGE}
-
-    def test_get_status_skips_the_call(self, client):
-        with patch.object(client._health, "is_down", return_value=True), \
-             patch.object(client.stub, "SetAction") as mock_set_action:
-            result = client.get_status()
-
-        mock_set_action.assert_not_called()
-        assert result == {"error": CHANNEL_DOWN_MESSAGE}
+        assert captured["timeout"] == FAST_READ_TIMEOUT

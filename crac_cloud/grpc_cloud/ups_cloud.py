@@ -1,10 +1,9 @@
-# grpc_cloud/ups_cloud.py
 import logging
 import grpc
 from crac_protobuf import ups_pb2
 from crac_protobuf import ups_pb2_grpc
 from crac_protobuf import chart_pb2
-from .channel_health import ChannelHealth, down_error
+from .rpc import SLOW_READ_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -12,16 +11,12 @@ class UpsClient:
     def __init__(self, host: str, port: int):
         self.channel = grpc.insecure_channel(f'{host}:{port}')
         self.stub = ups_pb2_grpc.UpsStub(self.channel)
-        self._health = ChannelHealth()
 
     def get_status(self):
         """Fetches the UPS status and chart data."""
         request = ups_pb2.UpsRequest()
-        if self._health.is_down():
-            return down_error()
         try:
-            response = self.stub.GetStatus(request, timeout=5.0)
-            self._health.record_success()
+            response = self.stub.GetStatus(request, timeout=SLOW_READ_TIMEOUT)
             charts_list = []
             for chart in response.charts:
                 chart_data = {
@@ -51,6 +46,5 @@ class UpsClient:
                 "devices": list(response.devices)
             }
         except grpc.RpcError as e:
-            self._health.record_failure()
             logger.error(f"❌ gRPC error: the UPS service did not answer. Details: {e.details()}")
             return {"error": str(e.details())}

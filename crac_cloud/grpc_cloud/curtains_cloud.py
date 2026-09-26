@@ -1,11 +1,10 @@
-# grpc_cloud/curtains_cloud.py
 import logging
 import grpc
 from crac_protobuf import curtains_pb2
 from crac_protobuf import curtains_pb2_grpc
 from crac_protobuf import button_pb2
 from crac_cloud.config import Config
-from .channel_health import ChannelHealth, down_error
+from .rpc import FAST_READ_TIMEOUT, COMMAND_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +20,17 @@ STATUS_LABEL_MAP = {
 }
 
 class CurtainsClient:
+    """East and west curtains share the same angle limits, read from the east keys."""
+
     def __init__(self, host: str, port: int):
         self.channel = grpc.insecure_channel(f'{host}:{port}')
         self.stub = curtains_pb2_grpc.CurtainStub(self.channel)
-        self._health = ChannelHealth()
         encoder_config = Config.get_section("encoder_step")
         tende_config = Config.get_section("tende")
 
         self.N_STEP_CORSA = int(encoder_config.get("n_step_corsa", 205))
         self.ALPHA_MIN = float(tende_config.get("alpha_min", -12.0))
-        self.MAX_ANGLE = float(tende_config.get("max_est", 70.0))  # assumes East/West are equal
+        self.MAX_ANGLE = float(tende_config.get("max_est", 70.0))
         self.MIN_ANGLE = float(tende_config.get("park_est", 0.0))
 
         self.TOTAL_ANGLE_RANGE = self.MAX_ANGLE - self.ALPHA_MIN
@@ -51,26 +51,19 @@ class CurtainsClient:
 
     def set_action(self, action):
         request = curtains_pb2.CurtainsRequest(action=action)
-        if self._health.is_down():
-            return down_error()
         try:
-            response = self.stub.SetAction(request, timeout=5.0)
-            self._health.record_success()
+            response = self.stub.SetAction(request, timeout=COMMAND_TIMEOUT)
             logger.debug(f"Curtains SetAction response: {response}")
             return self._parse_response(response)
         except grpc.RpcError as e:
-            self._health.record_failure()
             logger.error(f" ❌ gRPC error (curtains action): {e.details()}")
             return {"error": str(e.details())}
 
     def get_status(self):
         """Fetches the curtains' status by sending the CHECK_CURTAIN action."""
         request = curtains_pb2.CurtainsRequest(action=curtains_pb2.CurtainsAction.CHECK_CURTAIN)
-        if self._health.is_down():
-            return down_error()
         try:
-            response = self.stub.SetAction(request, timeout=1.5)
-            self._health.record_success()
+            response = self.stub.SetAction(request, timeout=FAST_READ_TIMEOUT)
             logger.debug(f"Curtains CheckCurtain response: {response}")
             try:
                 return self._parse_response(response)
@@ -78,18 +71,17 @@ class CurtainsClient:
                 logger.error(f" ❌ Parsing error in _parse_response: {parse_error}")
                 return {"error": f"Parsing failed: {parse_error}", "curtains": []}
         except grpc.RpcError as e:
-            self._health.record_failure()
             logger.error(f" ❌ gRPC error (curtains status): {e.details()}")
             return {"error": str(e.details())}
     
     def _parse_response(self, response):
+        """Returns raw enum names: the frontend maps them to text and colour via STATUS_LABELS_MAP."""
         curtains_data = []
         for curtain in response.curtains:
             status_enum_name = self._get_enum_name(curtain.status, curtains_pb2.CurtainStatus)
             orientation_enum_name = self._get_enum_name(curtain.orientation, curtains_pb2.CurtainOrientation)
             steps_value = curtain.steps
 
-            # Kept as raw enum: the frontend maps it to text/color via STATUS_LABELS_MAP.
             status_enum_label = status_enum_name
             status_ui_text = STATUS_LABEL_MAP.get(status_enum_name, status_enum_name)
             logger.debug(f"Status curtain:{orientation_enum_name}, {steps_value}, {status_ui_text}")

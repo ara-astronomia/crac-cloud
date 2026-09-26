@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.button_cloud import ButtonClient
-from crac_cloud.grpc_cloud.channel_health import CHANNEL_DOWN_MESSAGE
+from crac_cloud.grpc_cloud.rpc import FAST_READ_TIMEOUT
 from crac_protobuf import button_pb2
 
 
@@ -35,9 +35,6 @@ def _make_response():
 
 class TestGetSingleSwitchStatusTimeout:
     def test_uses_short_timeout_for_a_fast_read(self, client):
-        """get_single_switch_status answers in a few ms on a healthy stack: a
-        5s timeout is 50-1500x more than needed and needlessly delays
-        diagnosis when crac-server is dead."""
         response, type_val = _make_response()
         captured = {}
 
@@ -48,24 +45,4 @@ class TestGetSingleSwitchStatusTimeout:
         with patch.object(client.stub, "SetAction", side_effect=fake_set_action):
             client.get_single_switch_status("KEY_TELE_SWITCH", type_val)
 
-        assert captured["timeout"] == 1.5
-
-
-class TestFastFailOnDownChannel:
-    def test_set_switch_action_skips_the_call(self, client):
-        response, type_val = _make_response()
-        with patch.object(client._health, "is_down", return_value=True), \
-             patch.object(client.stub, "SetAction") as mock_set_action:
-            result = client.set_switch_action(type_val, button_pb2.ButtonAction.TURN_ON)
-
-        mock_set_action.assert_not_called()
-        assert result == {"status": "error", "message": CHANNEL_DOWN_MESSAGE}
-
-    def test_get_single_switch_status_skips_the_call(self, client):
-        _, type_val = _make_response()
-        with patch.object(client._health, "is_down", return_value=True), \
-             patch.object(client.stub, "SetAction") as mock_set_action:
-            result = client.get_single_switch_status("KEY_TELE_SWITCH", type_val)
-
-        mock_set_action.assert_not_called()
-        assert result == {"error": CHANNEL_DOWN_MESSAGE, "status": "UNKNOWN"}
+        assert captured["timeout"] == FAST_READ_TIMEOUT
