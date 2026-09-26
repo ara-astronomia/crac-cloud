@@ -74,21 +74,15 @@ async def _get_all_required_data() -> dict:
     }
 
 def eq_coords_changed(new_coords: dict) -> bool:
-    global LAST_EQ_COORDS
-
+    """True when the sky map on disk was not generated for these coordinates."""
     if new_coords is None:
         return False
     if LAST_EQ_COORDS is None:
-        LAST_EQ_COORDS = new_coords
         return True
-
-    changed = (
+    return (
         abs(new_coords["ra"] - LAST_EQ_COORDS["ra"]) > 1e-6 or
         abs(new_coords["dec"] - LAST_EQ_COORDS["dec"]) > 1e-6
     )
-    if changed:
-        LAST_EQ_COORDS = new_coords
-    return changed
 
 @router.get("/tracking_chart")
 async def get_tracking_chart(t: float = None):
@@ -119,6 +113,9 @@ async def get_tracking_chart(t: float = None):
 
 @router.get("/sky_map_fixed")
 async def get_fixed_sky_map(t: float = None):
+    """Compares and regenerates under the generation lock, so a request that
+    arrives mid-generation waits and then serves the new map."""
+    global LAST_EQ_COORDS
     try:
         data = await _get_all_required_data()
         if data["eq_coords"] is None:
@@ -129,20 +126,18 @@ async def get_fixed_sky_map(t: float = None):
                 "tele_in_park.png" if tel_status == "PARKED" else "tele_in_flat.png"
             )
 
-        coords_have_changed = eq_coords_changed(data["eq_coords"])
-        logger.debug(f"Eq coordinates changed? {coords_have_changed}")  
-
-        if coords_have_changed:
-            async with MAP_GENERATION_LOCK:
+        async with MAP_GENERATION_LOCK:
+            if eq_coords_changed(data["eq_coords"]):
                 map1_path, _ = await asyncio.to_thread(
                     generate_telescope_maps,
                     data["geo_data"],
                     data["eq_coords"],
                     data["ccd_data"]
                 )
-        else:
-            logger.debug("Eq coordinates unchanged, reusing the last generated map.")
-            map1_path = os.path.join(OUTPUT_DIR, MAP1_FILENAME)
+                LAST_EQ_COORDS = data["eq_coords"]
+            else:
+                logger.debug("Eq coordinates unchanged, reusing the last generated map.")
+                map1_path = os.path.join(OUTPUT_DIR, MAP1_FILENAME)
 
         with open(map1_path, 'rb') as f:
             image_data = f.read()

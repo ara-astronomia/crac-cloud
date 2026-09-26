@@ -72,7 +72,8 @@ def test_concurrent_map_requests_do_not_run_generation_in_parallel():
 
 async def _concurrent_map_generation_scenario():
     """generate_telescope_maps uses matplotlib's global state and fixed output
-    paths, so two map requests never generate in parallel."""
+    paths, so two map requests never generate in parallel. Each test gets its
+    own lock: an asyncio.Lock binds to the first event loop that waits on it."""
     lock = threading.Lock()
     state = {"concurrent": 0, "max_concurrent": 0}
 
@@ -88,7 +89,8 @@ async def _concurrent_map_generation_scenario():
     with patch.object(map_router.geo_client, "get_geographic_data", AsyncMock(return_value=_GEO)), \
          patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=_CCD)), \
          patch.object(map_router.telescope_client, "get_status", return_value={"status": "TELESCOPE_TRACKING", "eq_coords": {"ra": 99.0, "dec": 88.0}}), \
-         patch.object(map_router, "generate_telescope_maps", generation):
+         patch.object(map_router, "generate_telescope_maps", generation), \
+         patch.object(map_router, "MAP_GENERATION_LOCK", asyncio.Lock()):
         await asyncio.gather(map_router.get_tracking_chart(), map_router.get_fixed_sky_map())
 
     assert state["max_concurrent"] == 1
@@ -121,3 +123,60 @@ async def _slow_sky_map_scenario():
         await asyncio.gather(map_request(), other_request())
 
     assert order == ["other request", "map"]
+
+
+def test_a_sky_map_request_during_generation_gets_the_new_map(tmp_path):
+    asyncio.run(_sky_map_during_generation_scenario(tmp_path))
+
+
+async def _sky_map_during_generation_scenario(tmp_path):
+    """A second viewer asking while the first request generates the map for a
+    new pointing waits for it instead of reading the previous map."""
+    map_path = tmp_path / map_router.MAP1_FILENAME
+    map_path.write_bytes(b"previous pointing")
+
+    def slow_generation(*args, **kwargs):
+        sleep(0.2)
+        map_path.write_bytes(b"new pointing")
+        return (str(map_path), str(map_path))
+
+    with patch.object(map_router.geo_client, "get_geographic_data", AsyncMock(return_value=_GEO)), \
+         patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=_CCD)), \
+         patch.object(map_router.telescope_client, "get_status", return_value={"status": "TELESCOPE_TRACKING", "eq_coords": {"ra": 5.0, "dec": 6.0}}), \
+         patch.object(map_router, "generate_telescope_maps", slow_generation), \
+         patch.object(map_router, "OUTPUT_DIR", str(tmp_path)), \
+         patch.object(map_router, "LAST_EQ_COORDS", {"ra": 1.0, "dec": 2.0}), \
+         patch.object(map_router, "MAP_GENERATION_LOCK", asyncio.Lock()):
+        operator, observer = await asyncio.gather(map_router.get_fixed_sky_map(), map_router.get_fixed_sky_map())
+
+    assert operator.body == observer.body == b"new pointing"
+
+
+def test_a_failed_sky_map_generation_is_retried_on_the_next_request(tmp_path):
+    asyncio.run(_failed_generation_scenario(tmp_path))
+
+
+async def _failed_generation_scenario(tmp_path):
+    map_path = tmp_path / map_router.MAP1_FILENAME
+    attempts = []
+
+    def generation(*args, **kwargs):
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise OSError("DSS download failed")
+        map_path.write_bytes(b"new pointing")
+        return (str(map_path), str(map_path))
+
+    with patch.object(map_router.geo_client, "get_geographic_data", AsyncMock(return_value=_GEO)), \
+         patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=_CCD)), \
+         patch.object(map_router.telescope_client, "get_status", return_value={"status": "TELESCOPE_TRACKING", "eq_coords": {"ra": 5.0, "dec": 6.0}}), \
+         patch.object(map_router, "generate_telescope_maps", generation), \
+         patch.object(map_router, "OUTPUT_DIR", str(tmp_path)), \
+         patch.object(map_router, "LAST_EQ_COORDS", {"ra": 1.0, "dec": 2.0}):
+        try:
+            await map_router.get_fixed_sky_map()
+        except OSError:
+            pass
+        response = await map_router.get_fixed_sky_map()
+
+    assert response.body == b"new pointing"
