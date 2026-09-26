@@ -251,7 +251,6 @@ async function init() {
     initButtons();
     initCoverMirror();
     initUps();
-    await initGauges();   // async: carica gauge-config dal server
     initMaps();
 
     setTimeout(() => schedule(pollHealth,       INTERVALS.health),       0);
@@ -261,11 +260,12 @@ async function init() {
     setTimeout(() => schedule(pollButtons,      INTERVALS.buttons),      1500);
     setTimeout(() => schedule(pollCoverMirror,  INTERVALS.cover_mirror), 2000);
     setTimeout(() => schedule(pollUps,          INTERVALS.ups),          2500);
-    setTimeout(() => schedule(pollWeather,      INTERVALS.weather),      3000);
     setTimeout(() => schedule(pollTrackingChart,INTERVALS.trackingChart),3500);
     setTimeout(() => schedule(pollAirmass,      INTERVALS.airmass),      4000);
 
     setInterval(checkSkyMapRefresh, 1000);
+
+    initGauges().then(() => schedule(pollWeather, INTERVALS.weather));
 
     console.log('[CRaC] Coordinator avviato. Intervalli:', INTERVALS);
 }
