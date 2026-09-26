@@ -2,16 +2,11 @@ import time
 
 
 class ChannelHealth:
-    """Fast-fail su un crac-server morto: dopo un errore di rete registrato
-    da record_failure(), le chiamate successive falliscono subito invece di
-    aspettare di nuovo il timeout pieno. Il grpc.Channel sincrono non offre
-    un get_state() diretto (solo subscribe(), che lascia un watcher attivo
-    per tutta la vita del processo) - lo stato lo teniamo noi.
+    """Fast-fail su un canale caduto: dopo record_failure() le chiamate
+    successive falliscono subito, per COOLDOWN_SECONDS, poi si riprova.
+    Il grpc.Channel sincrono non ha un get_state() diretto: lo stato lo teniamo noi."""
 
-    Il cooldown fa si' che, passato quel tempo, si riprovi comunque: un
-    blocco permanente nasconderebbe un crac-server tornato su."""
-
-    COOLDOWN_SECONDS = 5.0
+    COOLDOWN_SECONDS = 2.0
 
     def __init__(self):
         self._down_since = None
