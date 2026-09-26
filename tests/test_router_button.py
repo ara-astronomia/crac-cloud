@@ -38,14 +38,13 @@ class TestSetAction:
         )
 
     def test_check_button_sets_the_autolight(self):
-        sent = []
         service = MagicMock()
-        service.telescope_client.stub.SetAction.side_effect = lambda request, **kwargs: sent.append(request)
 
         resp = _http_with(service).post("/buttons/set_action", json={"action": "CHECK_BUTTON", "key": "KEY_AUTOLIGHT", "value": True})
 
         assert resp.json() == {"status": "ok", "message": "Autolight impostato"}
-        assert [request.autolight for request in sent] == [True]
+        service.telescope_client.stub.SetAction.assert_called_once()
+        assert service.telescope_client.stub.SetAction.call_args.args[0].autolight is True
 
     def test_default_action_is_sent_as_is(self):
         service = MagicMock()
