@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from crac_cloud.grpc_cloud.channel_health import ChannelHealth
+from crac_cloud.grpc_cloud.channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE, down_error, error_status
 
 
 class TestChannelHealth:
@@ -25,3 +25,21 @@ class TestChannelHealth:
 
         with patch("crac_cloud.grpc_cloud.channel_health.time.monotonic", return_value=health._down_since + ChannelHealth.COOLDOWN_SECONDS + 0.1):
             assert health.is_down() is False
+
+
+class TestDownError:
+    def test_returns_the_shared_message(self):
+        assert down_error() == {"error": CHANNEL_DOWN_MESSAGE}
+
+
+class TestErrorStatus:
+    def test_builds_the_button_error_shape(self):
+        assert error_status("boom") == {
+            "status": "ERROR",
+            "gui": {
+                "label": "LABEL_ERROR",
+                "is_disabled": True,
+                "button_color": {"text_color": "white", "background_color": "red"},
+            },
+            "error": "boom",
+        }

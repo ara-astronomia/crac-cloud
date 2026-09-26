@@ -5,7 +5,7 @@ from crac_protobuf import curtains_pb2
 from crac_protobuf import curtains_pb2_grpc
 from crac_protobuf import button_pb2
 from crac_cloud.config import Config
-from .channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE
+from .channel_health import ChannelHealth, down_error
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class CurtainsClient:
     def set_action(self, action):
         request = curtains_pb2.CurtainsRequest(action=action)
         if self._health.is_down():
-            return {"error": CHANNEL_DOWN_MESSAGE}
+            return down_error()
         try:
             response = self.stub.SetAction(request, timeout=5.0)
             self._health.record_success()
@@ -67,7 +67,7 @@ class CurtainsClient:
         """Fetches the curtains' status by sending the CHECK_CURTAIN action."""
         request = curtains_pb2.CurtainsRequest(action=curtains_pb2.CurtainsAction.CHECK_CURTAIN)
         if self._health.is_down():
-            return {"error": CHANNEL_DOWN_MESSAGE}
+            return down_error()
         try:
             response = self.stub.SetAction(request, timeout=1.5)
             self._health.record_success()

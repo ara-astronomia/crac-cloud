@@ -3,21 +3,9 @@ import grpc
 from crac_protobuf import cover_mirror_pb2
 from crac_protobuf import cover_mirror_pb2_grpc
 from crac_protobuf import button_pb2
-from .channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE
+from .channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE, down_error, error_status
 
 logger = logging.getLogger(__name__)
-
-
-def _error_status(message: str) -> dict:
-    return {
-        "status": "ERROR",
-        "gui": {
-            "label": "LABEL_ERROR",
-            "is_disabled": True,
-            "button_color": {"text_color": "white", "background_color": "red"},
-        },
-        "error": message,
-    }
 
 
 class CoverMirrorClient:
@@ -50,7 +38,7 @@ class CoverMirrorClient:
     def set_action(self, action_enum):
         request = cover_mirror_pb2.CoverMirrorRequest(action=action_enum)
         if self._health.is_down():
-            return {"error": CHANNEL_DOWN_MESSAGE}
+            return down_error()
         try:
             response = self.stub.SetAction(request, timeout=5.0)
             self._health.record_success()
@@ -64,7 +52,7 @@ class CoverMirrorClient:
     def get_status(self):
         """Fetches the mirror cover's current status."""
         if self._health.is_down():
-            return _error_status(CHANNEL_DOWN_MESSAGE)
+            return error_status(CHANNEL_DOWN_MESSAGE)
         request = cover_mirror_pb2.CoverMirrorRequest(action=cover_mirror_pb2.CoverMirrorAction.CHECK_COVER_MIRROR)
         try:
             response = self.stub.SetAction(request, timeout=1.5)
@@ -72,9 +60,9 @@ class CoverMirrorClient:
         except grpc.RpcError as e:
             self._health.record_failure()
             logger.error(f"❌ Error while requesting the mirror cover status: {e}")
-            return _error_status(str(e.details()))
+            return error_status(str(e.details()))
         try:
             return self._parse_cover_mirror_response(response)
         except Exception as e:
             logger.error(f"❌ Error while requesting the mirror cover status: {e}")
-            return _error_status(str(e))
+            return error_status(str(e))

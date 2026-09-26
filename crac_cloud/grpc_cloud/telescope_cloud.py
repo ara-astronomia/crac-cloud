@@ -8,7 +8,7 @@ from crac_protobuf import button_pb2_grpc
 from crac_cloud.config import Config
 from google.protobuf.empty_pb2 import Empty as EmptyMessage
 from ..state import GLOBAL_CLIENT_STATE
-from .channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE
+from .channel_health import ChannelHealth, down_error
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class TelescopeClient:
         """Sends an action (PARK or FLAT) to the telescope."""
         request = telescope_pb2.TelescopeRequest(action=action_value, autolight=autolight)
         if self._health.is_down():
-            return {"error": CHANNEL_DOWN_MESSAGE}
+            return down_error()
         try:
             response = self.stub.SetAction(request, timeout=5.0)
             self._health.record_success()
@@ -83,7 +83,7 @@ class TelescopeClient:
 
         logger.debug(f"Sending SetAction(CHECK_TELESCOPE) to get the status.")
         if self._health.is_down():
-            return {"error": CHANNEL_DOWN_MESSAGE}
+            return down_error()
         try:
             response = self.stub.SetAction(request, timeout=1.5)
             self._health.record_success()
@@ -101,7 +101,7 @@ class TelescopeClient:
         logger.debug(f"Sending SetAction(TELESCOPE_CONNECT) to the gRPC server: {request}")
         logger.debug(f"Sending Connect to connect the telescope. {request}")
         if self._health.is_down():
-            return {"error": CHANNEL_DOWN_MESSAGE}
+            return down_error()
         try:
             response = self.stub.SetAction(request, timeout=5.0)
             self._health.record_success()
@@ -117,7 +117,7 @@ class TelescopeClient:
         action_enum = telescope_pb2.TELESCOPE_DISCONNECT
         request = telescope_pb2.TelescopeRequest(action=action_enum, autolight=False)
         if self._health.is_down():
-            return {"error": CHANNEL_DOWN_MESSAGE}
+            return down_error()
         try:
             response = self.stub.SetAction(request, timeout=5.0)
             self._health.record_success()

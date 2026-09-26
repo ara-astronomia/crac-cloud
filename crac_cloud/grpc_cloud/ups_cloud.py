@@ -4,7 +4,7 @@ import grpc
 from crac_protobuf import ups_pb2
 from crac_protobuf import ups_pb2_grpc
 from crac_protobuf import chart_pb2
-from .channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE
+from .channel_health import ChannelHealth, down_error
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class UpsClient:
         """Fetches the UPS status and chart data."""
         request = ups_pb2.UpsRequest()
         if self._health.is_down():
-            return {"error": CHANNEL_DOWN_MESSAGE}
+            return down_error()
         try:
             response = self.stub.GetStatus(request, timeout=5.0)
             self._health.record_success()

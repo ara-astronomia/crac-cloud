@@ -3,6 +3,22 @@ import time
 CHANNEL_DOWN_MESSAGE = "crac-server channel is down"
 
 
+def down_error() -> dict:
+    return {"error": CHANNEL_DOWN_MESSAGE}
+
+
+def error_status(message: str) -> dict:
+    return {
+        "status": "ERROR",
+        "gui": {
+            "label": "LABEL_ERROR",
+            "is_disabled": True,
+            "button_color": {"text_color": "white", "background_color": "red"},
+        },
+        "error": message,
+    }
+
+
 class ChannelHealth:
     """Fast-fails a down channel: after record_failure(), calls fail
     immediately for COOLDOWN_SECONDS, then retry. The sync grpc.Channel has
