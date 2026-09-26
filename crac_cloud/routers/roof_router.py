@@ -27,15 +27,27 @@ roof_client = RoofClient(host=grpc_host, port=grpc_port)
 def get_roof_status():
 
     """Endpoint per ottenere lo stato attuale del tetto."""
+    if roof_client._health.is_down():
+        return {
+            "status": "ERROR",
+            "gui": {
+                "label": "LABEL_ERROR",
+                "is_disabled": True,
+                "button_color": {"text_color": "white", "background_color": "red"}
+            },
+            "error": "crac-server channel is down"
+        }
     try:
         # L'azione CHECK_ROOF è definita nel tuo roof.proto
         request = roof_pb2.RoofRequest(action=roof_pb2.RoofAction.CHECK_ROOF)
-        response = roof_client.stub.SetAction(request)
+        response = roof_client.stub.SetAction(request, timeout=1.5)
+        roof_client._health.record_success()
         parsed_data = roof_client._parse_roof_response(response)
-        logger.debug(f"Full response sent to the frontend: {parsed_data}") 
-        return roof_client._parse_roof_response(response) 
+        logger.debug(f"Full response sent to the frontend: {parsed_data}")
+        return roof_client._parse_roof_response(response)
         #return {"status": roof_pb2.RoofStatus.Name(response.status)}
     except Exception as e:
+        roof_client._health.record_failure()
         logger.error(f" ❌ Error while requesting the roof status: {e}")
         # Restituisci uno stato di errore ben definito
         return {
@@ -50,7 +62,7 @@ def get_roof_status():
 
 # Aggiungi l'endpoint POST per le azioni
 @router.post("/set_action")
-async def set_action(request: RoofActionRequest):
+def set_action(request: RoofActionRequest):
     # ... logica per OPEN/CLOSE ...
     if request.action == "ROOF_OPEN":
         logger.info("Action requested: open the roof") # Debug utile

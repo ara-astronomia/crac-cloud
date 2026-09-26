@@ -68,7 +68,7 @@ def set_autolight_action(autolight_value: bool, telescope_stub):
 
 
 @router.post("/set_action")
-async def set_action(request: ButtonActionRequest, service: get_grpc_container = Depends(get_grpc_container)):
+def set_action(request: ButtonActionRequest, service: get_grpc_container = Depends(get_grpc_container)):
     logger.debug(f"Action requested: {request.action}") # Debug utile
     """
     Gestisce tutte le azioni dei pulsanti in base all'azione richiesta dal frontend.

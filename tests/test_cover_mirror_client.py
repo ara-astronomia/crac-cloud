@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.cover_mirror_cloud import CoverMirrorClient
 from crac_protobuf import cover_mirror_pb2, button_pb2
 
@@ -49,3 +49,13 @@ def test_missing_button_color_falls_back_to_gray(client):
     response.button_gui.HasField.return_value = False
     parsed = client._parse_cover_mirror_response(response)
     assert parsed["gui"]["button_color"] == {"text_color": "white", "background_color": "gray"}
+
+
+class TestFastFailOnDownChannel:
+    def test_set_action_skips_the_call(self, client):
+        with patch.object(client._health, "is_down", return_value=True), \
+             patch.object(client.stub, "SetAction") as mock_set_action:
+            result = client.set_action(cover_mirror_pb2.CoverMirrorAction.OPEN_COVER_MIRROR)
+
+        mock_set_action.assert_not_called()
+        assert result == {"error": "crac-server channel is down"}

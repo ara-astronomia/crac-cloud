@@ -1,5 +1,6 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+from fastapi import HTTPException
 from crac_cloud.grpc_cloud.telescope_cloud import TelescopeClient
 from crac_protobuf import telescope_pb2, button_pb2
 
@@ -62,3 +63,65 @@ class TestParseTelescopeResponse:
 
         assert result["buttons_gui"] == []
         assert result["gui"] == {"label": "LABEL_ERROR", "is_disabled": True}
+
+
+class TestGetStatusTimeout:
+    def test_uses_short_timeout_for_a_fast_read(self, client):
+        """get_status risponde in pochi ms a stack sano: un timeout da 5s e'
+        largo 50-1500 volte il necessario e ritarda inutilmente la diagnosi
+        quando crac-server e' morto."""
+        mock_response, *_ = _make_response(0)
+        captured = {}
+
+        def fake_set_action(request, **kwargs):
+            captured.update(kwargs)
+            return mock_response
+
+        with patch.object(client.stub, "SetAction", side_effect=fake_set_action):
+            client.get_status()
+
+        assert captured["timeout"] == 1.5
+
+
+class TestFastFailOnDownChannel:
+    def test_get_autolight_status_skips_the_call(self, client):
+        with patch.object(client._health, "is_down", return_value=True), \
+             patch.object(client.stub, "SetAction") as mock_set_action:
+            result = client.get_autolight_status()
+
+        mock_set_action.assert_not_called()
+        assert result == {"key": "KEY_AUTOLIGHT", "status": "UNKNOWN"}
+
+    def test_get_status_skips_the_call(self, client):
+        with patch.object(client._health, "is_down", return_value=True), \
+             patch.object(client.stub, "SetAction") as mock_set_action:
+            result = client.get_status()
+
+        mock_set_action.assert_not_called()
+        assert result == {"error": "crac-server channel is down"}
+
+    def test_set_action_skips_the_call(self, client):
+        with patch.object(client._health, "is_down", return_value=True), \
+             patch.object(client.stub, "SetAction") as mock_set_action:
+            with pytest.raises(HTTPException) as exc_info:
+                client.set_action(telescope_pb2.PARK_POSITION)
+
+        mock_set_action.assert_not_called()
+        assert exc_info.value.status_code == 500
+
+    def test_connect_skips_the_call(self, client):
+        with patch.object(client._health, "is_down", return_value=True), \
+             patch.object(client.stub, "SetAction") as mock_set_action:
+            with pytest.raises(HTTPException) as exc_info:
+                client.connect()
+
+        mock_set_action.assert_not_called()
+        assert exc_info.value.status_code == 500
+
+    def test_disconnect_skips_the_call(self, client):
+        with patch.object(client._health, "is_down", return_value=True), \
+             patch.object(client.stub, "SetAction") as mock_set_action:
+            result = client.disconnect()
+
+        mock_set_action.assert_not_called()
+        assert result == {"error": "crac-server channel is down"}

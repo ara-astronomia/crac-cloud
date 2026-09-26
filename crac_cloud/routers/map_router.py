@@ -118,7 +118,8 @@ async def get_tracking_chart(t: float = None):
         if data["eq_coords"] is None:
             return _static_map_response("airmass_not_available.png")
 
-        _, map2_path = generate_telescope_maps(
+        _, map2_path = await asyncio.to_thread(
+            generate_telescope_maps,
             data["geo_data"],
             data["eq_coords"],
             data["ccd_data"]
@@ -154,10 +155,11 @@ async def get_fixed_sky_map(t: float = None):
         logger.debug(f"Eq coordinates changed? {coords_have_changed}")  
 
         if coords_have_changed:
-            map1_path, _ = generate_telescope_maps(
-            data["geo_data"],
-            data["eq_coords"],
-            data["ccd_data"]
+            map1_path, _ = await asyncio.to_thread(
+                generate_telescope_maps,
+                data["geo_data"],
+                data["eq_coords"],
+                data["ccd_data"]
             )
         else:
             logger.debug("Eq coordinates unchanged, reusing the last generated map.")

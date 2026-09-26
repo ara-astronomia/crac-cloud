@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.roof_cloud import RoofClient
 from crac_protobuf import roof_pb2, button_pb2
 
@@ -51,3 +51,13 @@ class TestParseRoofResponse:
             "text_color": "white",
             "background_color": "gray",
         }
+
+
+class TestFastFailOnDownChannel:
+    def test_set_action_skips_the_call(self, client):
+        with patch.object(client._health, "is_down", return_value=True), \
+             patch.object(client.stub, "SetAction") as mock_set_action:
+            result = client.set_action(roof_pb2.RoofAction.CLOSE)
+
+        mock_set_action.assert_not_called()
+        assert result == {"error": "crac-server channel is down"}

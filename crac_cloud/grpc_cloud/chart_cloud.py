@@ -3,6 +3,7 @@ import logging
 import grpc
 from crac_protobuf import chart_pb2
 from crac_protobuf import chart_pb2_grpc
+from .channel_health import ChannelHealth
 
 logger = logging.getLogger(__name__)
 # Dizionario di traduzione per gli stati meteo (Enum di Protobuf)
@@ -17,13 +18,17 @@ class ChartClient:
     def __init__(self, host: str, port: int):
         self.channel = grpc.insecure_channel(f'{host}:{port}')
         self.stub = chart_pb2_grpc.WeatherStub(self.channel)
+        self._health = ChannelHealth()
 
     def get_status(self):
         """Ottiene lo stato meteorologico e i dati per i grafici."""
         request = chart_pb2.WeatherRequest()
+        if self._health.is_down():
+            return {"error": "crac-server channel is down", "status": "SCONOSCIUTO"}
         try:
             response = self.stub.GetStatus(request, timeout=5.0)
-            
+            self._health.record_success()
+
             charts_list = []
             for chart in response.charts:
                 thresholds_list = []
@@ -79,6 +84,7 @@ class ChartClient:
                 "interval": response.interval
             }
         except grpc.RpcError as e:
+            self._health.record_failure()
             # Gestione errore gRPC, fondamentale per il debug
             logger.error(f" ❌ RPC error (ChartStatus): {e.details()}")
             return {"error": str(e.details()), "status": "SCONOSCIUTO"}

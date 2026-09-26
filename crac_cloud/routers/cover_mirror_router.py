@@ -27,14 +27,26 @@ cover_mirror_client = CoverMirrorClient(host=grpc_host, port=grpc_port)
 @router.get("/status")
 def get_cover_mirror_status():
     """Endpoint per ottenere lo stato attuale della copertura dello specchio."""
+    if cover_mirror_client._health.is_down():
+        return {
+            "status": "ERROR",
+            "gui": {
+                "label": "LABEL_ERROR",
+                "is_disabled": True,
+                "button_color": {"text_color": "white", "background_color": "red"}
+            },
+            "error": "crac-server channel is down"
+        }
     try:
         request = cover_mirror_pb2.CoverMirrorRequest(action=cover_mirror_pb2.CoverMirrorAction.CHECK_COVER_MIRROR)
-        response = cover_mirror_client.stub.SetAction(request)
+        response = cover_mirror_client.stub.SetAction(request, timeout=1.5)
+        cover_mirror_client._health.record_success()
         logger.debug(f"Mirror cover get_status response: {response}")
         parsed_data = cover_mirror_client._parse_cover_mirror_response(response)
         logger.debug(f"Full response sent to the frontend: {parsed_data}")
         return parsed_data
     except Exception as e:
+        cover_mirror_client._health.record_failure()
         logger.error(f"❌ Error while requesting the mirror cover status: {e}")
         return {
             "status": "ERROR",
@@ -48,7 +60,7 @@ def get_cover_mirror_status():
 
 
 @router.post("/set_action")
-async def set_action(request: CoverMirrorActionRequest):
+def set_action(request: CoverMirrorActionRequest):
     if request.action == "OPEN_COVER_MIRROR":
         logger.info("Action requested: open the mirror cover")
         return cover_mirror_client.set_action(cover_mirror_pb2.CoverMirrorAction.OPEN_COVER_MIRROR)

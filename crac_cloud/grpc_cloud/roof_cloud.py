@@ -4,6 +4,7 @@ import grpc
 from crac_protobuf import roof_pb2
 from crac_protobuf import roof_pb2_grpc
 from crac_protobuf import button_pb2
+from .channel_health import ChannelHealth
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,7 @@ class RoofClient:
     def __init__(self, host: str, port: int):
         self.channel = grpc.insecure_channel(f'{host}:{port}')
         self.stub = roof_pb2_grpc.RoofStub(self.channel)
+        self._health = ChannelHealth()
 
     def _parse_roof_response(self, response: roof_pb2.RoofResponse):
         """Parsing della risposta del tetto per includere i dati della GUI."""
@@ -42,12 +44,16 @@ class RoofClient:
     def set_action(self, action_enum): #roof_pb2.RoofAction):
         """Invia un'azione (apri/chiudi) al tetto scorrevole e parsifica la risposta."""
         request = roof_pb2.RoofRequest(action=action_enum)
+        if self._health.is_down():
+            return {"error": "crac-server channel is down"}
         try:
             response = self.stub.SetAction(request, timeout=5.0)
-            
+            self._health.record_success()
+
             # 🎯 USA IL PARSING QUI
-            return self._parse_roof_response(response) 
-            
+            return self._parse_roof_response(response)
+
         except grpc.RpcError as e:
+            self._health.record_failure()
             logger.error(f" ❌ gRPC error (roof action): {e.details()}")
-            return {"error": str(e.details())}    
+            return {"error": str(e.details())}

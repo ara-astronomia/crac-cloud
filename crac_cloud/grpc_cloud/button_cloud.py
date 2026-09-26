@@ -5,6 +5,7 @@ from crac_protobuf import button_pb2
 from crac_protobuf import button_pb2_grpc
 from crac_protobuf import telescope_pb2
 from crac_protobuf import telescope_pb2_grpc
+from .channel_health import ChannelHealth
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class ButtonClient:
         self.channel = grpc.insecure_channel(f'{host}:{port}')
         # Crea lo stub, che è il client che useremo per chiamare i metodi RPC
         self.stub = button_pb2_grpc.ButtonStub(self.channel)
+        self._health = ChannelHealth()
 
     def set_switch_action(self, button_type, action):
         """Invia un'azione (TURN_ON/TURN_OFF) al ButtonService per un interruttore."""
@@ -22,14 +24,18 @@ class ButtonClient:
             type=button_type,
             action=action,
             )
+        if self._health.is_down():
+            return {"status": "error", "message": "crac-server channel is down"}
         try:
-            response = self.stub.SetAction(request, timeout=5.0) 
+            response = self.stub.SetAction(request, timeout=5.0)
+            self._health.record_success()
             # Qui usiamo un parser specifico per ButtonResponse
-            return self._parse_button_response(response) 
+            return self._parse_button_response(response)
         except grpc.RpcError as e:
+            self._health.record_failure()
             logger.error(f" ❌ RPC error (write) for type {button_pb2.ButtonType.Name(button_type)}: {e.details()}")
             return {"status": "error", "message": f"Errore gRPC durante l'azione: {e.details()}"}
-        
+
     def get_single_switch_status(self, button_key_str, button_type):
         """
         Recupera lo stato di un singolo pulsante chiamando SetAction (CHECK_BUTTON).
@@ -38,13 +44,17 @@ class ButtonClient:
             type=button_type, #pb2.ButtonType.Value(button_type),
             action=button_pb2.ButtonAction.CHECK_BUTTON,
         )
+        if self._health.is_down():
+            return {"error": "crac-server channel is down", "status": "UNKNOWN"}
         try:
-            response = self.stub.SetAction(request, timeout=5.0)
+            response = self.stub.SetAction(request, timeout=1.5)
+            self._health.record_success()
 
             parsed_response = self._parse_button_response(response)
             parsed_response["key"] = button_key_str # Aggiungi la chiave alla radice per il router
             return parsed_response
         except grpc.RpcError as e:
+            self._health.record_failure()
             logger.error(f" ❌ RPC error (read) for {button_key_str} (type {button_pb2.ButtonType.Name(button_type)}): {e.details()}")
             return {"error": str(e.details()), "status": "UNKNOWN"}
         

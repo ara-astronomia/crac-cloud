@@ -4,6 +4,7 @@ import grpc
 from crac_protobuf import ups_pb2
 from crac_protobuf import ups_pb2_grpc
 from crac_protobuf import chart_pb2
+from .channel_health import ChannelHealth
 
 logger = logging.getLogger(__name__)
 
@@ -11,12 +12,16 @@ class UpsClient:
     def __init__(self, host: str, port: int):
         self.channel = grpc.insecure_channel(f'{host}:{port}')
         self.stub = ups_pb2_grpc.UpsStub(self.channel)
+        self._health = ChannelHealth()
 
     def get_status(self):
         """Ottiene lo stato degli UPS e i dati per i grafici."""
         request = ups_pb2.UpsRequest()
+        if self._health.is_down():
+            return {"error": "crac-server channel is down"}
         try:
             response = self.stub.GetStatus(request, timeout=5.0)
+            self._health.record_success()
             charts_list = []
             for chart in response.charts:
                 # Parsing della chart
@@ -48,5 +53,6 @@ class UpsClient:
                 "devices": list(response.devices)
             }
         except grpc.RpcError as e:
+            self._health.record_failure()
             logger.error(f"❌ gRPC error: the UPS service did not answer. Details: {e.details()}")
             return {"error": str(e.details())}

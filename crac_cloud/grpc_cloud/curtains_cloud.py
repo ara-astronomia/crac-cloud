@@ -5,6 +5,7 @@ from crac_protobuf import curtains_pb2
 from crac_protobuf import curtains_pb2_grpc
 from crac_protobuf import button_pb2
 from crac_cloud.config import Config
+from .channel_health import ChannelHealth
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class CurtainsClient:
     def __init__(self, host: str, port: int):
         self.channel = grpc.insecure_channel(f'{host}:{port}')
         self.stub = curtains_pb2_grpc.CurtainStub(self.channel)
+        self._health = ChannelHealth()
         encoder_config = Config.get_section("encoder_step")
         tende_config = Config.get_section("tende")
 
@@ -59,19 +61,26 @@ class CurtainsClient:
 
     def set_action(self, action):
         request = curtains_pb2.CurtainsRequest(action=action)
+        if self._health.is_down():
+            return {"error": "crac-server channel is down"}
         try:
             response = self.stub.SetAction(request, timeout=5.0)
+            self._health.record_success()
             logger.debug(f"Curtains SetAction response: {response}")
             return self._parse_response(response)
         except grpc.RpcError as e:
+            self._health.record_failure()
             logger.error(f" ❌ gRPC error (curtains action): {e.details()}")
             return {"error": str(e.details())}
-    
+
     def get_status(self):
         """Ottiene lo stato delle tende inviando l'azione CHECK_CURTAIN."""
         request = curtains_pb2.CurtainsRequest(action=curtains_pb2.CurtainsAction.CHECK_CURTAIN)
+        if self._health.is_down():
+            return {"error": "crac-server channel is down"}
         try:
-            response = self.stub.SetAction(request, timeout=5.0)
+            response = self.stub.SetAction(request, timeout=1.5)
+            self._health.record_success()
             logger.debug(f"Curtains CheckCurtain response: {response}")
             try:
                 return self._parse_response(response) # 🛑 Il crash avviene qui
@@ -79,6 +88,7 @@ class CurtainsClient:
                 logger.error(f" ❌ Parsing error in _parse_response: {parse_error}")
                 return {"error": f"Parsing failed: {parse_error}", "curtains": []}
         except grpc.RpcError as e:
+            self._health.record_failure()
             logger.error(f" ❌ gRPC error (curtains status): {e.details()}")
             return {"error": str(e.details())}
     
