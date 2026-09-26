@@ -264,3 +264,32 @@ async def _failed_newest_generation_scenario(tmp_path):
             return_exceptions=True), timeout=2)
 
     assert [type(result) for result in results[1:]] == [OSError, OSError]
+
+
+def test_a_slow_airmass_computation_lets_the_other_requests_through():
+    asyncio.run(_slow_airmass_scenario())
+
+
+async def _slow_airmass_scenario():
+    """compute_airmass may load or download IERS tables, so it runs off the event loop."""
+    def slow_airmass(*args):
+        sleep(0.3)
+        return 1.2
+
+    order = []
+
+    async def airmass_request():
+        await map_router.get_airmass()
+        order.append("airmass")
+
+    async def other_request():
+        await asyncio.sleep(0.05)
+        order.append("other request")
+
+    with patch.object(map_router.geo_client, "get_geographic_data", AsyncMock(return_value=_GEO)), \
+         patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=_CCD)), \
+         patch.object(map_router.telescope_client, "get_status", return_value={"status": "TELESCOPE_TRACKING", "eq_coords": {"ra": 1.0, "dec": 2.0}}), \
+         patch.object(map_router, "compute_airmass", slow_airmass):
+        await asyncio.gather(airmass_request(), other_request())
+
+    assert order == ["other request", "airmass"]

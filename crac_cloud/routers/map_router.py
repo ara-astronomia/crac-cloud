@@ -178,7 +178,8 @@ async def get_airmass():
                 "message": "Connetti il telescopio per generare il grafico di tracking."
             }
 
-        airmass_now = compute_airmass(
+        airmass_now = await asyncio.to_thread(
+            compute_airmass,
             data["geo_data"],
             data["eq_coords"]
         )
