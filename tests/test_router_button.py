@@ -1,4 +1,5 @@
 import inspect
+import time
 from unittest.mock import MagicMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -61,6 +62,36 @@ class TestSetAction:
         resp = _http_with(MagicMock()).post("/buttons/set_action", json={"action": "NOPE"})
 
         assert resp.json()["status"] == "error"
+
+
+class TestGetAllButtonStatuses:
+    def test_reads_all_switches_and_the_autolight_once(self):
+        service = MagicMock()
+        service.button_client.get_single_switch_status.side_effect = lambda key, type_enum: {"key": key}
+        service.telescope_client.get_autolight_status.return_value = {"key": "KEY_AUTOLIGHT"}
+
+        resp = _http_with(service).get("/buttons/status")
+
+        keys = [button["key"] for button in resp.json()["buttons"]]
+        assert keys == ["KEY_TELE_SWITCH", "KEY_CCD_SWITCH", "KEY_FLAT_LIGHT", "KEY_DOME_LIGHT", "KEY_AUTOLIGHT"]
+
+    def test_a_hung_server_costs_one_read_not_five(self):
+        def slow_switch(key, type_enum):
+            time.sleep(0.3)
+            return {"key": key}
+
+        def slow_autolight():
+            time.sleep(0.3)
+            return {"key": "KEY_AUTOLIGHT"}
+
+        service = MagicMock()
+        service.button_client.get_single_switch_status.side_effect = slow_switch
+        service.telescope_client.get_autolight_status.side_effect = slow_autolight
+
+        start = time.monotonic()
+        _http_with(service).get("/buttons/status")
+
+        assert time.monotonic() - start < 0.6
 
 
 class TestSetAutolightAction:

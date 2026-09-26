@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 import grpc
 from fastapi import APIRouter,Depends, HTTPException
 from pydantic import BaseModel
@@ -140,35 +141,39 @@ def set_action(request: ButtonActionRequest, service: get_grpc_container = Depen
         return _run_default_action(request, action_enum, service)
     return {"status": "error", "message": f"Action '{request.action}' not handled by this router."}
 
+SWITCH_KEYS = {
+    "KEY_TELE_SWITCH": "TELE_SWITCH",
+    "KEY_CCD_SWITCH": "CCD_SWITCH",
+    "KEY_FLAT_LIGHT": "FLAT_LIGHT",
+    "KEY_DOME_LIGHT": "DOME_LIGHT",
+}
+
+
+def _switch_status(service, key_str, type_str):
+    try:
+        return service.button_client.get_single_switch_status(key_str, button_pb2.ButtonType.Value(type_str))
+    except Exception as e:
+        logger.error(f"❌ Error while fetching the status for {key_str}: {e}")
+        return {"key": key_str, "status": "ERROR", "button_gui": {}}
+
+
+def _autolight_status(service):
+    try:
+        return service.telescope_client.get_autolight_status()
+    except Exception as e:
+        logger.error(f"❌ Error while fetching the autolight: {e}")
+        return None
+
+
 @router.get("/status")
 def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc_container)):
-    """Fetches the current status of all switches (and their GUI data) for the master refresh."""
-    all_statuses = []
+    """Fetches all switch statuses and the autolight in parallel: with crac-server
+    hung, the poll costs one read timeout instead of one per switch."""
+    with ThreadPoolExecutor(max_workers=len(SWITCH_KEYS) + 1) as pool:
+        switches = [pool.submit(_switch_status, service, key, type_str) for key, type_str in SWITCH_KEYS.items()]
+        autolight = pool.submit(_autolight_status, service)
 
-    switch_keys_to_check = {
-        "KEY_TELE_SWITCH": "TELE_SWITCH",
-        "KEY_CCD_SWITCH": "CCD_SWITCH",
-        "KEY_FLAT_LIGHT": "FLAT_LIGHT",
-        "KEY_DOME_LIGHT": "DOME_LIGHT",
-    }
-
-    for key_str, type_str in switch_keys_to_check.items():
-        try:
-            type_enum = button_pb2.ButtonType.Value(type_str)
-            status_data = service.button_client.get_single_switch_status(key_str, type_enum)
-
-            all_statuses.append(status_data)
-            logger.debug(f"Status fetched for {key_str}: {status_data}")
-
-        except Exception as e:
-            logger.error(f"❌ Error while fetching the status for {key_str}: {e}")
-            all_statuses.append({"key": key_str, "status": "ERROR", "button_gui": {}})
-
-        try:
-            autolight_status = service.telescope_client.get_autolight_status()
-            all_statuses.append(autolight_status)
-
-        except Exception as e:
-            logger.error(f"❌ Error while fetching the autolight: {e}")
-
+    all_statuses = [switch.result() for switch in switches]
+    if autolight.result() is not None:
+        all_statuses.append(autolight.result())
     return {"buttons": all_statuses}
