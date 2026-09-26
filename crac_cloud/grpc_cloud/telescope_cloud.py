@@ -47,8 +47,11 @@ class TelescopeClient:
                 "is_checkbox": True
             }
 
-        except Exception as e:
+        except grpc.RpcError as e:
             self._health.record_failure()
+            logger.error(f" ❌ Error while fetching the autolight status: {e}")
+            return {"key": "KEY_AUTOLIGHT", "status": "UNKNOWN"}
+        except Exception as e:
             logger.error(f" ❌ Error while fetching the autolight status: {e}")
             return {"key": "KEY_AUTOLIGHT", "status": "UNKNOWN"}
 

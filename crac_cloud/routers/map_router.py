@@ -27,6 +27,7 @@ geo_client = GeographicClient(host=grpc_host, port=grpc_port)
 image_config_client = ImageConfigClient(host=grpc_host, port=grpc_port)
 telescope_client = TelescopeClient(host=grpc_host, port=grpc_port)
 LAST_EQ_COORDS = None
+MAP_GENERATION_LOCK = asyncio.Lock()
 
 
 def _static_map_response(image_name: str) -> Response:
@@ -118,12 +119,13 @@ async def get_tracking_chart(t: float = None):
         if data["eq_coords"] is None:
             return _static_map_response("airmass_not_available.png")
 
-        _, map2_path = await asyncio.to_thread(
-            generate_telescope_maps,
-            data["geo_data"],
-            data["eq_coords"],
-            data["ccd_data"]
-        )
+        async with MAP_GENERATION_LOCK:
+            _, map2_path = await asyncio.to_thread(
+                generate_telescope_maps,
+                data["geo_data"],
+                data["eq_coords"],
+                data["ccd_data"]
+            )
         with open(map2_path, 'rb') as f:
             image_data = f.read()
 
@@ -155,12 +157,13 @@ async def get_fixed_sky_map(t: float = None):
         logger.debug(f"Eq coordinates changed? {coords_have_changed}")  
 
         if coords_have_changed:
-            map1_path, _ = await asyncio.to_thread(
-                generate_telescope_maps,
-                data["geo_data"],
-                data["eq_coords"],
-                data["ccd_data"]
-            )
+            async with MAP_GENERATION_LOCK:
+                map1_path, _ = await asyncio.to_thread(
+                    generate_telescope_maps,
+                    data["geo_data"],
+                    data["eq_coords"],
+                    data["ccd_data"]
+                )
         else:
             logger.debug("Eq coordinates unchanged, reusing the last generated map.")
             map1_path = os.path.join(OUTPUT_DIR, MAP1_FILENAME)

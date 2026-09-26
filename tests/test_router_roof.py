@@ -69,6 +69,24 @@ class TestGetRoofStatus:
         assert resp.status_code == 200
         assert resp.json()["status"] == "ERROR"
 
+    def test_a_parsing_error_does_not_mark_the_channel_down(self):
+        """La RPC e' andata a buon fine: un bug nel parsing della risposta
+        non e' un crac-server irraggiungibile e non deve avvelenare l'health
+        condivisa con set_action."""
+        with patch.object(roof_router.roof_client.stub, "SetAction", return_value=MagicMock()), \
+             patch.object(roof_router.roof_client, "_parse_roof_response", side_effect=ValueError("boom")):
+            resp = http.get("/roof/status")
+
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ERROR"
+        assert roof_router.roof_client._health.is_down() is False
+
+    def test_a_real_grpc_error_still_marks_the_channel_down(self):
+        with patch.object(roof_router.roof_client.stub, "SetAction", side_effect=FakeRpcError()):
+            http.get("/roof/status")
+
+        assert roof_router.roof_client._health.is_down() is True
+
 
 class TestSetRoofActionRunsInThreadPool:
     def test_route_is_not_a_coroutine(self):

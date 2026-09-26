@@ -3,11 +3,19 @@ from unittest.mock import MagicMock, patch
 from fastapi import HTTPException
 from crac_cloud.grpc_cloud.telescope_cloud import TelescopeClient
 from crac_protobuf import telescope_pb2, button_pb2
+from tests.conftest import FakeRpcError
 
 
 @pytest.fixture(scope="module")
 def client():
     return TelescopeClient(host="localhost", port=50051)
+
+
+@pytest.fixture(autouse=True)
+def _reset_channel_health(client):
+    """client e' module-scoped: un test che marca il canale giu' non deve
+    sporcare i test successivi che non se lo aspettano."""
+    client._health.record_success()
 
 
 def _first_enum_value(enum_type):
@@ -125,3 +133,27 @@ class TestFastFailOnDownChannel:
 
         mock_set_action.assert_not_called()
         assert result == {"error": "crac-server channel is down"}
+
+
+class _BrokenAutolightResponse:
+    """La RPC risponde, ma leggere un campo (qui .speed) solleva un errore
+    non di rete - non deve marcare giu' un canale in realta' sano."""
+
+    @property
+    def speed(self):
+        raise AttributeError("autolight")
+
+
+class TestGetAutolightStatusDoesNotPoisonHealth:
+    def test_a_non_grpc_error_does_not_mark_the_channel_down(self, client):
+        with patch.object(client.stub, "SetAction", return_value=_BrokenAutolightResponse()):
+            result = client.get_autolight_status()
+
+        assert result == {"key": "KEY_AUTOLIGHT", "status": "UNKNOWN"}
+        assert client._health.is_down() is False
+
+    def test_a_real_grpc_error_still_marks_the_channel_down(self, client):
+        with patch.object(client.stub, "SetAction", side_effect=FakeRpcError()):
+            client.get_autolight_status()
+
+        assert client._health.is_down() is True

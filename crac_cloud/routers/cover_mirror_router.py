@@ -1,4 +1,5 @@
 import logging
+import grpc
 from fastapi import APIRouter
 from crac_cloud.grpc_cloud.cover_mirror_cloud import CoverMirrorClient
 from crac_protobuf import cover_mirror_pb2
@@ -42,11 +43,23 @@ def get_cover_mirror_status():
         response = cover_mirror_client.stub.SetAction(request, timeout=1.5)
         cover_mirror_client._health.record_success()
         logger.debug(f"Mirror cover get_status response: {response}")
+    except grpc.RpcError as e:
+        cover_mirror_client._health.record_failure()
+        logger.error(f"❌ Error while requesting the mirror cover status: {e}")
+        return {
+            "status": "ERROR",
+            "gui": {
+                "label": "LABEL_ERROR",
+                "is_disabled": True,
+                "button_color": {"text_color": "white", "background_color": "red"}
+            },
+            "error": str(e)
+        }
+    try:
         parsed_data = cover_mirror_client._parse_cover_mirror_response(response)
         logger.debug(f"Full response sent to the frontend: {parsed_data}")
         return parsed_data
     except Exception as e:
-        cover_mirror_client._health.record_failure()
         logger.error(f"❌ Error while requesting the mirror cover status: {e}")
         return {
             "status": "ERROR",

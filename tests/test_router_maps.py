@@ -1,4 +1,5 @@
 import asyncio
+import threading
 from time import sleep
 from unittest.mock import AsyncMock, patch
 
@@ -66,6 +67,35 @@ async def _slow_tracking_chart_scenario():
         await asyncio.gather(mappa(), altra_richiesta())
 
     assert ordine == ["altra richiesta", "mappa"]
+
+
+def test_concurrent_map_requests_do_not_run_generation_in_parallel():
+    asyncio.run(_concurrent_map_generation_scenario())
+
+
+async def _concurrent_map_generation_scenario():
+    """generate_telescope_maps usa stato globale di matplotlib e scrive su
+    path fissi per entrambe le mappe: due generazioni in thread paralleli
+    possono corrompersi a vicenda invece di limitarsi a non bloccare il loop."""
+    lock = threading.Lock()
+    state = {"concurrent": 0, "max_concurrent": 0}
+
+    def generazione(*args, **kwargs):
+        with lock:
+            state["concurrent"] += 1
+            state["max_concurrent"] = max(state["max_concurrent"], state["concurrent"])
+        sleep(0.1)
+        with lock:
+            state["concurrent"] -= 1
+        return ("/dev/null", "/dev/null")
+
+    with patch.object(map_router.geo_client, "get_geographic_data", AsyncMock(return_value=_GEO)), \
+         patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=_CCD)), \
+         patch.object(map_router.telescope_client, "get_status", return_value={"status": "TELESCOPE_TRACKING", "eq_coords": {"ra": 99.0, "dec": 88.0}}), \
+         patch.object(map_router, "generate_telescope_maps", generazione):
+        await asyncio.gather(map_router.get_tracking_chart(), map_router.get_fixed_sky_map())
+
+    assert state["max_concurrent"] == 1
 
 
 def test_a_slow_sky_map_generation_lets_the_other_requests_through():
