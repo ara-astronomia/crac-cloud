@@ -10,10 +10,6 @@ const STATUS_TIMEOUT_MS = 3000;
 // crac-cloud waits up to 5 s for it: give up just after that, not before.
 const SLOW_STATUS_TIMEOUT_MS = 6000;
 
-// This read makes eight gRPC round trips - four switches plus the autolight -
-// so the other deadlines are no measure for it.
-const BUTTONS_TIMEOUT_MS = 9000;
-
 /** Never throws: a request that does not come back resolves to { error }, the
  *  shape crac-cloud already answers with when crac-server is unreachable. */
 async function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
@@ -88,7 +84,7 @@ export const coverMirrorApi = {
 };
 
 export const buttonsApi = {
-    getStatus:   ()                          => apiGet('/buttons/status', BUTTONS_TIMEOUT_MS),
+    getStatus:   ()                          => apiGet('/buttons/status', STATUS_TIMEOUT_MS),
     toggle:      (key, action = 'TURN_ON')   => apiPost('/buttons/set_action', { key, action }),
 };
 
