@@ -1,6 +1,5 @@
 # crac_cloud/routers/roof_router.py
 import logging
-import grpc
 from fastapi import APIRouter
 from crac_cloud.grpc_cloud.roof_cloud import RoofClient
 from crac_protobuf import roof_pb2
@@ -26,51 +25,8 @@ roof_client = RoofClient(host=grpc_host, port=grpc_port)
 # Aggiungi l'endpoint GET per lo stato
 @router.get("/status")
 def get_roof_status():
-
     """Endpoint per ottenere lo stato attuale del tetto."""
-    if roof_client._health.is_down():
-        return {
-            "status": "ERROR",
-            "gui": {
-                "label": "LABEL_ERROR",
-                "is_disabled": True,
-                "button_color": {"text_color": "white", "background_color": "red"}
-            },
-            "error": "crac-server channel is down"
-        }
-    try:
-        # L'azione CHECK_ROOF è definita nel tuo roof.proto
-        request = roof_pb2.RoofRequest(action=roof_pb2.RoofAction.CHECK_ROOF)
-        response = roof_client.stub.SetAction(request, timeout=1.5)
-        roof_client._health.record_success()
-    except grpc.RpcError as e:
-        roof_client._health.record_failure()
-        logger.error(f" ❌ Error while requesting the roof status: {e}")
-        return {
-            "status": "ERROR",
-            "gui": {
-                "label": "LABEL_ERROR",
-                "is_disabled": True,
-                "button_color": {"text_color": "white", "background_color": "red"}
-            },
-            "error": str(e)
-        }
-    try:
-        parsed_data = roof_client._parse_roof_response(response)
-        logger.debug(f"Full response sent to the frontend: {parsed_data}")
-        return parsed_data
-    except Exception as e:
-        logger.error(f" ❌ Error while requesting the roof status: {e}")
-        # Restituisci uno stato di errore ben definito
-        return {
-            "status": "ERROR",
-            "gui": {
-                "label": "LABEL_ERROR",
-                "is_disabled": True,
-                "button_color": {"text_color": "white", "background_color": "red"}
-            },
-            "error": str(e)
-        }
+    return roof_client.get_status()
 
 # Aggiungi l'endpoint POST per le azioni
 @router.post("/set_action")

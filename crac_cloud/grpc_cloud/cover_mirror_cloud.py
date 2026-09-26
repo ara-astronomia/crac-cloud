@@ -8,6 +8,18 @@ from .channel_health import ChannelHealth
 logger = logging.getLogger(__name__)
 
 
+def _error_status(message: str) -> dict:
+    return {
+        "status": "ERROR",
+        "gui": {
+            "label": "LABEL_ERROR",
+            "is_disabled": True,
+            "button_color": {"text_color": "white", "background_color": "red"},
+        },
+        "error": message,
+    }
+
+
 class CoverMirrorClient:
     def __init__(self, host: str, port: int):
         self.channel = grpc.insecure_channel(f'{host}:{port}')
@@ -48,3 +60,21 @@ class CoverMirrorClient:
             self._health.record_failure()
             logger.error(f" ❌ gRPC error (mirror cover action): {e.details()}")
             return {"error": str(e.details())}
+
+    def get_status(self):
+        """Endpoint per ottenere lo stato attuale della copertura dello specchio."""
+        if self._health.is_down():
+            return _error_status("crac-server channel is down")
+        request = cover_mirror_pb2.CoverMirrorRequest(action=cover_mirror_pb2.CoverMirrorAction.CHECK_COVER_MIRROR)
+        try:
+            response = self.stub.SetAction(request, timeout=1.5)
+            self._health.record_success()
+        except grpc.RpcError as e:
+            self._health.record_failure()
+            logger.error(f"❌ Error while requesting the mirror cover status: {e}")
+            return _error_status(str(e.details()))
+        try:
+            return self._parse_cover_mirror_response(response)
+        except Exception as e:
+            logger.error(f"❌ Error while requesting the mirror cover status: {e}")
+            return _error_status(str(e))

@@ -1,10 +1,9 @@
 import inspect
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import crac_cloud.routers.roof_router as roof_router
-from tests.conftest import FakeRpcError
 
 app = FastAPI()
 app.include_router(roof_router.router)
@@ -29,63 +28,17 @@ _PARSED_OK = {
 
 
 class TestGetRoofStatus:
-    def test_returns_parsed_data(self):
-        with patch.object(roof_router.roof_client.stub, "SetAction", return_value=MagicMock()), \
-             patch.object(roof_router.roof_client, "_parse_roof_response", return_value=_PARSED_OK):
+    """Il comportamento (timeout, fast-fail, gestione errori) e' testato a
+    livello di RoofClient.get_status() in test_roof_client.py; qui verifico
+    solo che la route deleghi al client."""
+
+    def test_delegates_to_the_client(self):
+        with patch.object(roof_router.roof_client, "get_status", return_value=_PARSED_OK) as mock:
             resp = http.get("/roof/status")
+
+        mock.assert_called_once()
         assert resp.status_code == 200
         assert resp.json() == _PARSED_OK
-
-    def test_grpc_error_returns_error_status(self):
-        with patch.object(roof_router.roof_client.stub, "SetAction", side_effect=FakeRpcError()):
-            resp = http.get("/roof/status")
-        body = resp.json()
-        assert resp.status_code == 200
-        assert body["status"] == "ERROR"
-        assert body["gui"]["is_disabled"] is True
-
-    def test_uses_short_timeout_for_a_fast_read(self):
-        """Lo status risponde in pochi ms a stack sano: senza un timeout
-        esplicito la richiesta puo' restare appesa a tempo indefinito quando
-        crac-server non risponde."""
-        captured = {}
-
-        def fake_set_action(request, **kwargs):
-            captured.update(kwargs)
-            return MagicMock()
-
-        with patch.object(roof_router.roof_client.stub, "SetAction", side_effect=fake_set_action), \
-             patch.object(roof_router.roof_client, "_parse_roof_response", return_value=_PARSED_OK):
-            http.get("/roof/status")
-
-        assert captured["timeout"] == 1.5
-
-    def test_skips_the_call_when_the_channel_is_down(self):
-        with patch.object(roof_router.roof_client._health, "is_down", return_value=True), \
-             patch.object(roof_router.roof_client.stub, "SetAction") as mock_set_action:
-            resp = http.get("/roof/status")
-
-        mock_set_action.assert_not_called()
-        assert resp.status_code == 200
-        assert resp.json()["status"] == "ERROR"
-
-    def test_a_parsing_error_does_not_mark_the_channel_down(self):
-        """La RPC e' andata a buon fine: un bug nel parsing della risposta
-        non e' un crac-server irraggiungibile e non deve avvelenare l'health
-        condivisa con set_action."""
-        with patch.object(roof_router.roof_client.stub, "SetAction", return_value=MagicMock()), \
-             patch.object(roof_router.roof_client, "_parse_roof_response", side_effect=ValueError("boom")):
-            resp = http.get("/roof/status")
-
-        assert resp.status_code == 200
-        assert resp.json()["status"] == "ERROR"
-        assert roof_router.roof_client._health.is_down() is False
-
-    def test_a_real_grpc_error_still_marks_the_channel_down(self):
-        with patch.object(roof_router.roof_client.stub, "SetAction", side_effect=FakeRpcError()):
-            http.get("/roof/status")
-
-        assert roof_router.roof_client._health.is_down() is True
 
 
 class TestSetRoofActionRunsInThreadPool:
