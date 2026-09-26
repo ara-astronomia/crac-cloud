@@ -25,6 +25,7 @@ LAST_EQ_COORDS = None
 MAP_GENERATION = asyncio.Condition()
 SKY_MAP_REQUESTS = 0
 SKY_MAP_SERVED = 0
+SKY_MAP_ERROR = None
 
 
 def _static_map_response(image_name: str) -> Response:
@@ -116,9 +117,9 @@ async def get_tracking_chart(t: float = None):
 @router.get("/sky_map_fixed")
 async def get_fixed_sky_map(t: float = None):
     """Only the newest queued request compares and regenerates; the older ones
-    wait for it and serve its map, so a slew or a second viewer never gets a
-    stale map nor a queue of generations."""
-    global LAST_EQ_COORDS, SKY_MAP_REQUESTS, SKY_MAP_SERVED
+    wait for it and serve its map, or fail with it, so a slew or a second viewer
+    never gets a stale map nor a queue of generations."""
+    global LAST_EQ_COORDS, SKY_MAP_REQUESTS, SKY_MAP_SERVED, SKY_MAP_ERROR
     try:
         data = await _get_all_required_data()
         if data["eq_coords"] is None:
@@ -135,7 +136,10 @@ async def get_fixed_sky_map(t: float = None):
         async with MAP_GENERATION:
             if ticket != SKY_MAP_REQUESTS:
                 await MAP_GENERATION.wait_for(lambda: SKY_MAP_SERVED >= ticket)
+                if SKY_MAP_ERROR is not None:
+                    raise SKY_MAP_ERROR
             else:
+                SKY_MAP_ERROR = None
                 try:
                     if eq_coords_changed(data["eq_coords"]):
                         map1_path, _ = await asyncio.to_thread(
@@ -145,6 +149,9 @@ async def get_fixed_sky_map(t: float = None):
                             data["ccd_data"]
                         )
                         LAST_EQ_COORDS = data["eq_coords"]
+                except Exception as e:
+                    SKY_MAP_ERROR = e
+                    raise
                 finally:
                     SKY_MAP_SERVED = ticket
                     MAP_GENERATION.notify_all()

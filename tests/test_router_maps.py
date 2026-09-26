@@ -1,3 +1,5 @@
+"""Every map test patches MAP_GENERATION with its own Condition: an asyncio
+primitive binds to the first event loop that waits on it."""
 import asyncio
 import itertools
 import threading
@@ -61,7 +63,8 @@ async def _slow_tracking_chart_scenario():
     with patch.object(map_router.geo_client, "get_geographic_data", AsyncMock(return_value=_GEO)), \
          patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=_CCD)), \
          patch.object(map_router.telescope_client, "get_status", return_value={"status": "TELESCOPE_TRACKING", "eq_coords": {"ra": 1.0, "dec": 2.0}}), \
-         patch.object(map_router, "generate_telescope_maps", slow_generation):
+         patch.object(map_router, "generate_telescope_maps", slow_generation), \
+         patch.object(map_router, "MAP_GENERATION", asyncio.Condition()):
         await asyncio.gather(map_request(), other_request())
 
     assert order == ["other request", "map"]
@@ -73,8 +76,7 @@ def test_concurrent_map_requests_do_not_run_generation_in_parallel():
 
 async def _concurrent_map_generation_scenario():
     """generate_telescope_maps uses matplotlib's global state and fixed output
-    paths, so two map requests never generate in parallel. Each test gets its
-    own condition: an asyncio primitive binds to the first event loop that waits on it."""
+    paths, so two map requests never generate in parallel."""
     lock = threading.Lock()
     state = {"concurrent": 0, "max_concurrent": 0}
 
@@ -122,7 +124,8 @@ async def _slow_sky_map_scenario():
          patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=_CCD)), \
          patch.object(map_router.telescope_client, "get_status", return_value={"status": "TELESCOPE_TRACKING", "eq_coords": {"ra": 1.0, "dec": 2.0}}), \
          patch.object(map_router, "generate_telescope_maps", slow_generation), \
-         patch.object(map_router, "LAST_EQ_COORDS", None):
+         patch.object(map_router, "LAST_EQ_COORDS", None), \
+         patch.object(map_router, "MAP_GENERATION", asyncio.Condition()):
         await asyncio.gather(map_request(), other_request())
 
     assert order == ["other request", "map"]
@@ -175,7 +178,8 @@ async def _failed_generation_scenario(tmp_path):
          patch.object(map_router.telescope_client, "get_status", return_value={"status": "TELESCOPE_TRACKING", "eq_coords": {"ra": 5.0, "dec": 6.0}}), \
          patch.object(map_router, "generate_telescope_maps", generation), \
          patch.object(map_router, "OUTPUT_DIR", str(tmp_path)), \
-         patch.object(map_router, "LAST_EQ_COORDS", {"ra": 1.0, "dec": 2.0}):
+         patch.object(map_router, "LAST_EQ_COORDS", {"ra": 1.0, "dec": 2.0}), \
+         patch.object(map_router, "MAP_GENERATION", asyncio.Condition()):
         try:
             await map_router.get_fixed_sky_map()
         except OSError:
@@ -221,3 +225,42 @@ async def _slew_scenario(tmp_path):
 
     assert len(generated) == 2
     assert second.body == third.body == f"ra {generated[-1]}".encode()
+
+
+def test_queued_sky_map_requests_fail_with_the_newest_generation(tmp_path):
+    asyncio.run(_failed_newest_generation_scenario(tmp_path))
+
+
+async def _failed_newest_generation_scenario(tmp_path):
+    """When the newest generation fails, the requests it superseded fail too,
+    instead of hanging or serving the previous pointing's map as current."""
+    map_path = tmp_path / map_router.MAP1_FILENAME
+    map_path.write_bytes(b"previous pointing")
+    pointings = itertools.count(1)
+    generations = itertools.count(1)
+
+    def moving_telescope():
+        return {"status": "TELESCOPE_SLEWING", "eq_coords": {"ra": float(next(pointings)), "dec": 0.0}}
+
+    def generation(*args, **kwargs):
+        sleep(0.2)
+        if next(generations) == 2:
+            raise OSError("DSS download failed")
+        return (str(map_path), str(map_path))
+
+    async def later_request():
+        await asyncio.sleep(0.05)
+        return await map_router.get_fixed_sky_map()
+
+    with patch.object(map_router.geo_client, "get_geographic_data", AsyncMock(return_value=_GEO)), \
+         patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=_CCD)), \
+         patch.object(map_router.telescope_client, "get_status", moving_telescope), \
+         patch.object(map_router, "generate_telescope_maps", generation), \
+         patch.object(map_router, "OUTPUT_DIR", str(tmp_path)), \
+         patch.object(map_router, "LAST_EQ_COORDS", None), \
+         patch.object(map_router, "MAP_GENERATION", asyncio.Condition()):
+        results = await asyncio.wait_for(asyncio.gather(
+            map_router.get_fixed_sky_map(), later_request(), later_request(),
+            return_exceptions=True), timeout=2)
+
+    assert [type(result) for result in results[1:]] == [OSError, OSError]
