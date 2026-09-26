@@ -4,7 +4,7 @@ import grpc
 from crac_protobuf import roof_pb2
 from crac_protobuf import roof_pb2_grpc
 from crac_protobuf import button_pb2
-from .channel_health import ChannelHealth
+from .channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE
 
 logger = logging.getLogger(__name__)
 
@@ -28,41 +28,36 @@ class RoofClient:
         self._health = ChannelHealth()
 
     def _parse_roof_response(self, response: roof_pb2.RoofResponse):
-        """Parsing della risposta del tetto per includere i dati della GUI."""
+        """Parses the roof response, including the GUI data."""
         gui = response.button_gui
         color_data = {
             "text_color": "white",
             "background_color": "gray",
         }
-        
-        # 🎯 Verifica se i dati del colore sono presenti nel proto di Roof
-        # Assumiamo che RoofResponse.button_gui.button_color sia un messaggio
+
         if gui.HasField("button_color"):
              color_data = {
-                "text_color": gui.button_color.text_color, 
+                "text_color": gui.button_color.text_color,
                 "background_color": gui.button_color.background_color,
             }
         return {
             "status": roof_pb2.RoofStatus.Name(response.status),
-            "gui": { # Usiamo "gui" per coerenza con il JS
+            "gui": {
                 "metadata": gui.metadata,
-                "label": button_pb2.ButtonLabel.Name(gui.label), 
+                "label": button_pb2.ButtonLabel.Name(gui.label),
                 "is_disabled": gui.is_disabled,
-                # Includiamo il colore
-                "button_color": color_data 
+                "button_color": color_data
             }
         }
-        
-    def set_action(self, action_enum): #roof_pb2.RoofAction):
-        """Invia un'azione (apri/chiudi) al tetto scorrevole e parsifica la risposta."""
+
+    def set_action(self, action_enum):
+        """Sends an open/close action to the sliding roof and parses the response."""
         request = roof_pb2.RoofRequest(action=action_enum)
         if self._health.is_down():
-            return {"error": "crac-server channel is down"}
+            return {"error": CHANNEL_DOWN_MESSAGE}
         try:
             response = self.stub.SetAction(request, timeout=5.0)
             self._health.record_success()
-
-            # 🎯 USA IL PARSING QUI
             return self._parse_roof_response(response)
 
         except grpc.RpcError as e:
@@ -71,9 +66,9 @@ class RoofClient:
             return {"error": str(e.details())}
 
     def get_status(self):
-        """Endpoint per ottenere lo stato attuale del tetto."""
+        """Fetches the roof's current status."""
         if self._health.is_down():
-            return _error_status("crac-server channel is down")
+            return _error_status(CHANNEL_DOWN_MESSAGE)
         request = roof_pb2.RoofRequest(action=roof_pb2.RoofAction.CHECK_ROOF)
         try:
             response = self.stub.SetAction(request, timeout=1.5)

@@ -26,7 +26,7 @@ cover_mirror_client = CoverMirrorClient(host=grpc_host, port=grpc_port)
 
 @router.get("/status")
 def get_cover_mirror_status():
-    """Endpoint per ottenere lo stato attuale della copertura dello specchio."""
+    """Fetches the mirror cover's current status."""
     return cover_mirror_client.get_status()
 
 

@@ -2,7 +2,7 @@ import logging
 import grpc
 from fastapi import APIRouter,Depends, HTTPException
 from pydantic import BaseModel
-from typing import Optional 
+from typing import Optional
 from crac_cloud.grpc_cloud.button_cloud import ButtonClient
 from crac_protobuf import button_pb2, telescope_pb2
 from crac_cloud.config import Config
@@ -12,57 +12,47 @@ from crac_cloud.grpc_cloud.button_cloud import ButtonClient as ButtonsClient
 
 logger = logging.getLogger(__name__)
 
-# Definisci la classe Pydantic prima di usarla
 class ButtonActionRequest(BaseModel):
     action: str
     key: str | None = None
     type: str = None
-    value: Optional[bool] = None  # Aggiungi questo campo opzionale
+    value: Optional[bool] = None
 
-# Inizializza il router e il client gRPC
 router = APIRouter(
     prefix="/buttons",
     tags=["Button Actions"]
 )
-# Mappa delle chiavi dei bottoni ai loro tipi corrispondenti nel proto
+
 KEY_TO_TYPE_MAP = {
         "KEY_TELE_SWITCH": "TELE_SWITCH",
         "KEY_CCD_SWITCH": "CCD_SWITCH",
         "KEY_FLAT_LIGHT": "FLAT_LIGHT",
         "KEY_DOME_LIGHT": "DOME_LIGHT",
-        "KEY_PARK": "TELE_SWITCH", 
+        "KEY_PARK": "TELE_SWITCH",
         "KEY_FLAT": "TELE_SWITCH",
     }
 
 def get_buttons_client() -> ButtonsClient:
-    """Restituisce un'istanza del client gRPC per i pulsanti generici."""
-    # ⚠️ AGGIORNA HOST E PORTA SECONDO LA TUA CONFIGURAZIONE ⚠️
-    GRPC_HOST = "localhost"  
-    GRPC_PORT = 50051        # Usa la stessa porta se i servizi sono sullo stesso server
-    return ButtonsClient(host=GRPC_HOST, port=GRPC_PORT) # Assumendo la stessa porta gRPC
+    """Returns a gRPC client instance for the generic switches."""
+    GRPC_HOST = "localhost"
+    GRPC_PORT = 50051
+    return ButtonsClient(host=GRPC_HOST, port=GRPC_PORT)
 
 def set_autolight_action(autolight_value: bool, telescope_stub):
-    """
-    Crea e invia la richiesta gRPC per l'Autolight al TelescopeService,
-    utilizzando CHECK_TELESCOPE come azione placeholder.
-    """
-    
-    # 1. Definisci l'azione placeholder (dal tuo Enum)
-    ACTION_FOR_AUTOLIGHT = 'CHECK_TELESCOPE' 
-    
-    # 2. Crea il messaggio di richiesta del Telescopio
+    """Builds and sends the Autolight gRPC request to the TelescopeService,
+    using CHECK_TELESCOPE as a placeholder action."""
+    ACTION_FOR_AUTOLIGHT = 'CHECK_TELESCOPE'
+
     request = telescope_pb2.TelescopeRequest(
         action=telescope_pb2.TelescopeAction.Value(ACTION_FOR_AUTOLIGHT),
-        autolight=autolight_value  # ✅ Il campo booleano essenziale
+        autolight=autolight_value
     )
 
     try:
-        # 3. Chiama il metodo SetAction sullo stub del Telescopio
         logger.info(f"Sending autolight with action {ACTION_FOR_AUTOLIGHT}: {autolight_value}")
-        response = telescope_stub.SetAction(request) 
-        # ... (Logica di parsing della risposta) ...
+        response = telescope_stub.SetAction(request)
         return {"status": "ok", "message": "Autolight impostato"}
-        
+
     except grpc.RpcError as e:
         logger.error(f"❌ RPC error (autolight): {e.details()}")
         return {"status": "error", "message": f"Errore gRPC Autolight: {e.details()}"}
@@ -70,21 +60,18 @@ def set_autolight_action(autolight_value: bool, telescope_stub):
 
 @router.post("/set_action")
 def set_action(request: ButtonActionRequest, service: get_grpc_container = Depends(get_grpc_container)):
-    logger.debug(f"Action requested: {request.action}") # Debug utile
-    """
-    Gestisce tutte le azioni dei pulsanti in base all'azione richiesta dal frontend.
-    """
-     # 1. Tenta la conversione dell'Action Enum
+    """Handles all button actions based on what the frontend requests."""
+    logger.debug(f"Action requested: {request.action}")
     try:
         action_enum = button_pb2.ButtonAction.Value(request.action)
     except ValueError:
         logger.warning(f"Unknown action: {request.action}")
         return {"status": "error", "message": f"Unknown action: {request.action}"}
 
-    # --- BLOCCO 1: TURN_ON / TURN_OFF (Interruttori e Luci) ---
-    if request.action in ["TURN_ON", "TURN_OFF"]:  
+    # TURN_ON / TURN_OFF: switches and lights.
+    if request.action in ["TURN_ON", "TURN_OFF"]:
         try:
-            button_type_str = KEY_TO_TYPE_MAP[request.key] # Es: 'TELE_SWITCH'
+            button_type_str = KEY_TO_TYPE_MAP[request.key]
             type_enum = button_pb2.ButtonType.Value(button_type_str)
         except KeyError:
             logger.warning(f"Key not found in KEY_TO_TYPE_MAP: {request.key}")
@@ -93,17 +80,13 @@ def set_action(request: ButtonActionRequest, service: get_grpc_container = Depen
             logger.warning(f"Type not found in ButtonType: {button_type_str}")
             return {"status": "error", "message": f"Type '{button_type_str}' not found in ButtonType enum."}
 
-        # ⚠️ FASE 1 - OTTIENI LO STATO ATTUALE DAL SERVER ⚠️
         try:
-            # 💡 CHIAMATA CORRETTA: usa il nome corretto e passa ENTRAMBI gli argomenti
-            status_data = service.button_client.get_single_switch_status(request.key, type_enum) 
-            current_status = status_data.get("status") # Es: "ON" o "OFF"
+            status_data = service.button_client.get_single_switch_status(request.key, type_enum)
+            current_status = status_data.get("status")
             logger.debug(f"Current status for {request.key} is {current_status}")
         except Exception as e:
             logger.error(f" ❌ Error while fetching the status of {request.key}: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to check current status on server: {e}")
-        
-        # ... (omissis: FASE 2 - Logica di Commutazione e FASE 3 - Invio) ...       
 
         action_to_send_enum = None
         if current_status == "ON":
@@ -111,120 +94,88 @@ def set_action(request: ButtonActionRequest, service: get_grpc_container = Depen
         elif current_status == "OFF":
             action_to_send_enum = button_pb2.ButtonAction.TURN_ON
         else:
-            action_to_send_enum = action_enum 
-        
-        action_name = button_pb2.ButtonAction.Name(action_to_send_enum) 
+            action_to_send_enum = action_enum
+
+        action_name = button_pb2.ButtonAction.Name(action_to_send_enum)
         type_name = button_pb2.ButtonType.Name(type_enum)
-        # FASE 3 - INVIO DELL'AZIONE CORRETTA AL SERVER
-        
-        # 💡 NUOVA STAMPA: Cosa inviamo davvero?
-        logger.info(f"Sending gRPC action: {action_name} on type {type_name}") 
-        
+        logger.info(f"Sending gRPC action: {action_name} on type {type_name}")
+
         response_data = service.button_client.set_switch_action(
-            action=action_to_send_enum, # Azione corretta per la commutazione
-            button_type=type_enum 
-        )        
-        # 💡 NUOVA STAMPA: Cosa è tornato dal server CRAC?
-        logger.debug(f"Final gRPC response: {response_data}") 
+            action=action_to_send_enum,
+            button_type=type_enum
+        )
+        logger.debug(f"Final gRPC response: {response_data}")
         return response_data
 
-# ------------------------------------------------------------------
-    # --- BLOCCO 2: CHECKBOX Autolight ---
-    elif request.action == "CHECK_BUTTON": 
-        
-        # 1. Verifica la Chiave
+    # CHECK_BUTTON: the Autolight checkbox.
+    elif request.action == "CHECK_BUTTON":
         if request.key != 'KEY_AUTOLIGHT':
-             logger.warning(f"CHECK_BUTTON action received for an unsupported key: {request.key}")          
+             logger.warning(f"CHECK_BUTTON action received for an unsupported key: {request.key}")
              return {"status": "error", "message": f"SET_VALUE non supportato per la chiave: {request.key}"}
         else:
             logger.debug(f"Valid key for CHECK_BUTTON: {request.key}")
-        
-        # 2. Estrazione del Valore Booleano
-        # La richiesta FastAPI (Pydantic model) deve includere 'value: Optional[bool]'
-        # Assumendo che 'request' abbia un campo 'value'
-        
+
         if request.value is None:
             return {"status": "error", "message": "Il campo 'value' (boolean) è mancante per SET_VALUE."}
-            
-        autolight_value = request.value # ✅ Questo è il true/false
-        logger.debug(f"Autolight value received: {autolight_value}")        
-        # 3. Chiamata al servizio gRPC corretto (TelescopeRetriever)
+
+        autolight_value = request.value
+        logger.debug(f"Autolight value received: {autolight_value}")
         try:
-        # Chiama la funzione proxy con lo stub del Telescopio e il valore
             response_data = set_autolight_action(
             request.value,
-            service.telescope_client.stub # Passa lo stub gRPC corretto
+            service.telescope_client.stub
             )
             logger.debug(f"Final gRPC autolight response: {response_data}")
             return response_data
-            
+
         except Exception as e:
             logger.error(f" ❌ Error while setting the autolight: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to set Autolight status: {e}")
 
-# ------------------------------------------------------------------
-    # --- BLOCCO 3: BUTTON_DEFAULT_ACTION (Azioni Singole come PARK, FLAT, ecc.) ---
-    # Questa sezione si attiva se il frontend invia BUTTON_DEFAULT_ACTION.
+    # BUTTON_DEFAULT_ACTION: single actions such as PARK, FLAT, etc.
     if request.action == "BUTTON_DEFAULT_ACTION":
         try:
-            button_type_str = KEY_TO_TYPE_MAP[request.key] # Es: 'TELE_SWITCH'
+            button_type_str = KEY_TO_TYPE_MAP[request.key]
             type_enum_value = button_pb2.ButtonType.Value(button_type_str)
         except (KeyError, ValueError):
             logger.warning(f"Invalid key or type for the default action: {request.key}")
             return {"status": "error", "message": f"Unknown key or type for default action: {request.key}"}
-        
-        # Chiama gRPC inviando l'ID numerico della CHIAVE nel campo BUTTON_TYPE
-        # 💡 Ora invia l'ID numerico del ButtonType (un intero)
+
         return service.button_client.set_switch_action(
             action=action_enum,
-            button_type=type_enum_value # ✅ Usa il ButtonType ricavato dalla mappa
+            button_type=type_enum_value
         )
-    # --- ERRORE FINALE ---
     return {"status": "error", "message": f"Action '{request.action}' not handled by this router."}
 
 @router.get("/status")
 def get_all_button_statuses(service: get_grpc_container = Depends(get_grpc_container)):
-    """
-    Recupera lo stato attuale di tutti gli interruttori (e i loro dati GUI) per l'aggiornamento master.
-    """
+    """Fetches the current status of all switches (and their GUI data) for the master refresh."""
     all_statuses = []
-    
-    # Definisci esplicitamente le chiavi degli SWITCH che richiedono aggiornamento UI
-    # Usiamo le stesse chiavi definite nella KEY_TO_TYPE_MAP
+
     switch_keys_to_check = {
         "KEY_TELE_SWITCH": "TELE_SWITCH",
         "KEY_CCD_SWITCH": "CCD_SWITCH",
         "KEY_FLAT_LIGHT": "FLAT_LIGHT",
         "KEY_DOME_LIGHT": "DOME_LIGHT",
     }
-    
+
     for key_str, type_str in switch_keys_to_check.items():
         try:
-            # Converte ButtonType stringa in Enum per il client
             type_enum = button_pb2.ButtonType.Value(type_str)
-            
-            # Chiama il client gRPC per ottenere lo stato singolo. 
-            # Il client restituisce il JSON completo, incluso 'button_gui'.
             status_data = service.button_client.get_single_switch_status(key_str, type_enum)
-            
+
             all_statuses.append(status_data)
             logger.debug(f"Status fetched for {key_str}: {status_data}")
 
         except Exception as e:
-            # Gestisce l'errore per un singolo pulsante senza bloccare il resto
             logger.error(f"❌ Error while fetching the status for {key_str}: {e}")
-            # Invia uno stato di errore (grigio predefinito)
             all_statuses.append({"key": key_str, "status": "ERROR", "button_gui": {}})
 
         try:
-            # Assumiamo che il TelescopeClient sia esposto via service.telescope_client
-            autolight_status = service.telescope_client.get_autolight_status() 
+            autolight_status = service.telescope_client.get_autolight_status()
             all_statuses.append(autolight_status)
 
         except Exception as e:
             logger.error(f"❌ Error while fetching the autolight: {e}")
-            # Gestisci l'errore per non bloccare il polling    
 
-    # Restituisce un JSON con la lista di tutti gli stati
     return {"buttons": all_statuses}
-

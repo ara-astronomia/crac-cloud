@@ -4,7 +4,7 @@ import grpc
 from crac_protobuf import ups_pb2
 from crac_protobuf import ups_pb2_grpc
 from crac_protobuf import chart_pb2
-from .channel_health import ChannelHealth
+from .channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE
 
 logger = logging.getLogger(__name__)
 
@@ -15,16 +15,15 @@ class UpsClient:
         self._health = ChannelHealth()
 
     def get_status(self):
-        """Ottiene lo stato degli UPS e i dati per i grafici."""
+        """Fetches the UPS status and chart data."""
         request = ups_pb2.UpsRequest()
         if self._health.is_down():
-            return {"error": "crac-server channel is down"}
+            return {"error": CHANNEL_DOWN_MESSAGE}
         try:
             response = self.stub.GetStatus(request, timeout=5.0)
             self._health.record_success()
             charts_list = []
             for chart in response.charts:
-                # Parsing della chart
                 chart_data = {
                     "value": chart.chart.value,
                     "title": chart.chart.title,
@@ -35,7 +34,6 @@ class UpsClient:
                     "status": chart_pb2.ChartStatus.Name(chart.chart.status),
                 }
 
-                # Parsing degli stati della batteria
                 battery_statuses_list = [
                     ups_pb2.BatteryStatus.Name(status) for status in chart.battery_statuses
                 ]

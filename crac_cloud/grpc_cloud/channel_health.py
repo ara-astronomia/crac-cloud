@@ -1,10 +1,12 @@
 import time
 
+CHANNEL_DOWN_MESSAGE = "crac-server channel is down"
+
 
 class ChannelHealth:
-    """Fast-fail su un canale caduto: dopo record_failure() le chiamate
-    successive falliscono subito, per COOLDOWN_SECONDS, poi si riprova.
-    Il grpc.Channel sincrono non ha un get_state() diretto: lo stato lo teniamo noi."""
+    """Fast-fails a down channel: after record_failure(), calls fail
+    immediately for COOLDOWN_SECONDS, then retry. The sync grpc.Channel has
+    no direct get_state(): we track the state ourselves."""
 
     COOLDOWN_SECONDS = 2.0
 

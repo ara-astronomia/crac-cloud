@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch
 from crac_cloud.grpc_cloud.chart_cloud import ChartClient
+from crac_cloud.grpc_cloud.channel_health import CHANNEL_DOWN_MESSAGE
 
 
 @pytest.fixture(scope="module")
@@ -10,12 +11,12 @@ def client():
 
 class TestFastFailOnDownChannel:
     def test_get_status_skips_the_call(self, client):
-        """Sotto il meteo c'e' un urllib.request.urlopen senza timeout: il
-        fast-fail sul canale caduto evita comunque di aspettarlo quando
-        crac-server e' irraggiungibile."""
+        """Underneath the weather call there's an urllib.request.urlopen with
+        no timeout: fast-failing on a down channel avoids waiting for it
+        anyway when crac-server is unreachable."""
         with patch.object(client._health, "is_down", return_value=True), \
              patch.object(client.stub, "GetStatus") as mock_get_status:
             result = client.get_status()
 
         mock_get_status.assert_not_called()
-        assert result == {"error": "crac-server channel is down", "status": "SCONOSCIUTO"}
+        assert result == {"error": CHANNEL_DOWN_MESSAGE, "status": "SCONOSCIUTO"}

@@ -14,8 +14,8 @@ def test_a_slow_telescope_lets_the_other_requests_through():
 
 
 async def _slow_telescope_scenario():
-    """La lettura del telescopio e' sincrona: se resta sul loop, con crac-server
-    lento nessun'altra richiesta viene servita, /health compresa."""
+    """The telescope read is synchronous: if it stays on the loop, with a
+    slow crac-server no other request gets served, /health included."""
     def lettura_lenta():
         sleep(0.3)
         return {"status": "DISCONNECTED"}
@@ -43,9 +43,9 @@ def test_a_slow_tracking_chart_generation_lets_the_other_requests_through():
 
 
 async def _slow_tracking_chart_scenario():
-    """generate_telescope_maps scarica una lastra DSS e disegna con matplotlib
-    in modo sincrono: se resta sul loop, con crac-server lento nessun'altra
-    richiesta viene servita."""
+    """generate_telescope_maps downloads a DSS plate and draws with matplotlib
+    synchronously: if it stays on the loop, with a slow crac-server no other
+    request gets served."""
     def generazione_lenta(*args, **kwargs):
         sleep(0.3)
         return ("/dev/null", "/dev/null")
@@ -74,9 +74,9 @@ def test_concurrent_map_requests_do_not_run_generation_in_parallel():
 
 
 async def _concurrent_map_generation_scenario():
-    """generate_telescope_maps usa stato globale di matplotlib e scrive su
-    path fissi per entrambe le mappe: due generazioni in thread paralleli
-    possono corrompersi a vicenda invece di limitarsi a non bloccare il loop."""
+    """generate_telescope_maps uses matplotlib's global state and writes to
+    fixed paths for both maps: two generations on parallel threads could
+    corrupt each other instead of just not blocking the loop."""
     lock = threading.Lock()
     state = {"concurrent": 0, "max_concurrent": 0}
 
@@ -103,8 +103,8 @@ def test_a_slow_sky_map_generation_lets_the_other_requests_through():
 
 
 async def _slow_sky_map_scenario():
-    """Stesso difetto di get_tracking_chart: generate_telescope_maps sincrona
-    dentro una route async blocca il loop anche per get_fixed_sky_map."""
+    """Same defect as get_tracking_chart: synchronous generate_telescope_maps
+    inside an async route blocks the loop for get_fixed_sky_map too."""
     def generazione_lenta(*args, **kwargs):
         sleep(0.3)
         return ("/dev/null", "/dev/null")

@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.roof_cloud import RoofClient
+from crac_cloud.grpc_cloud.channel_health import CHANNEL_DOWN_MESSAGE
 from crac_protobuf import roof_pb2, button_pb2
 from tests.conftest import FakeRpcError
 
@@ -12,8 +13,8 @@ def client():
 
 @pytest.fixture(autouse=True)
 def _reset_channel_health(client):
-    """client e' module-scoped: un test che marca il canale giu' non deve
-    sporcare i test successivi che non se lo aspettano."""
+    """client is module-scoped: a test that marks the channel down must not
+    leak into subsequent tests that don't expect it."""
     client._health.record_success()
 
 
@@ -68,7 +69,7 @@ class TestFastFailOnDownChannel:
             result = client.set_action(roof_pb2.RoofAction.CLOSE)
 
         mock_set_action.assert_not_called()
-        assert result == {"error": "crac-server channel is down"}
+        assert result == {"error": CHANNEL_DOWN_MESSAGE}
 
 
 class TestGetStatus:
@@ -99,7 +100,7 @@ class TestGetStatus:
 
         mock_set_action.assert_not_called()
         assert result["status"] == "ERROR"
-        assert result["error"] == "crac-server channel is down"
+        assert result["error"] == CHANNEL_DOWN_MESSAGE
 
     def test_a_grpc_error_returns_error_status_and_marks_the_channel_down(self, client):
         with patch.object(client.stub, "SetAction", side_effect=FakeRpcError("boom")):
@@ -110,8 +111,8 @@ class TestGetStatus:
         assert client._health.is_down() is True
 
     def test_a_parsing_error_returns_error_status_without_marking_the_channel_down(self, client):
-        """La RPC e' andata a buon fine: un bug nel parsing della risposta
-        non e' un crac-server irraggiungibile."""
+        """The RPC succeeded: a bug in parsing the response is not an
+        unreachable crac-server."""
         with patch.object(client.stub, "SetAction", return_value=MagicMock()), \
              patch.object(client, "_parse_roof_response", side_effect=ValueError("boom")):
             result = client.get_status()

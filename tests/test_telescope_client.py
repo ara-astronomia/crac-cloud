@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from fastapi import HTTPException
 from crac_cloud.grpc_cloud.telescope_cloud import TelescopeClient
+from crac_cloud.grpc_cloud.channel_health import CHANNEL_DOWN_MESSAGE
 from crac_protobuf import telescope_pb2, button_pb2
 from tests.conftest import FakeRpcError
 
@@ -14,8 +15,8 @@ def client():
 
 @pytest.fixture(autouse=True)
 def _reset_channel_health(client):
-    """client e' module-scoped: un test che marca il canale giu' non deve
-    sporcare i test successivi che non se lo aspettano."""
+    """client is module-scoped: a test that marks the channel down must not
+    leak into subsequent tests that don't expect it."""
     client._health.record_success()
 
 
@@ -76,9 +77,9 @@ class TestParseTelescopeResponse:
 
 class TestGetStatusTimeout:
     def test_uses_short_timeout_for_a_fast_read(self, client):
-        """get_status risponde in pochi ms a stack sano: un timeout da 5s e'
-        largo 50-1500 volte il necessario e ritarda inutilmente la diagnosi
-        quando crac-server e' morto."""
+        """get_status answers in a few ms on a healthy stack: a 5s timeout is
+        50-1500x more than needed and needlessly delays diagnosis when
+        crac-server is dead."""
         mock_response, *_ = _make_response(0)
         captured = {}
 
@@ -88,6 +89,18 @@ class TestGetStatusTimeout:
 
         with patch.object(client.stub, "SetAction", side_effect=fake_set_action):
             client.get_status()
+
+        assert captured["timeout"] == 1.5
+
+    def test_get_autolight_status_uses_short_timeout_too(self, client):
+        captured = {}
+
+        def fake_set_action(request, **kwargs):
+            captured.update(kwargs)
+            return _BrokenAutolightResponse()
+
+        with patch.object(client.stub, "SetAction", side_effect=fake_set_action):
+            client.get_autolight_status()
 
         assert captured["timeout"] == 1.5
 
@@ -107,7 +120,7 @@ class TestFastFailOnDownChannel:
             result = client.get_status()
 
         mock_set_action.assert_not_called()
-        assert result == {"error": "crac-server channel is down"}
+        assert result == {"error": CHANNEL_DOWN_MESSAGE}
 
     def test_set_action_skips_the_call(self, client):
         with patch.object(client._health, "is_down", return_value=True), \
@@ -115,7 +128,7 @@ class TestFastFailOnDownChannel:
             result = client.set_action(telescope_pb2.PARK_POSITION)
 
         mock_set_action.assert_not_called()
-        assert result == {"error": "crac-server channel is down"}
+        assert result == {"error": CHANNEL_DOWN_MESSAGE}
 
     def test_connect_skips_the_call(self, client):
         with patch.object(client._health, "is_down", return_value=True), \
@@ -123,7 +136,7 @@ class TestFastFailOnDownChannel:
             result = client.connect()
 
         mock_set_action.assert_not_called()
-        assert result == {"error": "crac-server channel is down"}
+        assert result == {"error": CHANNEL_DOWN_MESSAGE}
 
     def test_disconnect_skips_the_call(self, client):
         with patch.object(client._health, "is_down", return_value=True), \
@@ -131,12 +144,12 @@ class TestFastFailOnDownChannel:
             result = client.disconnect()
 
         mock_set_action.assert_not_called()
-        assert result == {"error": "crac-server channel is down"}
+        assert result == {"error": CHANNEL_DOWN_MESSAGE}
 
 
 class _BrokenAutolightResponse:
-    """La RPC risponde, ma leggere un campo (qui .speed) solleva un errore
-    non di rete - non deve marcare giu' un canale in realta' sano."""
+    """The RPC succeeds, but reading a field (here .speed) raises a
+    non-network error - it must not mark an actually healthy channel down."""
 
     @property
     def speed(self):
@@ -144,13 +157,13 @@ class _BrokenAutolightResponse:
 
 
 class TestGrpcFailuresReturn200WithError:
-    """Convenzione del progetto: gli errori di comunicazione col backend
-    ritornano 200 con chiave 'error', non un'eccezione - altrimenti il
-    frontend perde il dettaglio vero dietro un generico 'HTTP 500'."""
+    """Project convention: backend communication errors return 200 with an
+    'error' key, not an exception - otherwise the frontend loses the real
+    detail behind a generic 'HTTP 500'."""
 
     def test_set_action_returns_error_instead_of_raising(self, client):
-        # .name e' letto per il log su errore: serve un oggetto enum, non
-        # l'int nudo usato altrove in questo file (bug preesistente, fuori scope qui).
+        # .name is read for the error log: needs an enum object, not the
+        # bare int used elsewhere in this file (pre-existing bug, out of scope here).
         action = SimpleNamespace(value=telescope_pb2.PARK_POSITION, name="PARK_POSITION")
         with patch.object(client.stub, "SetAction", side_effect=FakeRpcError("boom")):
             result = client.set_action(action)

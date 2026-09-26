@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.button_cloud import ButtonClient
+from crac_cloud.grpc_cloud.channel_health import CHANNEL_DOWN_MESSAGE
 from crac_protobuf import button_pb2
 
 
@@ -34,9 +35,9 @@ def _make_response():
 
 class TestGetSingleSwitchStatusTimeout:
     def test_uses_short_timeout_for_a_fast_read(self, client):
-        """get_single_switch_status risponde in pochi ms a stack sano: un
-        timeout da 5s e' largo 50-1500 volte il necessario e ritarda
-        inutilmente la diagnosi quando crac-server e' morto."""
+        """get_single_switch_status answers in a few ms on a healthy stack: a
+        5s timeout is 50-1500x more than needed and needlessly delays
+        diagnosis when crac-server is dead."""
         response, type_val = _make_response()
         captured = {}
 
@@ -58,7 +59,7 @@ class TestFastFailOnDownChannel:
             result = client.set_switch_action(type_val, button_pb2.ButtonAction.TURN_ON)
 
         mock_set_action.assert_not_called()
-        assert result == {"status": "error", "message": "crac-server channel is down"}
+        assert result == {"status": "error", "message": CHANNEL_DOWN_MESSAGE}
 
     def test_get_single_switch_status_skips_the_call(self, client):
         _, type_val = _make_response()
@@ -67,4 +68,4 @@ class TestFastFailOnDownChannel:
             result = client.get_single_switch_status("KEY_TELE_SWITCH", type_val)
 
         mock_set_action.assert_not_called()
-        assert result == {"error": "crac-server channel is down", "status": "UNKNOWN"}
+        assert result == {"error": CHANNEL_DOWN_MESSAGE, "status": "UNKNOWN"}

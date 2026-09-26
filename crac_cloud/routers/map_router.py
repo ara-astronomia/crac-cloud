@@ -6,7 +6,6 @@ from typing import Dict
 import asyncio
 import re
 
-# Importa i moduli per la logica cloud
 from crac_cloud.config import Config
 from crac_cloud.grpc_cloud.geographic_cloud import GeographicClient
 from crac_cloud.grpc_cloud.image_config_cloud import ImageConfigClient
@@ -31,7 +30,7 @@ MAP_GENERATION_LOCK = asyncio.Lock()
 
 
 def _static_map_response(image_name: str) -> Response:
-    """Serve una PNG statica di segnaposto (telescopio in park/flat/non connesso)."""
+    """Serves a static placeholder PNG (telescope parked/flat/disconnected)."""
     with open(os.path.join(OUTPUT_DIR, image_name), 'rb') as f:
         return Response(
             content=f.read(),
@@ -39,33 +38,23 @@ def _static_map_response(image_name: str) -> Response:
             headers={"Content-Disposition": f"inline; filename={image_name}"}
         )
 
-# --------------------------------------------------------------
-# ASYNC: recupera TUTTI i dati richiesti
-# --------------------------------------------------------------
-# Funzione di utilità per convertire DMS in decimali
-
 async def _get_all_required_data() -> dict:
     logger.debug("Fetching data from the gRPC services...")
 
-    # Lancia le richieste async in parallelo
     geo_task = asyncio.create_task(geo_client.get_geographic_data())
-    ccd_task = asyncio.create_task(image_config_client.get_ccd_image_data())    
+    ccd_task = asyncio.create_task(image_config_client.get_ccd_image_data())
 
-    # Il client del telescopio e' sincrono: sul loop terrebbe fermo tutto il resto
+    # The telescope client is synchronous: staying on the loop would freeze everything else.
     telescope_status = await asyncio.to_thread(telescope_client.get_status)
 
-    # Attendi risposte asincrone
     geo_data, ccd_data = await asyncio.gather(geo_task, ccd_task)
-  
-    # --- Controllo dati geografici ---
+
     if not geo_data or not all(k in geo_data for k in ['latitude', 'longitude', 'elevation']):
         raise HTTPException(status_code=503, detail="Impossibile recuperare i dati geografici dal server.")
 
-    # --- Controllo CCD ---
     if not ccd_data or not all(k in ccd_data for k in ['width', 'height']):
         raise HTTPException(status_code=503, detail="Impossibile recuperare i dati CCD dal server.")
 
-    # --- Controllo telescopio ---
     tel_state = telescope_status.get("status", "DISCONNECTED")
 
     if tel_state in ["DISCONNECTED", "ERROR", "CRITICAL_ERROR", "LOST"]:
@@ -89,18 +78,15 @@ async def _get_all_required_data() -> dict:
         "tel_status": tel_state,
     }
 
-#---------------------------------------------------------------
-#CONTROLO IL CAMBIAMENTO DELLE COORDINATE EQUATORIALI
-#---------------------------------------------------------------
 def eq_coords_changed(new_coords: dict) -> bool:
     global LAST_EQ_COORDS
-    
+
     if new_coords is None:
-        return False  # niente coordinate = niente confronto
+        return False
     if LAST_EQ_COORDS is None:
         LAST_EQ_COORDS = new_coords
-        return True  # prima volta che le riceviamo
-    
+        return True
+
     changed = (
         abs(new_coords["ra"] - LAST_EQ_COORDS["ra"]) > 1e-6 or
         abs(new_coords["dec"] - LAST_EQ_COORDS["dec"]) > 1e-6
@@ -108,14 +94,11 @@ def eq_coords_changed(new_coords: dict) -> bool:
     if changed:
         LAST_EQ_COORDS = new_coords
     return changed
-# --------------------------------------------------------------
-# ENDPOINT 1 – Tracking map
-# --------------------------------------------------------------
+
 @router.get("/tracking_chart")
 async def get_tracking_chart(t: float = None):
     try:
         data = await _get_all_required_data()
-        # Se il telescopio è OFFLINE → niente tracking chart
         if data["eq_coords"] is None:
             return _static_map_response("airmass_not_available.png")
 
@@ -138,9 +121,7 @@ async def get_tracking_chart(t: float = None):
     except Exception as e:
         logger.error(f" ❌ Error in the tracking chart endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Errore interno: {e}")
-# --------------------------------------------------------------
-# ENDPOINT 2 – Sky map
-# --------------------------------------------------------------
+
 @router.get("/sky_map_fixed")
 async def get_fixed_sky_map(t: float = None):
     try:
@@ -179,9 +160,6 @@ async def get_fixed_sky_map(t: float = None):
     except Exception as e:
         logger.error(f" ❌ Error in the endpoint: {e}")
         raise
-# --------------------------------------------------------------
-# ENDPOINT 3 – AIRMASS
-# --------------------------------------------------------------
 
 @router.get("/airmass")
 async def get_airmass():

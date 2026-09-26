@@ -5,31 +5,27 @@ from crac_protobuf import button_pb2
 from crac_protobuf import button_pb2_grpc
 from crac_protobuf import telescope_pb2
 from crac_protobuf import telescope_pb2_grpc
-from .channel_health import ChannelHealth
+from .channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE
 
 logger = logging.getLogger(__name__)
 
 class ButtonClient:
     def __init__(self, host: str, port: int):
-        # Crea il canale di comunicazione con il server gRPC
         self.channel = grpc.insecure_channel(f'{host}:{port}')
-        # Crea lo stub, che è il client che useremo per chiamare i metodi RPC
         self.stub = button_pb2_grpc.ButtonStub(self.channel)
         self._health = ChannelHealth()
 
     def set_switch_action(self, button_type, action):
-        """Invia un'azione (TURN_ON/TURN_OFF) al ButtonService per un interruttore."""
-        # Crea il messaggio di richiesta usando le classi generate da protobuf
+        """Sends a TURN_ON/TURN_OFF action to the ButtonService for a switch."""
         request = button_pb2.ButtonRequest(
             type=button_type,
             action=action,
             )
         if self._health.is_down():
-            return {"status": "error", "message": "crac-server channel is down"}
+            return {"status": "error", "message": CHANNEL_DOWN_MESSAGE}
         try:
             response = self.stub.SetAction(request, timeout=5.0)
             self._health.record_success()
-            # Qui usiamo un parser specifico per ButtonResponse
             return self._parse_button_response(response)
         except grpc.RpcError as e:
             self._health.record_failure()
@@ -37,21 +33,19 @@ class ButtonClient:
             return {"status": "error", "message": f"Errore gRPC durante l'azione: {e.details()}"}
 
     def get_single_switch_status(self, button_key_str, button_type):
-        """
-        Recupera lo stato di un singolo pulsante chiamando SetAction (CHECK_BUTTON).
-        """
+        """Reads a single switch's status by calling SetAction (CHECK_BUTTON)."""
         request = button_pb2.ButtonRequest(
-            type=button_type, #pb2.ButtonType.Value(button_type),
+            type=button_type,
             action=button_pb2.ButtonAction.CHECK_BUTTON,
         )
         if self._health.is_down():
-            return {"error": "crac-server channel is down", "status": "UNKNOWN"}
+            return {"error": CHANNEL_DOWN_MESSAGE, "status": "UNKNOWN"}
         try:
             response = self.stub.SetAction(request, timeout=1.5)
             self._health.record_success()
 
             parsed_response = self._parse_button_response(response)
-            parsed_response["key"] = button_key_str # Aggiungi la chiave alla radice per il router
+            parsed_response["key"] = button_key_str
             return parsed_response
         except grpc.RpcError as e:
             self._health.record_failure()
@@ -59,16 +53,14 @@ class ButtonClient:
             return {"error": str(e.details()), "status": "UNKNOWN"}
         
     def _parse_button_response(self, response: button_pb2.ButtonResponse):
-        # Implementa qui il parsing robusto per ButtonResponse (come discusso prima)
         gui = response.button_gui
         color_data = {
-            "text_color": "white",  # Default o valore dal proto
+            "text_color": "white",
             "background_color": "gray",
         }
         if gui.HasField("button_color"):
              color_data = {
-                # NON usare ButtonColor.Name(), perché questi campi sono già STRINGHE nel proto
-                "text_color": gui.button_color.text_color, 
+                "text_color": gui.button_color.text_color,
                 "background_color": gui.button_color.background_color,
             }
 
@@ -77,12 +69,10 @@ class ButtonClient:
             "type": button_pb2.ButtonType.Name(response.type),
             "button_gui": {
                 "metadata": gui.metadata,
-                "label": button_pb2.ButtonLabel.Name(gui.label), # Questo converte ENUM a stringa (es. 'LABEL_ON')
+                "label": button_pb2.ButtonLabel.Name(gui.label),
                 "is_disabled": gui.is_disabled,
                 "key": button_pb2.ButtonKey.Name(gui.key),
-                
-                # Assicurati che il tuo frontend si aspetti il nome 'button_color' con il suo dizionario interno
-                "button_color": color_data 
+                "button_color": color_data
             }
         }
  

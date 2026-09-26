@@ -3,10 +3,9 @@ import logging
 import grpc
 from crac_protobuf import chart_pb2
 from crac_protobuf import chart_pb2_grpc
-from .channel_health import ChannelHealth
+from .channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE
 
 logger = logging.getLogger(__name__)
-# Dizionario di traduzione per gli stati meteo (Enum di Protobuf)
 WEATHER_STATUS_TRANSLATIONS = {
     "WEATHER_STATUS_NORMAL": "CONDIZIONI METEO ADEGUATE",
     "WEATHER_STATUS_WARNING": "ATTENZIONE CONDIZIONI METEO POCO IDONEE",
@@ -21,10 +20,10 @@ class ChartClient:
         self._health = ChannelHealth()
 
     def get_status(self):
-        """Ottiene lo stato meteorologico e i dati per i grafici."""
+        """Fetches the weather status and chart data."""
         request = chart_pb2.WeatherRequest()
         if self._health.is_down():
-            return {"error": "crac-server channel is down", "status": "SCONOSCIUTO"}
+            return {"error": CHANNEL_DOWN_MESSAGE, "status": "SCONOSCIUTO"}
         try:
             response = self.stub.GetStatus(request, timeout=5.0)
             self._health.record_success()
@@ -38,9 +37,6 @@ class ChartClient:
                         "upper_bound": threshold.upper_bound,
                         "lower_bound": threshold.lower_bound
                     })
-                # Estrae le soglie di WARNING e ERROR per i gauge
-                
-                # Inizializza min/max/warning/error con i valori di base
                 chart_data = {
                     "value": chart.value,
                     "title": chart.title,
@@ -49,42 +45,36 @@ class ChartClient:
                     "urn": chart.urn,
                     "unit_of_measurement": chart.unit_of_measurement,
                     "status": chart_pb2.ChartStatus.Name(chart.status),
-                    # Aggiunge i campi per i gauge (inclusi per la rotta /gauge-config)
                     "lower_bound": chart.min,
                     "upper_bound": chart.max,
                     "thresholds": thresholds_list,
-                    "warning": None, # Inizializzato a None
-                    "error": None    # Inizializzato a None
+                    "warning": None,
+                    "error": None
                 }
-                                # Trova e assegna i valori di Warning/Error dalle soglie
                 for threshold in chart.thresholds:
                     threshold_type_name = chart_pb2.ThresholdType.Name(threshold.threshold_type)
-                    if threshold_type_name in ["THRESHOLD_TYPE_WARNING", "WARNING"]:                        
-                        # ✅ Assegna il limite INFERIORE del range WARNING
+                    if threshold_type_name in ["THRESHOLD_TYPE_WARNING", "WARNING"]:
                         if chart_data["warning"] is None:
                             chart_data["warning"] = threshold.lower_bound
                     elif threshold_type_name in ["THRESHOLD_TYPE_NORMAL", "NORMAL"] and "barometer" in chart.urn:
                         if chart_data["error"] is None:
-                            chart_data["error"] = threshold.lower_bound # Assegna 1005.0
+                            chart_data["error"] = threshold.lower_bound
                     elif threshold_type_name in ["THRESHOLD_TYPE_ERROR", "ERROR", "THRESHOLD_TYPE_DANGER"]:
-                        # ✅ Assegna il limite INFERIORE del range DANGER/ERROR
                         if chart_data["error"] is None:
                             chart_data["error"] = threshold.lower_bound
-                                    
+
                 charts_list.append(chart_data)
 
-            # Traduce lo stato meteo da ENUM in Italiano
             weather_status_name = chart_pb2.WeatherStatus.Name(response.status)
             translated_status = WEATHER_STATUS_TRANSLATIONS.get(weather_status_name, weather_status_name)
 
             return {
                 "updated_at": response.updated_at,
                 "charts": charts_list,
-                "status": translated_status, # ✅ STATO TRADOTTO
+                "status": translated_status,
                 "interval": response.interval
             }
         except grpc.RpcError as e:
             self._health.record_failure()
-            # Gestione errore gRPC, fondamentale per il debug
             logger.error(f" ❌ RPC error (ChartStatus): {e.details()}")
             return {"error": str(e.details()), "status": "SCONOSCIUTO"}

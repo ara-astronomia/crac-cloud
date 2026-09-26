@@ -18,8 +18,8 @@ class TestChannelHealth:
         assert health.is_down() is False
 
     def test_retries_again_after_the_cooldown(self):
-        """Un blocco permanente nasconderebbe crac-server tornato su: dopo
-        il cooldown la chiamata successiva deve poter riprovare davvero."""
+        """A permanent block would hide crac-server coming back up: after
+        the cooldown, the next call must be able to genuinely retry."""
         health = ChannelHealth()
         health.record_failure()
 

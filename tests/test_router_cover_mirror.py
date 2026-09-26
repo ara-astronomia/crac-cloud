@@ -5,15 +5,15 @@ import crac_cloud.routers.cover_mirror_router as cover_mirror_router
 
 class TestSetCoverMirrorActionRunsInThreadPool:
     def test_route_is_not_a_coroutine(self):
-        """Il corpo e' interamente sincrono: async def bloccherebbe l'intero
-        event loop di crac-cloud durante il comando, non solo questa richiesta."""
+        """The body is entirely synchronous: async def would block the whole
+        event loop of crac-cloud during the command, not just this request."""
         assert not inspect.iscoroutinefunction(cover_mirror_router.set_action)
 
 
 class TestGetCoverMirrorStatus:
-    """Il comportamento (timeout, fast-fail, gestione errori) e' testato a
-    livello di CoverMirrorClient.get_status() in test_cover_mirror_client.py;
-    qui verifico solo che la route deleghi al client."""
+    """Behavior (timeout, fast-fail, error handling) is tested at the
+    CoverMirrorClient.get_status() level in test_cover_mirror_client.py;
+    here I only check that the route delegates to the client."""
 
     def test_delegates_to_the_client(self):
         with patch.object(cover_mirror_router.cover_mirror_client, "get_status", return_value={"status": "ok"}) as mock:

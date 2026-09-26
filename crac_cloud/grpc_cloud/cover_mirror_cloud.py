@@ -3,7 +3,7 @@ import grpc
 from crac_protobuf import cover_mirror_pb2
 from crac_protobuf import cover_mirror_pb2_grpc
 from crac_protobuf import button_pb2
-from .channel_health import ChannelHealth
+from .channel_health import ChannelHealth, CHANNEL_DOWN_MESSAGE
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class CoverMirrorClient:
     def set_action(self, action_enum):
         request = cover_mirror_pb2.CoverMirrorRequest(action=action_enum)
         if self._health.is_down():
-            return {"error": "crac-server channel is down"}
+            return {"error": CHANNEL_DOWN_MESSAGE}
         try:
             response = self.stub.SetAction(request, timeout=5.0)
             self._health.record_success()
@@ -62,9 +62,9 @@ class CoverMirrorClient:
             return {"error": str(e.details())}
 
     def get_status(self):
-        """Endpoint per ottenere lo stato attuale della copertura dello specchio."""
+        """Fetches the mirror cover's current status."""
         if self._health.is_down():
-            return _error_status("crac-server channel is down")
+            return _error_status(CHANNEL_DOWN_MESSAGE)
         request = cover_mirror_pb2.CoverMirrorRequest(action=cover_mirror_pb2.CoverMirrorAction.CHECK_COVER_MIRROR)
         try:
             response = self.stub.SetAction(request, timeout=1.5)
