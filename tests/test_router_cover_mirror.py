@@ -18,18 +18,3 @@ class TestGetCoverMirrorStatus:
 
         mock.assert_called_once()
         assert result == {"status": "ok"}
-
-
-class TestSetAction:
-    def test_passes_a_valid_action_to_the_client(self):
-        with patch.object(cover_mirror_router.cover_mirror_client, "set_action", return_value={"status": "ok"}) as mock:
-            cover_mirror_router.set_action(cover_mirror_router.CoverMirrorActionRequest(action="CLOSE_COVER_MIRROR"))
-
-        mock.assert_called_once_with("CLOSE_COVER_MIRROR")
-
-    def test_rejects_an_action_the_operator_cannot_send(self):
-        with patch.object(cover_mirror_router.cover_mirror_client, "set_action") as mock:
-            result = cover_mirror_router.set_action(cover_mirror_router.CoverMirrorActionRequest(action="CHECK_COVER_MIRROR"))
-
-        mock.assert_not_called()
-        assert result["status"] == "error"

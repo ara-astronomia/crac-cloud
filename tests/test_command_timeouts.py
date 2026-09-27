@@ -13,7 +13,7 @@ COMMANDS = [
     (TelescopeClient, lambda client: client.connect()),
     (TelescopeClient, lambda client: client.disconnect()),
     (RoofClient, lambda client: client.set_action(0)),
-    (CoverMirrorClient, lambda client: client.set_action("OPEN_COVER_MIRROR")),
+    (CoverMirrorClient, lambda client: client.set_action(0)),
     (CurtainsClient, lambda client: client.set_action(0)),
 ]
 
