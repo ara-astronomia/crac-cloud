@@ -38,6 +38,7 @@ const STATUSES_SERVED_AS_PLACEHOLDER_IMAGE = [
 const state = {
     lastEqCoords: null,
     lastTelStatus: null,
+    lastTelSpeed: null,
     telescopePowerStatus: undefined,
     skyMapNeedsRefresh: false,
     isInitialized: false,
@@ -113,7 +114,7 @@ async function pollTelescope() {
                 state.skyMapNeedsRefresh = true;
             }
         }
-        if (_telescopeStatusChanged(data.status)) {
+        if (_telescopeStatusChanged(data.status, data.speed)) {
             state.skyMapNeedsRefresh = true;
         }
     }
@@ -203,10 +204,13 @@ const RA_THRESHOLD_HOURS = (EQ_THRESHOLD_ARCMIN / 60) / 15;
 const DEC_THRESHOLD_DEG = EQ_THRESHOLD_ARCMIN / 60;
 
 /** While tracking, eq_coords stays on a fixed RA/DEC, so the drift out of
- *  PARKED/FLATTER is invisible to _eqCoordsChanged and needs its own trigger. */
-function _telescopeStatusChanged(status) {
-    if (status === undefined || status === state.lastTelStatus) return false;
+ *  PARKED/FLATTER is invisible to _eqCoordsChanged and needs its own trigger.
+ *  So is the end of a slew, which changes only the speed: no map is drawn during it. */
+function _telescopeStatusChanged(status, speed) {
+    if (status === undefined) return false;
+    if (status === state.lastTelStatus && speed === state.lastTelSpeed) return false;
     state.lastTelStatus = status;
+    state.lastTelSpeed = speed;
     return true;
 }
 
@@ -251,7 +255,6 @@ async function init() {
     initButtons();
     initCoverMirror();
     initUps();
-    await initGauges();   // async: carica gauge-config dal server
     initMaps();
 
     setTimeout(() => schedule(pollHealth,       INTERVALS.health),       0);
@@ -261,11 +264,12 @@ async function init() {
     setTimeout(() => schedule(pollButtons,      INTERVALS.buttons),      1500);
     setTimeout(() => schedule(pollCoverMirror,  INTERVALS.cover_mirror), 2000);
     setTimeout(() => schedule(pollUps,          INTERVALS.ups),          2500);
-    setTimeout(() => schedule(pollWeather,      INTERVALS.weather),      3000);
     setTimeout(() => schedule(pollTrackingChart,INTERVALS.trackingChart),3500);
     setTimeout(() => schedule(pollAirmass,      INTERVALS.airmass),      4000);
 
     setInterval(checkSkyMapRefresh, 1000);
+
+    initGauges().then(() => schedule(pollWeather, INTERVALS.weather));
 
     console.log('[CRaC] Coordinator avviato. Intervalli:', INTERVALS);
 }

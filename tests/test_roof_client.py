@@ -1,7 +1,9 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.roof_cloud import RoofClient
+from crac_cloud.grpc_cloud.rpc import FAST_READ_TIMEOUT
 from crac_protobuf import roof_pb2, button_pb2
+from tests.conftest import FakeRpcError
 
 
 @pytest.fixture(scope="module")
@@ -51,3 +53,39 @@ class TestParseRoofResponse:
             "text_color": "white",
             "background_color": "gray",
         }
+
+
+class TestGetStatus:
+    def test_returns_parsed_data(self, client):
+        mock_response, status_name, label_name = _make_response(has_color=True)
+        with patch.object(client.stub, "SetAction", return_value=mock_response):
+            result = client.get_status()
+
+        assert result["status"] == status_name
+        assert result["gui"]["label"] == label_name
+
+    def test_uses_short_timeout_for_a_fast_read(self, client):
+        captured = {}
+
+        def fake_set_action(request, **kwargs):
+            captured.update(kwargs)
+            return _make_response(has_color=False)[0]
+
+        with patch.object(client.stub, "SetAction", side_effect=fake_set_action):
+            client.get_status()
+
+        assert captured["timeout"] == FAST_READ_TIMEOUT
+
+    def test_a_grpc_error_returns_error_status(self, client):
+        with patch.object(client.stub, "SetAction", side_effect=FakeRpcError("boom")):
+            result = client.get_status()
+
+        assert result["status"] == "ERROR"
+        assert result["gui"]["is_disabled"] is True
+
+    def test_a_parsing_error_returns_error_status(self, client):
+        with patch.object(client.stub, "SetAction", return_value=MagicMock()), \
+             patch.object(client, "_parse_roof_response", side_effect=ValueError("boom")):
+            result = client.get_status()
+
+        assert result["status"] == "ERROR"

@@ -3,6 +3,7 @@ import grpc
 from crac_protobuf import cover_mirror_pb2
 from crac_protobuf import cover_mirror_pb2_grpc
 from crac_protobuf import button_pb2
+from .rpc import FAST_READ_TIMEOUT, COMMAND_TIMEOUT, error_status
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +37,19 @@ class CoverMirrorClient:
     def set_action(self, action_enum):
         request = cover_mirror_pb2.CoverMirrorRequest(action=action_enum)
         try:
-            response = self.stub.SetAction(request, timeout=5.0)
+            response = self.stub.SetAction(request, timeout=COMMAND_TIMEOUT)
             logger.debug(f"Mirror cover SetAction response: {response}")
             return self._parse_cover_mirror_response(response)
         except grpc.RpcError as e:
             logger.error(f" ❌ gRPC error (mirror cover action): {e.details()}")
             return {"error": str(e.details())}
+
+    def get_status(self):
+        """Fetches the mirror cover's current status."""
+        request = cover_mirror_pb2.CoverMirrorRequest(action=cover_mirror_pb2.CoverMirrorAction.CHECK_COVER_MIRROR)
+        try:
+            response = self.stub.SetAction(request, timeout=FAST_READ_TIMEOUT)
+            return self._parse_cover_mirror_response(response)
+        except Exception as e:
+            logger.error(f"❌ Error while requesting the mirror cover status: {e}")
+            return error_status(str(e))

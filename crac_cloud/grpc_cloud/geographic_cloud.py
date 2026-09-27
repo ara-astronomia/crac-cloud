@@ -1,8 +1,8 @@
-# crac_cloud/grpc_cloud/geographic_cloud.py
 import logging
 import grpc
 from crac_protobuf import geographic_pb2
 from crac_protobuf import geographic_pb2_grpc
+from .rpc import FAST_READ_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class GeographicClient:
         request = geographic_pb2.GeographicRequest()
         logger.debug("Requesting geographic data from server...")
         try:
-            response = await self.stub.GetGeographicInfo(request)
+            response = await self.stub.GetGeographicInfo(request, timeout=FAST_READ_TIMEOUT)
             logger.debug(f"Geographic data received: lat={response.latitude}, lon={response.longitude}, elev={response.elevation_meters}")
             return {
                 "latitude": response.latitude,
