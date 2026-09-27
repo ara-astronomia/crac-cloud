@@ -4,23 +4,15 @@ import { labelText, ROOF_STATE_TO_ACTION_MAP } from './gui_constants.js';
 import { roofApi } from './api.js';
 
 let lastKnownRoofState = 'ROOF_DEFAULT_STATUS';
-let roofButtons = null;
 let roofButton = null;
-let openButton = null;
-let closeButton = null;
 
 export function initRoofControl() {
-    roofButtons = document.getElementById('roof-buttons');
     roofButton = document.getElementById('btn-tetto');
-    openButton = document.getElementById('btn-tetto-apri');
-    closeButton = document.getElementById('btn-tetto-chiudi');
-    if (!roofButtons || !roofButton || !openButton || !closeButton) {
-        console.error('[Roof] Pulsanti del tetto non trovati.');
+    if (!roofButton) {
+        console.error('[Roof] Pulsante #btn-tetto non trovato.');
         return;
     }
     roofButton.addEventListener('click', handleRoofClick);
-    openButton.addEventListener('click', () => sendFromError(openButton, 'ROOF_OPEN'));
-    closeButton.addEventListener('click', () => sendFromError(closeButton, 'ROOF_CLOSE'));
     console.log('[Roof] Inizializzato.');
 }
 
@@ -34,11 +26,8 @@ export function updateRoofUI(data) {
     const enumLabel = gui.label || 'DEFAULT_LABEL';
     const isDisabled = gui.is_disabled !== undefined ? gui.is_disabled : false;
 
-    roofButtons.classList.toggle('in-error', serverState === 'ROOF_ERROR');
     roofButton.textContent = labelText(enumLabel);
     roofButton.disabled = isDisabled;
-    openButton.disabled = false;
-    closeButton.disabled = false;
 
     // While OPENING/CLOSING the server still sends the previous red/green, so
     // the orange is put on here until the final status arrives.
@@ -47,15 +36,9 @@ export function updateRoofUI(data) {
         color = { background_color: 'orange', text_color: 'white' };
     }
     if (color) {
-        for (const button of [roofButton, openButton, closeButton]) {
-            paint(button, color);
-        }
+        roofButton.style.setProperty('background-color', color.background_color || '', 'important');
+        roofButton.style.setProperty('color', color.text_color || '', 'important');
     }
-}
-
-function paint(button, color) {
-    button.style.setProperty('background-color', color.background_color || '', 'important');
-    button.style.setProperty('color', color.text_color || '', 'important');
 }
 
 async function handleRoofClick() {
@@ -69,34 +52,15 @@ async function handleRoofClick() {
 
     // Optimistic UI: disabilita subito il pulsante
     roofButton.disabled = true;
-    paint(roofButton, { background_color: 'orange', text_color: 'white' });
+    roofButton.style.setProperty('background-color', 'orange', 'important');
+    roofButton.style.setProperty('color', 'white', 'important');
 
-    const response = await send(commandToSend);
+    const action = commandToSend === 'ROOF_OPEN' ? roofApi.open : roofApi.close;
+    const response = await action();
 
     // Il prossimo poll del coordinator aggiornerà lo stato definitivo.
     // Se c'è una risposta immediata, aggiorniamo subito.
     if (response && response.status) {
         updateRoofUI(response);
     }
-}
-
-/** With the roof in error the server checks the command against the way it
- *  would move the roof, and a refusal comes back as a disabled button: only
- *  the pressed one is disabled, the other direction may still be allowed. */
-async function sendFromError(pressed, command) {
-    if (pressed.disabled) return;
-    openButton.disabled = true;
-    closeButton.disabled = true;
-
-    const response = await send(command);
-
-    if (response && response.status) {
-        const refused = response.status === 'ROOF_ERROR' && response.gui?.is_disabled;
-        updateRoofUI(response);
-        pressed.disabled = Boolean(refused);
-    }
-}
-
-function send(command) {
-    return command === 'ROOF_OPEN' ? roofApi.open() : roofApi.close();
 }
