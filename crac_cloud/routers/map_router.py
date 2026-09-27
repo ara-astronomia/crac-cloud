@@ -90,7 +90,10 @@ def eq_coords_changed(new_coords: dict) -> bool:
 @router.get("/tracking_chart")
 async def get_tracking_chart(t: float = None):
     try:
-        data = await _get_all_required_data()
+        try:
+            data = await _get_all_required_data()
+        except HTTPException:
+            data = {"eq_coords": None}
         if data["eq_coords"] is None:
             return _static_map_response("airmass_not_available.png")
 
@@ -121,7 +124,10 @@ async def get_fixed_sky_map(t: float = None):
     never gets a stale map nor a queue of generations."""
     global LAST_EQ_COORDS, SKY_MAP_REQUESTS, SKY_MAP_SERVED, SKY_MAP_ERROR
     try:
-        data = await _get_all_required_data()
+        try:
+            data = await _get_all_required_data()
+        except HTTPException:
+            data = {"eq_coords": None}
         if data["eq_coords"] is None:
             return _static_map_response("tele_not_connected.png")
         tel_status = data.get("tel_status", "")

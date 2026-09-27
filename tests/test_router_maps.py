@@ -6,6 +6,8 @@ import threading
 from time import sleep
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 import crac_cloud.routers.map_router as map_router
 
 _GEO = {"latitude": 42.0, "longitude": 12.9, "elevation": 470.0}
@@ -293,3 +295,21 @@ async def _slow_airmass_scenario():
         await asyncio.gather(airmass_request(), other_request())
 
     assert order == ["other request", "airmass"]
+
+
+@pytest.mark.parametrize("route, placeholder", [
+    ("get_tracking_chart", "airmass_not_available.png"),
+    ("get_fixed_sky_map", "tele_not_connected.png"),
+])
+def test_map_images_fall_back_to_a_placeholder_when_crac_server_does_not_answer(route, placeholder):
+    """The browser shows these routes in an <img>: an error body would draw a broken image."""
+    async def scenario():
+        with patch.object(map_router.geo_client, "get_geographic_data", AsyncMock(return_value=None)), \
+             patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=None)), \
+             patch.object(map_router.telescope_client, "get_status", return_value={"error": "deadline exceeded"}):
+            return await getattr(map_router, route)()
+
+    response = asyncio.run(scenario())
+
+    assert response.media_type == "image/png"
+    assert response.headers["content-disposition"] == f"inline; filename={placeholder}"
