@@ -38,6 +38,7 @@ const STATUSES_SERVED_AS_PLACEHOLDER_IMAGE = [
 const state = {
     lastEqCoords: null,
     lastTelStatus: null,
+    lastTelSpeed: null,
     telescopePowerStatus: undefined,
     skyMapNeedsRefresh: false,
     isInitialized: false,
@@ -113,7 +114,7 @@ async function pollTelescope() {
                 state.skyMapNeedsRefresh = true;
             }
         }
-        if (_telescopeStatusChanged(data.status)) {
+        if (_telescopeStatusChanged(data.status, data.speed)) {
             state.skyMapNeedsRefresh = true;
         }
     }
@@ -203,10 +204,13 @@ const RA_THRESHOLD_HOURS = (EQ_THRESHOLD_ARCMIN / 60) / 15;
 const DEC_THRESHOLD_DEG = EQ_THRESHOLD_ARCMIN / 60;
 
 /** While tracking, eq_coords stays on a fixed RA/DEC, so the drift out of
- *  PARKED/FLATTER is invisible to _eqCoordsChanged and needs its own trigger. */
-function _telescopeStatusChanged(status) {
-    if (status === undefined || status === state.lastTelStatus) return false;
+ *  PARKED/FLATTER is invisible to _eqCoordsChanged and needs its own trigger.
+ *  So is the end of a slew, which changes only the speed: no map is drawn during it. */
+function _telescopeStatusChanged(status, speed) {
+    if (status === undefined) return false;
+    if (status === state.lastTelStatus && speed === state.lastTelSpeed) return false;
     state.lastTelStatus = status;
+    state.lastTelSpeed = speed;
     return true;
 }
 
