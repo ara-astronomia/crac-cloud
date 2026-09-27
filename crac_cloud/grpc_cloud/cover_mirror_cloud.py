@@ -34,8 +34,9 @@ class CoverMirrorClient:
             }
         }
 
-    def set_action(self, action_enum):
-        request = cover_mirror_pb2.CoverMirrorRequest(action=action_enum)
+    def set_action(self, action):
+        """Sends a CoverMirrorAction, given by name or by value, and parses the response."""
+        request = cover_mirror_pb2.CoverMirrorRequest(action=action)
         try:
             response = self.stub.SetAction(request, timeout=COMMAND_TIMEOUT)
             logger.debug(f"Mirror cover SetAction response: {response}")

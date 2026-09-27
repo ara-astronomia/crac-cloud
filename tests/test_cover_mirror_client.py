@@ -85,3 +85,12 @@ class TestGetStatus:
             result = client.get_status()
 
         assert result["status"] == "ERROR"
+
+
+class TestSetAction:
+    def test_sends_the_named_action(self, client):
+        response = _make_response(cover_mirror_pb2.CoverMirrorAction.OPEN_COVER_MIRROR)
+        with patch.object(client.stub, "SetAction", return_value=response) as set_action:
+            client.set_action("OPEN_COVER_MIRROR")
+
+        assert set_action.call_args.args[0].action == cover_mirror_pb2.CoverMirrorAction.OPEN_COVER_MIRROR
