@@ -112,6 +112,20 @@ body {
     padding: 2px 2px;
     font-size: 18px;
 }
+.roof-buttons {
+    display: grid;
+}
+.roof-buttons > * {
+    grid-area: 1 / 1;
+}
+.roof-error-actions {
+    display: flex;
+    gap: 4px;
+}
+.roof-buttons.in-error #btn-tetto,
+.roof-buttons:not(.in-error) .roof-error-actions {
+    visibility: hidden;
+}
 .status-button.status-closed {
     background-color:rgb(156, 160, 156); 
     color: rgb(196, 15, 15);
