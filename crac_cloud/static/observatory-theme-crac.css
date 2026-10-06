@@ -238,12 +238,17 @@ body > * { position: relative; z-index: 1; }
   min-width: 80px;
 }
 
-.status-button:hover {
+.status-button:not(:disabled):hover {
   background: rgba(74,158,255,0.16) !important;
   transform: scale(1.03) !important;
 }
 
-.status-button:active { transform: scale(0.97) !important; }
+.status-button:not(:disabled):active { transform: scale(0.97) !important; }
+
+.status-button:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.45;
+}
 
 /* stati del pulsante */
 .status-button.status-closed {
