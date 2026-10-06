@@ -64,3 +64,24 @@ test('fuori dall\'errore il pulsante continua a comandare come prima', async () 
     await pulsante.click();
     assert.deepEqual(comandiInviati, ['ROOF_OPEN']);
 });
+
+test('il pulsante segue is_disabled di crac-server', () => {
+    updateRoofUI({ status: 'ROOF_CLOSED', gui: { label: 'LABEL_CLOSE', is_disabled: true } });
+    assert.equal(pulsante.disabled, true);
+});
+
+test('una lettura senza dati grafici non abilita e non ridipinge il pulsante', () => {
+    pulsante.disabled = true;
+    pulsante.textContent = 'Chiuso';
+    updateRoofUI({ status: 'ROOF_CLOSED' });
+    updateRoofUI({ status: 'ROOF_CLOSED', gui: { is_disabled: false } });
+    assert.equal(pulsante.disabled, true);
+    assert.equal(pulsante.textContent, 'Chiuso');
+});
+
+test('una risposta al comando senza dati grafici non riabilita il pulsante', async () => {
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ status: 'error', message: 'Azione non valida' }) });
+    updateRoofUI({ status: 'ROOF_CLOSED', gui: { label: 'LABEL_CLOSE', metadata: OPEN, is_disabled: false } });
+    await pulsante.click();
+    assert.equal(pulsante.disabled, true);
+});

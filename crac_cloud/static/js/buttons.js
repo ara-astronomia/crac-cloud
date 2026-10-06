@@ -63,8 +63,6 @@ async function handleButtonClick(btn) {
     if (response && response.button_gui) {
         // Aggiornamento immediato dalla risposta del server
         updateButtonsUI([{ key, button_gui: response.button_gui }]);
-    } else {
-        btn.disabled = false;
     }
 }
 export function initCoverMirror() {
@@ -84,17 +82,16 @@ async function handleCoverMirrorClick(btn) {
 
     if (response && response.gui) {
         updateCoverMirrorUI(response);
-    } else {
-        btn.disabled = false;
     }
 }
 
+/** Without its own gui from crac-server the button keeps what it shows. */
 export function updateCoverMirrorUI(data) {
     const btn = document.getElementById('btn-cover-mirror');
-    if (!btn || !data.gui) return;
+    if (!btn || !data.gui || !data.gui.label) return;
 
     const gui = data.gui;
-    btn.textContent = gui.label ? labelText(gui.label) : '';
+    btn.textContent = labelText(gui.label);
     btn.disabled = gui.is_disabled || false;
     btn.dataset.action = gui.metadata || '';
 

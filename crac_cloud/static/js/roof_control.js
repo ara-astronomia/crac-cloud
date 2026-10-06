@@ -24,15 +24,16 @@ export function initRoofControl() {
     console.log('[Roof] Inizializzato.');
 }
 
+/** Without its own gui from crac-server the button keeps what it shows. */
 export function updateRoofUI(data) {
-    if (!roofButton || !data) return;
+    if (!roofButton || !data || !data.gui || !data.gui.label) return;
 
     const serverState = data.status || '';
     lastKnownRoofState = serverState;
 
-    const gui = data.gui || {};
-    const enumLabel = gui.label || 'DEFAULT_LABEL';
-    const isDisabled = gui.is_disabled !== undefined ? gui.is_disabled : false;
+    const gui = data.gui;
+    const enumLabel = gui.label;
+    const isDisabled = !!gui.is_disabled;
 
     offeredInError = serverState === 'ROOF_ERROR' ? COMMAND_OFFERED_IN_ERROR[gui.metadata] : null;
     roofButton.textContent = offeredInError
