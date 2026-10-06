@@ -4,7 +4,7 @@
 import { initRoofControl, updateRoofUI }             from './roof_control.js';
 import { initCurtains, updateCurtainsUI, updateRoofBackground } from './curtains.js';
 import { initTelescopeControl, updateTelescopeUI }    from './telescope_control.js';
-import { initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI  } from './buttons.js';
+import { initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI, disableCommandButtons } from './buttons.js';
 import { initUps, updateUpsUI }                       from './ups.js';
 import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
@@ -74,7 +74,9 @@ function showConnectionAlert() {
     const culprit = connection.culprit();
     recordAlert(COMPONENT.cloudLink, culprit === CLOUD ? 'CLOUD_ERROR' : null);
     recordAlert(COMPONENT.serverLink, culprit === SERVER ? 'SERVER_ERROR' : null);
-    document.body.classList.toggle('data-stale', culprit !== null);
+    const linkDown = culprit !== null;
+    if (linkDown && !document.body.classList.contains('data-stale')) disableCommandButtons();
+    document.body.classList.toggle('data-stale', linkDown);
 }
 
 /** The browser knows it lost the network for certain, and knows it before any

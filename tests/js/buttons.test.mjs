@@ -2,7 +2,7 @@ import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 import {
-    initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI,
+    initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI, disableCommandButtons,
 } from '../../crac_cloud/static/js/buttons.js';
 
 function fakeButton(id) {
@@ -74,4 +74,14 @@ test('un comando alla copertura senza dati grafici in risposta non la riabilita'
     updateCoverMirrorUI({ status: 'CLOSED', gui: { label: 'LABEL_CLOSE', is_disabled: false, metadata: 'OPEN_COVER_MIRROR' } });
     await pulsanti['btn-cover-mirror'].click();
     assert.equal(pulsanti['btn-cover-mirror'].disabled, true);
+});
+
+test('con il collegamento perso tutti i pulsanti dei comandi si disabilitano', () => {
+    const comandi = [fakeButton('btn-tetto'), fakeButton('btn-dome-light')];
+    comandi.forEach(btn => { btn.disabled = false; });
+    globalThis.document.querySelectorAll = selector => (selector === '.status-button' ? comandi : []);
+
+    disableCommandButtons();
+
+    assert.deepEqual(comandi.map(btn => btn.disabled), [true, true]);
 });

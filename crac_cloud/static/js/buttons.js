@@ -100,3 +100,9 @@ export function updateCoverMirrorUI(data) {
         btn.style.setProperty('color', gui.button_color.text_color || '', 'important');
     }
 }
+
+/** With the link to crac-server down no command can reach it: every command
+ *  button is disabled, and each comes back with its own next reading. */
+export function disableCommandButtons() {
+    document.querySelectorAll('.status-button').forEach(btn => { btn.disabled = true; });
+}
