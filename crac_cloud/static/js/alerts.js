@@ -1,5 +1,5 @@
-// alerts.js - What is worth reporting in "Stato di CRaC". No DOM here.
-// Every component owns its alert, so a healthy one cannot silence a broken one.
+/** alerts.js - What is worth reporting in "Stato di CRaC". No DOM here.
+ *  Every component owns its alert, so a healthy one cannot silence a broken one. */
 
 export const SEVERITY = {
     ERROR: 'error',

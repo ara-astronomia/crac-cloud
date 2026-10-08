@@ -1,4 +1,4 @@
-// buttons.js - The power and light switches.
+/** buttons.js - The power and light switches. */
 
 import { buttonsApi, coverMirrorApi } from './api.js';
 import { labelText } from './gui_constants.js';
@@ -24,6 +24,7 @@ export function initButtons() {
     console.log('[Buttons] Inizializzato.');
 }
 
+/** Without its own gui from crac-server a switch keeps what it shows. */
 export function updateButtonsUI(buttons) {
     if (!Array.isArray(buttons)) return;
 
@@ -34,7 +35,7 @@ export function updateButtonsUI(buttons) {
         if (!btn) return;
 
         const gui = button.button_gui;
-        if (!gui || !gui.label) return;   // a known old value beats an invented one
+        if (!gui || !gui.label) return;
         const label = labelText(gui.label);
         if (btn.textContent !== label) btn.textContent = label;
         enableCommand(btn, !gui.is_disabled);
@@ -50,19 +51,16 @@ export function updateButtonsUI(buttons) {
 async function handleButtonClick(btn) {
     if (btn.disabled) return;
 
-    // Ottieni la key dal mapping inverso
     const key = Object.entries(KEY_TO_ID).find(([, id]) => id === btn.id)?.[0];
     if (!key) return;
 
     const currentStatus = btn.dataset.status || 'OFF';
     const action = currentStatus === 'ON' ? 'TURN_OFF' : 'TURN_ON';
 
-    // Optimistic UI
     btn.disabled = true;
 
     const response = await buttonsApi.toggle(key, action);
     if (response && response.button_gui) {
-        // Aggiornamento immediato dalla risposta del server
         updateButtonsUI([{ key, button_gui: response.button_gui }]);
     }
 }

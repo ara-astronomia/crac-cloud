@@ -1,10 +1,9 @@
-// curtains.js - The curtains: controls and canvas drawing.
+/** curtains.js - The curtains: controls and canvas drawing. */
 
 import { curtainsApi } from './api.js';
 import { STATUS_LABELS_MAP } from './gui_constants.js';
 import { enableCommand } from './command_lock.js';
 
-// Canvas e configurazione geometrica
 let canvas = null;
 let ctx = null;
 const config = {
@@ -18,6 +17,7 @@ const config = {
 };
 
 let curtainButton = null;
+/** crac-server labels the button LABEL_ENABLE while the curtains are enabled. */
 let curtainsEnabled = false;
 
 export function initCurtains() {
@@ -48,21 +48,18 @@ export function updateCurtainsUI(data) {
     const curtains = data.curtains;
     const buttons_gui = data.buttons_gui || [];
 
-    // Aggiorna pulsante dalla GUI del server
     const enableGui = buttons_gui.find(b => b.key === 'KEY_CURTAINS');
     if (enableGui && curtainButton) {
         const labelData = STATUS_LABELS_MAP[enableGui.label] || {};
         curtainButton.textContent = labelData.text || enableGui.label;
         enableCommand(curtainButton, !enableGui.is_disabled);
         if (enableGui.button_color) {
-            // 'important' beats the stylesheet rules that would override the colour.
             curtainButton.style.setProperty('background-color', enableGui.button_color.background_color || '', 'important');
             curtainButton.style.setProperty('color', enableGui.button_color.text_color || '', 'important');
         }
-        curtainsEnabled = enableGui.label === 'LABEL_ENABLE'; // "Disattiva" = tende attive
+        curtainsEnabled = enableGui.label === 'LABEL_ENABLE';
     }
 
-    // Aggiorna label per ogni tenda
     curtains.forEach(curtain => {
         const angle = curtain.angle ?? 0;
         const status = curtain.status || '';
@@ -81,7 +78,6 @@ export function updateCurtainsUI(data) {
         }
     });
 
-    // Aggiorna grafica canvas
     if (ctx) {
         const eastCurtain = curtains.find(c => c.orientation === 'CURTAIN_EAST');
         const westCurtain = curtains.find(c => c.orientation === 'CURTAIN_WEST');

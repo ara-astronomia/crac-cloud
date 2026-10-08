@@ -1,15 +1,15 @@
-// connection.js - Which of the two links is down. No DOM here.
+/** connection.js - Which of the two links is down. No DOM here. */
 
-// One lost packet is not a fault: neither a component nor the health probe
-// fails until this many reads in a row have failed.
+/** One lost packet is not a fault: a component or the health probe fails
+ *  after this many failed reads in a row. */
 const DEFAULT_TOLERANCE = 2;
 
-// crac-server has no probe of its own: one component failing is that component,
-// two at once are the link.
+/** crac-server has no probe of its own: one failing component is that
+ *  component, two at once are the link. */
 const COMPONENTS_FOR_A_SERVER_LINK_DOWN = 2;
 
-// Slow components are read every 30-60s: their failures from before a
-// recovery must not keep the link down until their next read.
+/** Slow components are read every 30-60s: their failures from before a
+ *  recovery must not keep the link down until their next read. */
 const FAILURE_FRESHNESS_MS = 10000;
 
 export const CLOUD = 'cloud';

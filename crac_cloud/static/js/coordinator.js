@@ -1,5 +1,5 @@
-// coordinator.js - The only file the page loads (besides D3): it wires the
-// modules together and owns the polling timings.
+/** coordinator.js - The only file the page loads (besides D3): it wires the
+ *  modules together and owns the polling timings. */
 
 import { initRoofControl, updateRoofUI }             from './roof_control.js';
 import { initCurtains, updateCurtainsUI, updateRoofBackground } from './curtains.js';
@@ -205,9 +205,8 @@ async function checkSkyMapRefresh() {
     }
 }
 
-// Max drift allowed before the sky map is considered stale: 1 arcmin on either axis.
-// ra is in decimal hours (1h = 15deg), dec in decimal degrees, so the same
-// arcmin budget converts to a different raw threshold per axis.
+/** Drift that makes the sky map stale, on either axis. RA is in hours and DEC
+ *  in degrees, so the same arcmin gives a different threshold per axis. */
 const EQ_THRESHOLD_ARCMIN = 1;
 const RA_THRESHOLD_HOURS = (EQ_THRESHOLD_ARCMIN / 60) / 15;
 const DEC_THRESHOLD_DEG = EQ_THRESHOLD_ARCMIN / 60;

@@ -1,10 +1,9 @@
-// telescope_control.js - The telescope. Draws what the coordinator hands over, polls nothing.
+/** telescope_control.js - The telescope. Draws what the coordinator hands over, polls nothing. */
 
 import { STATUS_LABELS_MAP, BUTTON_KEY_MAP, TELESCOPE_ACTION_MAP } from './gui_constants.js';
 import { telescopeApi } from './api.js';
 import { enableCommand } from './command_lock.js';
 
-// Riferimenti DOM (inizializzati in init)
 let connButton = null;
 let parkButton = null;
 let flatButton = null;
@@ -49,10 +48,8 @@ export function updateTelescopeUI(data) {
     _updateParkFlatButton(flatButton, _findButtonGui(data, 'LABEL_FLAT'), isConnected,
         serverState === 'FLATTER' ? 'Flatter' : 'Flat');
 
-    // --- Label connessione / posizione ---
     _applyLabel('lbl_status_connect', `TELESCOPE_${serverState}`);
 
-    // --- Tracking / Slewing ---
     let trackingKey = 'TELESCOPE_TRACKING_OFF';
     let slewingKey  = 'TELESCOPE_SLEWING_OFF';
     if (speed === 'SPEED_TRACKING')  trackingKey = 'TELESCOPE_TRACKING_ON';
@@ -60,7 +57,6 @@ export function updateTelescopeUI(data) {
     _applyLabel('lbl_status_tracking', trackingKey);
     _applyLabel('lbl_status_slewing',  slewingKey);
 
-    // --- Coordinate Alt/Az ---
     const altLabel = document.getElementById('lbl_status_altezza_telescopio');
     const azLabel  = document.getElementById('lbl_status_azimuth_telescopio');
     const aa = data.aa_coords;
@@ -106,7 +102,6 @@ async function handleAutolightChange() {
     const value = autolightCheckbox.checked;
     const response = await telescopeApi.check(value);
     if (!response || !response.status) {
-        // Rollback visivo se il server non risponde
         autolightCheckbox.checked = !value;
     }
 }
