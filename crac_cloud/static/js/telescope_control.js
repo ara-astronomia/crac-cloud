@@ -1,9 +1,9 @@
-// telescope_control.js - The telescope. Draws what the coordinator hands over, polls nothing.
+/** telescope_control.js - The telescope. Draws what the coordinator hands over, polls nothing. */
 
 import { STATUS_LABELS_MAP, BUTTON_KEY_MAP, TELESCOPE_ACTION_MAP } from './gui_constants.js';
 import { telescopeApi } from './api.js';
+import { enableCommand } from './command_lock.js';
 
-// Riferimenti DOM (inizializzati in init)
 let connButton = null;
 let parkButton = null;
 let flatButton = null;
@@ -42,56 +42,14 @@ export function updateTelescopeUI(data) {
 
     const isConnected = !['DISCONNECTED', 'ERROR', 'LOST'].includes(serverState);
 
-    // --- Pulsante connessione ---
-    if (connButton) {
-        connButton.disabled = false;
-        const newText   = isConnected ? 'Connesso' : 'Disconnesso';
-        const newAction = isConnected
-            ? TELESCOPE_ACTION_MAP['CONNECTED']
-            : TELESCOPE_ACTION_MAP['DISCONNECTED'];
+    _updateConnButton(data.gui, isConnected);
+    _updateParkFlatButton(parkButton, _findButtonGui(data, 'LABEL_PARK'), isConnected,
+        serverState === 'PARKED' ? 'Parked' : 'Park');
+    _updateParkFlatButton(flatButton, _findButtonGui(data, 'LABEL_FLAT'), isConnected,
+        serverState === 'FLATTER' ? 'Flatter' : 'Flat');
 
-        if (connButton.textContent !== newText) connButton.textContent = newText;
-        if (connButton.dataset.action !== newAction) connButton.dataset.action = newAction;
-
-        // Colore solido dal server, come gli altri pulsanti (tende, alimentatori,
-        // specchio) — non più la classe CSS "pill" traslucida, per coerenza visiva.
-        const color = data.gui && data.gui.button_color;
-        if (color) {
-            connButton.style.setProperty('background-color', color.background_color || '', 'important');
-            connButton.style.setProperty('color', color.text_color || '', 'important');
-        }
-    }
-
-    // --- Park / Flat ---
-    if (parkButton) {
-        const isParked = serverState === 'PARKED';
-        parkButton.disabled = !isConnected;
-        parkButton.textContent = isParked ? 'Parked' : 'Park';
-
-        // Colore solido dal server, come connButton — non più la classe CSS
-        // "pill" traslucida, per coerenza visiva.
-        const color = _findButtonGui(data, 'LABEL_PARK');
-        if (color) {
-            parkButton.style.setProperty('background-color', color.background_color || '', 'important');
-            parkButton.style.setProperty('color', color.text_color || '', 'important');
-        }
-    }
-    if (flatButton) {
-        const isFlatter = serverState === 'FLATTER';
-        flatButton.disabled = !isConnected;
-        flatButton.textContent = isFlatter ? 'Flatter' : 'Flat';
-
-        const color = _findButtonGui(data, 'LABEL_FLAT');
-        if (color) {
-            flatButton.style.setProperty('background-color', color.background_color || '', 'important');
-            flatButton.style.setProperty('color', color.text_color || '', 'important');
-        }
-    }
-
-    // --- Label connessione / posizione ---
     _applyLabel('lbl_status_connect', `TELESCOPE_${serverState}`);
 
-    // --- Tracking / Slewing ---
     let trackingKey = 'TELESCOPE_TRACKING_OFF';
     let slewingKey  = 'TELESCOPE_SLEWING_OFF';
     if (speed === 'SPEED_TRACKING')  trackingKey = 'TELESCOPE_TRACKING_ON';
@@ -99,7 +57,6 @@ export function updateTelescopeUI(data) {
     _applyLabel('lbl_status_tracking', trackingKey);
     _applyLabel('lbl_status_slewing',  slewingKey);
 
-    // --- Coordinate Alt/Az ---
     const altLabel = document.getElementById('lbl_status_altezza_telescopio');
     const azLabel  = document.getElementById('lbl_status_azimuth_telescopio');
     const aa = data.aa_coords;
@@ -123,7 +80,6 @@ async function handleConnClick() {
         : telescopeApi.connect;
     const response = await fn();
     if (response && response.status) updateTelescopeUI(response);
-    else connButton.disabled = false;
 }
 
 async function handleParkClick() {
@@ -132,7 +88,6 @@ async function handleParkClick() {
     const autolight = autolightCheckbox ? autolightCheckbox.checked : false;
     const response = await telescopeApi.park(autolight);
     if (response && response.status) updateTelescopeUI(response);
-    else parkButton.disabled = false;
 }
 
 async function handleFlatClick() {
@@ -141,14 +96,12 @@ async function handleFlatClick() {
     const autolight = autolightCheckbox ? autolightCheckbox.checked : false;
     const response = await telescopeApi.flat(autolight);
     if (response && response.status) updateTelescopeUI(response);
-    else flatButton.disabled = false;
 }
 
 async function handleAutolightChange() {
     const value = autolightCheckbox.checked;
     const response = await telescopeApi.check(value);
     if (!response || !response.status) {
-        // Rollback visivo se il server non risponde
         autolightCheckbox.checked = !value;
     }
 }
@@ -163,9 +116,34 @@ function _applyLabel(elementId, statusKey) {
     el.style.color = d.text_color || '';
 }
 
+/** Without its own gui from crac-server the button keeps what it shows. */
+function _updateConnButton(gui, isConnected) {
+    if (!connButton || !gui || !gui.label) return;
+    enableCommand(connButton, !gui.is_disabled);
+    connButton.textContent = isConnected ? 'Connesso' : 'Disconnesso';
+    connButton.dataset.action = isConnected
+        ? TELESCOPE_ACTION_MAP['CONNECTED']
+        : TELESCOPE_ACTION_MAP['DISCONNECTED'];
+    _paint(connButton, gui.button_color);
+}
+
+/** crac-server enables Park and Flat also on a powered telescope that is not
+ *  connected, so the button needs both the server and a connection. */
+function _updateParkFlatButton(button, gui, isConnected, text) {
+    if (!button || !gui) return;
+    enableCommand(button, !gui.is_disabled && isConnected);
+    button.textContent = text;
+    _paint(button, gui.button_color);
+}
+
+function _paint(button, color) {
+    if (!color) return;
+    button.style.setProperty('background-color', color.background_color || '', 'important');
+    button.style.setProperty('color', color.text_color || '', 'important');
+}
+
 function _findButtonGui(data, label) {
-    const entry = data.buttons_gui && data.buttons_gui.find(b => b.label === label);
-    return entry && entry.button_color;
+    return data.buttons_gui && data.buttons_gui.find(b => b.label === label);
 }
 
 function _setButtonTransition(btn) {

@@ -1,7 +1,8 @@
-// buttons.js - The power and light switches.
+/** buttons.js - The power and light switches. */
 
 import { buttonsApi, coverMirrorApi } from './api.js';
 import { labelText } from './gui_constants.js';
+import { enableCommand } from './command_lock.js';
 
 const BUTTON_IDS = ['btn-tele-switch', 'btn-ccd-switch', 'btn-flat-light', 'btn-dome-light'];
 
@@ -23,6 +24,7 @@ export function initButtons() {
     console.log('[Buttons] Inizializzato.');
 }
 
+/** Without its own gui from crac-server a switch keeps what it shows. */
 export function updateButtonsUI(buttons) {
     if (!Array.isArray(buttons)) return;
 
@@ -33,10 +35,10 @@ export function updateButtonsUI(buttons) {
         if (!btn) return;
 
         const gui = button.button_gui;
-        if (!gui || !gui.label) return;   // a known old value beats an invented one
+        if (!gui || !gui.label) return;
         const label = labelText(gui.label);
         if (btn.textContent !== label) btn.textContent = label;
-        btn.disabled = gui.is_disabled || false;
+        enableCommand(btn, !gui.is_disabled);
 
         if (gui.button_color) {
             btn.style.setProperty('background-color', gui.button_color.background_color || '', 'important');
@@ -49,22 +51,17 @@ export function updateButtonsUI(buttons) {
 async function handleButtonClick(btn) {
     if (btn.disabled) return;
 
-    // Ottieni la key dal mapping inverso
     const key = Object.entries(KEY_TO_ID).find(([, id]) => id === btn.id)?.[0];
     if (!key) return;
 
     const currentStatus = btn.dataset.status || 'OFF';
     const action = currentStatus === 'ON' ? 'TURN_OFF' : 'TURN_ON';
 
-    // Optimistic UI
     btn.disabled = true;
 
     const response = await buttonsApi.toggle(key, action);
     if (response && response.button_gui) {
-        // Aggiornamento immediato dalla risposta del server
         updateButtonsUI([{ key, button_gui: response.button_gui }]);
-    } else {
-        btn.disabled = false;
     }
 }
 export function initCoverMirror() {
@@ -84,18 +81,17 @@ async function handleCoverMirrorClick(btn) {
 
     if (response && response.gui) {
         updateCoverMirrorUI(response);
-    } else {
-        btn.disabled = false;
     }
 }
 
+/** Without its own gui from crac-server the button keeps what it shows. */
 export function updateCoverMirrorUI(data) {
     const btn = document.getElementById('btn-cover-mirror');
-    if (!btn || !data.gui) return;
+    if (!btn || !data.gui || !data.gui.label) return;
 
     const gui = data.gui;
-    btn.textContent = gui.label ? labelText(gui.label) : '';
-    btn.disabled = gui.is_disabled || false;
+    btn.textContent = labelText(gui.label);
+    enableCommand(btn, !gui.is_disabled);
     btn.dataset.action = gui.metadata || '';
 
     if (gui.button_color) {

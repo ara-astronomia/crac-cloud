@@ -95,6 +95,30 @@ class TestGetAllButtonStatuses:
 
         assert [button["status"] for button in resp.json()["buttons"]] == ["OFF"] * 5
 
+    def test_with_every_switch_unreadable_the_answer_is_an_error(self):
+        service = MagicMock()
+        service.button_client.get_single_switch_status.return_value = {"error": "Deadline Exceeded", "status": "UNKNOWN"}
+        service.telescope_client.get_autolight_status.return_value = {"key": "KEY_AUTOLIGHT", "status": "UNKNOWN"}
+
+        resp = _http_with(service).get("/buttons/status")
+
+        assert resp.json() == {"error": "Deadline Exceeded"}
+
+    def test_with_one_switch_unreadable_the_others_still_come_back(self):
+        def switch_read(key, type_enum):
+            if key == "KEY_CCD_SWITCH":
+                return {"error": "Deadline Exceeded", "status": "UNKNOWN"}
+            return {"key": key, "status": "OFF"}
+
+        service = MagicMock()
+        service.button_client.get_single_switch_status.side_effect = switch_read
+        service.telescope_client.get_autolight_status.return_value = None
+
+        resp = _http_with(service).get("/buttons/status")
+
+        assert "error" not in resp.json()
+        assert [button["status"] for button in resp.json()["buttons"]] == ["OFF", "UNKNOWN", "OFF", "OFF"]
+
 
 class TestSetAutolightAction:
     def test_a_grpc_error_returns_an_error_payload(self):

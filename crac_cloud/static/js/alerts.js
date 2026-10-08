@@ -1,5 +1,5 @@
-// alerts.js - What is worth reporting in "Stato di CRaC". No DOM here.
-// Every component owns its alert, so a healthy one cannot silence a broken one.
+/** alerts.js - What is worth reporting in "Stato di CRaC". No DOM here.
+ *  Every component owns its alert, so a healthy one cannot silence a broken one. */
 
 export const SEVERITY = {
     ERROR: 'error',
@@ -17,6 +17,7 @@ const TEXT_BY_STATUS = {
     ROOF_ERROR: 'errore',
     CURTAIN_ERROR: 'errore',
     COVER_MIRROR_ERROR: 'errore',
+    READ_ERROR: 'nessuna risposta, i valori del pannello sono fermi',
     SERVER_ERROR: 'nessuna risposta, i valori a schermo sono fermi',
     CLOUD_ERROR: 'la pagina non riesce a parlare col servizio, i valori a schermo sono fermi',
     ROOF_DANGER: 'attenzione, posizione di pericolo',
