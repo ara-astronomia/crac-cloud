@@ -17,6 +17,7 @@ const TEXT_BY_STATUS = {
     ROOF_ERROR: 'errore',
     CURTAIN_ERROR: 'errore',
     COVER_MIRROR_ERROR: 'errore',
+    READ_ERROR: 'nessuna risposta, i valori del pannello sono fermi',
     SERVER_ERROR: 'nessuna risposta, i valori a schermo sono fermi',
     CLOUD_ERROR: 'la pagina non riesce a parlare col servizio, i valori a schermo sono fermi',
     ROOF_DANGER: 'attenzione, posizione di pericolo',

@@ -56,6 +56,15 @@ const COMPONENT = {
     roof: 'Tetto',
     coverMirror: 'Copertura specchio',
     curtain: { CURTAIN_EAST: 'Tenda est', CURTAIN_WEST: 'Tenda ovest' },
+    read: {
+        telescope: 'Lettura telescopio',
+        roof: 'Lettura tetto',
+        curtains: 'Lettura tende',
+        buttons: 'Lettura alimentatori e luci',
+        cover_mirror: 'Lettura copertura specchio',
+        ups: 'Lettura UPS',
+        charts: 'Lettura meteo',
+    },
 };
 
 function recordAlert(component, status) {
@@ -63,10 +72,11 @@ function recordAlert(component, status) {
     renderAlerts(alerts);
 }
 
-/** Records how a read went and answers whether its data can be used. With a
- *  link down the panels keep their last values, and the page is dimmed. */
+/** Records how a read went and answers whether its data can be used. A
+ *  component that keeps failing gets its own alert; the link decides the rest. */
 function received(endpoint, data) {
     connection.note(endpoint, outcomeOf(data));
+    recordAlert(COMPONENT.read[endpoint], connection.isFailing(endpoint) ? 'READ_ERROR' : null);
     showConnectionAlert();
     return !isError(data);
 }

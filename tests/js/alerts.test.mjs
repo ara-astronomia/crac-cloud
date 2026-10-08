@@ -143,6 +143,14 @@ test('uno stato senza testo dedicato non stampa undefined', () => {
     assert.ok(!text.includes('undefined'));
 });
 
+test('un componente che non si riesce a leggere e\' un guasto con un testo suo', () => {
+    const registry = new AlertRegistry();
+    registry.record('Lettura tetto', 'READ_ERROR', 1000);
+    const [alert] = registry.current();
+    assert.equal(alert.severity, SEVERITY.ERROR);
+    assert.equal(alertText(alert), 'Lettura tetto: nessuna risposta, i valori del pannello sono fermi');
+});
+
 test('a riposo la sezione ha il suo messaggio', () => {
     assert.equal(noAlertText(), 'Nessun errore riscontrato');
 });
