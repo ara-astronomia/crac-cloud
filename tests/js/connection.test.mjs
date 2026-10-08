@@ -62,17 +62,42 @@ test('una lettura buona azzera solo lo stato del proprio componente', () => {
     fail(connection, 'error', TELESCOPE, COVER);
     connection.note(ROOF, 'ok');
     fail(connection, 'error', TELESCOPE, COVER);
-    assert.equal(connection.culprit(), 'server');
+    assert.equal(connection.isFailing(TELESCOPE), true);
+    assert.equal(connection.isFailing(COVER), true);
     connection.note(TELESCOPE, 'ok');
-    assert.equal(connection.culprit(), null);
+    assert.equal(connection.isFailing(TELESCOPE), false);
+    assert.equal(connection.isFailing(COVER), true);
 });
 
-test('al ritorno di crac-server i fallimenti vecchi dei componenti lenti non tengono l\'avviso', () => {
+test('due componenti in errore mentre un terzo risponde non sono il collegamento perso', () => {
     const connection = new ConnectionHealth();
-    [0, 1].forEach(t => [UPS, WEATHER].forEach(endpoint => connection.note(endpoint, 'error', t * 1000)));
-    assert.equal(connection.culprit(2000), 'server');
-    connection.note(TELESCOPE, 'ok', 3000);
-    assert.equal(connection.culprit(15000), null);
+    [0, 1000].forEach(t => [TELESCOPE, COVER].forEach(endpoint => connection.note(endpoint, 'error', t)));
+    connection.note(ROOF, 'ok', 1500);
+    assert.equal(connection.culprit(2000), null);
+});
+
+test('se tutti falliscono e nessuno risponde da qualche secondo, il collegamento e\' perso', () => {
+    const connection = new ConnectionHealth();
+    connection.note(ROOF, 'ok', 0);
+    [5000, 6000].forEach(t => [TELESCOPE, ROOF, COVER].forEach(endpoint => connection.note(endpoint, 'error', t)));
+    assert.equal(connection.culprit(6500), 'server');
+});
+
+test('alla ripresa basta una lettura buona: UPS e meteo restano in errore ma la pagina torna', () => {
+    const connection = new ConnectionHealth();
+    [0, 30000].forEach(t => [UPS, WEATHER, TELESCOPE].forEach(endpoint => connection.note(endpoint, 'error', t)));
+    assert.equal(connection.culprit(31000), 'server');
+    connection.note(TELESCOPE, 'ok', 32000);
+    assert.equal(connection.culprit(32100), null);
+    assert.equal(connection.isFailing(UPS), true);
+    assert.equal(connection.isFailing(WEATHER), true);
+});
+
+test('i fallimenti di UPS e meteo contano finche\' non si rileggono, senza scadenza', () => {
+    const connection = new ConnectionHealth();
+    [0, 1000].forEach(t => [UPS, WEATHER].forEach(endpoint => connection.note(endpoint, 'error', t)));
+    assert.equal(connection.culprit(60000), 'server');
+    assert.equal(connection.isFailing(UPS), true);
 });
 
 test('le letture che non raggiungono crac-cloud non lo incolpano: lo decide la sonda', () => {

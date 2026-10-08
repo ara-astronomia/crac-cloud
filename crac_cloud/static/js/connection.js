@@ -8,9 +8,9 @@ const DEFAULT_TOLERANCE = 2;
  *  component, two at once are the link. */
 const COMPONENTS_FOR_A_SERVER_LINK_DOWN = 2;
 
-/** Slow components are read every 30-60s: their failures from before a
- *  recovery must not keep the link down until their next read. */
-const FAILURE_FRESHNESS_MS = 10000;
+/** Every component comes through crac-server, so any good read proves the link.
+ *  4s is the 3s round of the fast components plus a slow answer. */
+const SERVER_SILENCE_MS = 4000;
 
 export const CLOUD = 'cloud';
 export const SERVER = 'server';
@@ -20,6 +20,7 @@ export class ConnectionHealth {
     constructor({ tolerance = DEFAULT_TOLERANCE } = {}) {
         this._tolerance = tolerance;
         this._failures = new Map();
+        this._lastOkAt = null;
         this._healthFailures = 0;
         this._lastOutcome = null;
         this._browserOffline = false;
@@ -30,16 +31,16 @@ export class ConnectionHealth {
         this._lastOutcome = outcome;
         if (outcome === 'ok') {
             this._healthFailures = 0;
+            this._lastOkAt = now;
             this._failures.delete(endpoint);
             return;
         }
         const previous = this._failures.get(endpoint);
-        this._failures.set(endpoint, { count: (previous ? previous.count : 0) + 1, at: now });
+        this._failures.set(endpoint, (previous || 0) + 1);
     }
 
     isFailing(endpoint) {
-        const failure = this._failures.get(endpoint);
-        return !!failure && failure.count >= this._tolerance;
+        return (this._failures.get(endpoint) || 0) >= this._tolerance;
     }
 
     noteHealth(outcome) {
@@ -56,8 +57,8 @@ export class ConnectionHealth {
         if (this._browserOffline) return CLOUD;
         const cloudJustAnswered = this._lastOutcome === 'ok' || this._lastOutcome === 'error';
         if (this._healthFailures >= this._tolerance && !cloudJustAnswered) return CLOUD;
-        const failing = [...this._failures.keys()].filter(endpoint =>
-            this.isFailing(endpoint) && now - this._failures.get(endpoint).at <= FAILURE_FRESHNESS_MS);
-        return failing.length >= COMPONENTS_FOR_A_SERVER_LINK_DOWN ? SERVER : null;
+        const serverJustAnswered = this._lastOkAt !== null && now - this._lastOkAt <= SERVER_SILENCE_MS;
+        const failing = [...this._failures.keys()].filter(endpoint => this.isFailing(endpoint));
+        return failing.length >= COMPONENTS_FOR_A_SERVER_LINK_DOWN && !serverJustAnswered ? SERVER : null;
     }
 }
