@@ -163,12 +163,15 @@ def _autolight_status(service):
 @router.get("/status")
 def get_all_button_statuses(service: GrpcServiceContainer = Depends(get_grpc_container)):
     """Fetches all switch statuses and the autolight in parallel, so the poll
-    waits at most one read timeout."""
+    waits at most one read timeout. With no switch readable the answer is an
+    error, like any other read that does not reach crac-server."""
     with ThreadPoolExecutor(max_workers=len(POLLED_SWITCHES) + 1) as pool:
         switches = [pool.submit(_switch_status, service, key) for key in POLLED_SWITCHES]
         autolight = pool.submit(_autolight_status, service)
 
     all_statuses = [switch.result() for switch in switches]
+    if all("error" in status for status in all_statuses):
+        return {"error": all_statuses[0]["error"]}
     if autolight.result() is not None:
         all_statuses.append(autolight.result())
     return {"buttons": all_statuses}
