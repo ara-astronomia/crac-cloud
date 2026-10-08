@@ -384,6 +384,10 @@ body.data-stale .obs-main > :not(.alerts-panel) {
   filter: grayscale(0.7);
 }
 
+body.data-stale .status-button:disabled {
+  opacity: 1;
+}
+
 .alerts-history {
   max-height: 9em;
   overflow-y: auto;
