@@ -5,7 +5,7 @@ import { initRoofControl, updateRoofUI }             from './roof_control.js';
 import { initCurtains, updateCurtainsUI, updateRoofBackground } from './curtains.js';
 import { initTelescopeControl, updateTelescopeUI }    from './telescope_control.js';
 import { initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI } from './buttons.js';
-import { showLinkDown } from './command_lock.js';
+import { showLinkDown, showComponentFailing } from './command_lock.js';
 import { initUps, updateUpsUI }                       from './ups.js';
 import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
@@ -73,10 +73,12 @@ function recordAlert(component, status) {
 }
 
 /** Records how a read went and answers whether its data can be used. A
- *  component that keeps failing gets its own alert; the link decides the rest. */
+ *  component that keeps failing gets its own alert and its buttons disabled. */
 function received(endpoint, data) {
     connection.note(endpoint, outcomeOf(data));
-    recordAlert(COMPONENT.read[endpoint], connection.isFailing(endpoint) ? 'READ_ERROR' : null);
+    const failing = connection.isFailing(endpoint);
+    recordAlert(COMPONENT.read[endpoint], failing ? 'READ_ERROR' : null);
+    showComponentFailing(endpoint, failing);
     showConnectionAlert();
     return !isError(data);
 }

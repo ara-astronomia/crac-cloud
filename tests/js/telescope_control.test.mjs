@@ -2,10 +2,11 @@ import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 import { initTelescopeControl, updateTelescopeUI } from '../../crac_cloud/static/js/telescope_control.js';
-import { showLinkDown } from '../../crac_cloud/static/js/command_lock.js';
+import { showLinkDown, showComponentFailing } from '../../crac_cloud/static/js/command_lock.js';
 
-function fakeButton() {
+function fakeButton(id) {
     return {
+        id,
         disabled: true,
         textContent: '',
         dataset: {},
@@ -20,9 +21,9 @@ let rispostaAlComando;
 
 beforeEach(() => {
     pulsanti = {
-        'btn-conn-telescopio': fakeButton(),
-        'btn-park': fakeButton(),
-        'btn-flat': fakeButton(),
+        'btn-conn-telescopio': fakeButton('btn-conn-telescopio'),
+        'btn-park': fakeButton('btn-park'),
+        'btn-flat': fakeButton('btn-flat'),
     };
     globalThis.document = {
         getElementById: id => pulsanti[id] ?? null,
@@ -36,6 +37,7 @@ beforeEach(() => {
 
 afterEach(() => {
     showLinkDown(false);
+    showComponentFailing('telescope', false);
     globalThis.fetch = fetchVera;
     delete globalThis.document;
 });
@@ -110,6 +112,19 @@ test('sotto l\'avviso di collegamento la risposta tardiva al comando non riabili
     updateTelescopeUI(telescopio('TRACKING'));
     globalThis.fetch = async () => {
         showLinkDown(true);
+        return { ok: true, json: async () => telescopio('TRACKING') };
+    };
+    await pulsanti['btn-park'].click();
+    assert.deepEqual(
+        ['btn-conn-telescopio', 'btn-park', 'btn-flat'].map(id => pulsanti[id].disabled),
+        [true, true, true],
+    );
+});
+
+test('con la lettura del telescopio in errore la risposta tardiva al comando non riabilita i pulsanti', async () => {
+    updateTelescopeUI(telescopio('TRACKING'));
+    globalThis.fetch = async () => {
+        showComponentFailing('telescope', true);
         return { ok: true, json: async () => telescopio('TRACKING') };
     };
     await pulsanti['btn-park'].click();
