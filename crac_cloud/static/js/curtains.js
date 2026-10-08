@@ -100,11 +100,7 @@ async function handleCurtainClick() {
 
     const fn = curtainsEnabled ? curtainsApi.disable : curtainsApi.enable;
     const response = await fn();
-    if (response && response.curtains) {
-        updateCurtainsUI(response);
-    } else {
-        curtainButton.disabled = false;
-    }
+    if (response && response.curtains) updateCurtainsUI(response);
 }
 
 function _drawCurtains(alphaEast, alphaWest) {

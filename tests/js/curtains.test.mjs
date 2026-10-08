@@ -54,3 +54,11 @@ test('sotto l\'avviso di collegamento la risposta tardiva al comando non riabili
     await pulsante.click();
     assert.equal(pulsante.disabled, true);
 });
+
+test('un comando fallito lascia le tende disabilitate fino alla lettura seguente', async () => {
+    updateCurtainsUI(tendeDisattive);
+    await pulsante.click();
+    assert.equal(pulsante.disabled, true);
+    updateCurtainsUI(tendeDisattive);
+    assert.equal(pulsante.disabled, false);
+});
