@@ -2,6 +2,7 @@
 
 import { curtainsApi } from './api.js';
 import { STATUS_LABELS_MAP } from './gui_constants.js';
+import { enableCommand } from './command_lock.js';
 
 // Canvas e configurazione geometrica
 let canvas = null;
@@ -52,7 +53,7 @@ export function updateCurtainsUI(data) {
     if (enableGui && curtainButton) {
         const labelData = STATUS_LABELS_MAP[enableGui.label] || {};
         curtainButton.textContent = labelData.text || enableGui.label;
-        curtainButton.disabled = enableGui.is_disabled || false;
+        enableCommand(curtainButton, !enableGui.is_disabled);
         if (enableGui.button_color) {
             // 'important' beats the stylesheet rules that would override the colour.
             curtainButton.style.setProperty('background-color', enableGui.button_color.background_color || '', 'important');

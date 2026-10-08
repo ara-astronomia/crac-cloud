@@ -4,7 +4,8 @@
 import { initRoofControl, updateRoofUI }             from './roof_control.js';
 import { initCurtains, updateCurtainsUI, updateRoofBackground } from './curtains.js';
 import { initTelescopeControl, updateTelescopeUI }    from './telescope_control.js';
-import { initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI, disableCommandButtons } from './buttons.js';
+import { initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI } from './buttons.js';
+import { showLinkDown } from './command_lock.js';
 import { initUps, updateUpsUI }                       from './ups.js';
 import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
@@ -74,9 +75,7 @@ function showConnectionAlert() {
     const culprit = connection.culprit();
     recordAlert(COMPONENT.cloudLink, culprit === CLOUD ? 'CLOUD_ERROR' : null);
     recordAlert(COMPONENT.serverLink, culprit === SERVER ? 'SERVER_ERROR' : null);
-    const linkDown = culprit !== null;
-    if (linkDown && !document.body.classList.contains('data-stale')) disableCommandButtons();
-    document.body.classList.toggle('data-stale', linkDown);
+    showLinkDown(culprit !== null);
 }
 
 /** The browser knows it lost the network for certain, and knows it before any
@@ -144,14 +143,10 @@ async function pollCurtains() {
 
 async function pollButtons() {
     const data = await buttonsApi.getStatus();
-    console.log('[Coordinator] Buttons API response:', data);
-    if (data && data.buttons) {
-        console.log('[Coordinator] Buttons data received:', data.buttons.length, 'items');
+    if (received('buttons', data) && Array.isArray(data.buttons)) {
         updateButtonsUI(data.buttons);
         const telescopePower = data.buttons.find(button => button.key === 'KEY_TELE_SWITCH');
         if (telescopePower) state.telescopePowerStatus = telescopePower.status;
-    } else {
-        console.warn('[Coordinator] No buttons data from API');
     }
 }
 

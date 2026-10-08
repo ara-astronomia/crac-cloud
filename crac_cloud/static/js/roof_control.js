@@ -2,6 +2,7 @@
 
 import { labelText, ROOF_STATE_TO_ACTION_MAP } from './gui_constants.js';
 import { roofApi } from './api.js';
+import { enableCommand } from './command_lock.js';
 
 /** RoofAction values from the contract. In error the position of the roof is
  *  unknown, so crac-server tells which command the button offers. */
@@ -39,7 +40,7 @@ export function updateRoofUI(data) {
     roofButton.textContent = offeredInError
         ? `${labelText(enumLabel)}: ${offeredInError.text}`
         : labelText(enumLabel);
-    roofButton.disabled = isDisabled;
+    enableCommand(roofButton, !isDisabled);
 
     // While OPENING/CLOSING the server still sends the previous red/green, so
     // the orange is put on here until the final status arrives.

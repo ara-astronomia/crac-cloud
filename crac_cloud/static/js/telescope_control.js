@@ -2,6 +2,7 @@
 
 import { STATUS_LABELS_MAP, BUTTON_KEY_MAP, TELESCOPE_ACTION_MAP } from './gui_constants.js';
 import { telescopeApi } from './api.js';
+import { enableCommand } from './command_lock.js';
 
 // Riferimenti DOM (inizializzati in init)
 let connButton = null;
@@ -123,7 +124,7 @@ function _applyLabel(elementId, statusKey) {
 /** Without its own gui from crac-server the button keeps what it shows. */
 function _updateConnButton(gui, isConnected) {
     if (!connButton || !gui || !gui.label) return;
-    connButton.disabled = !!gui.is_disabled;
+    enableCommand(connButton, !gui.is_disabled);
     connButton.textContent = isConnected ? 'Connesso' : 'Disconnesso';
     connButton.dataset.action = isConnected
         ? TELESCOPE_ACTION_MAP['CONNECTED']
@@ -135,7 +136,7 @@ function _updateConnButton(gui, isConnected) {
  *  connected, so the button needs both the server and a connection. */
 function _updateParkFlatButton(button, gui, isConnected, text) {
     if (!button || !gui) return;
-    button.disabled = !!gui.is_disabled || !isConnected;
+    enableCommand(button, !gui.is_disabled && isConnected);
     button.textContent = text;
     _paint(button, gui.button_color);
 }

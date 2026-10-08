@@ -2,8 +2,9 @@ import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 import {
-    initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI, disableCommandButtons,
+    initButtons, updateButtonsUI, initCoverMirror, updateCoverMirrorUI,
 } from '../../crac_cloud/static/js/buttons.js';
+import { showLinkDown } from '../../crac_cloud/static/js/command_lock.js';
 
 function fakeButton(id) {
     return {
@@ -25,7 +26,11 @@ beforeEach(() => {
         ['btn-tele-switch', 'btn-ccd-switch', 'btn-flat-light', 'btn-dome-light', 'btn-cover-mirror']
             .map(id => [id, fakeButton(id)]),
     );
-    globalThis.document = { getElementById: id => pulsanti[id] ?? null };
+    globalThis.document = {
+        getElementById: id => pulsanti[id] ?? null,
+        querySelectorAll: () => Object.values(pulsanti),
+        body: { classList: { toggle() {} } },
+    };
     rispostaAlComando = { status: 'error', message: 'crac-server unavailable' };
     globalThis.fetch = async () => ({ ok: true, json: async () => rispostaAlComando });
     initButtons();
@@ -33,6 +38,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    showLinkDown(false);
     globalThis.fetch = fetchVera;
     delete globalThis.document;
 });
@@ -76,12 +82,18 @@ test('un comando alla copertura senza dati grafici in risposta non la riabilita'
     assert.equal(pulsanti['btn-cover-mirror'].disabled, true);
 });
 
-test('con il collegamento perso tutti i pulsanti dei comandi si disabilitano', () => {
-    const comandi = [fakeButton('btn-tetto'), fakeButton('btn-dome-light')];
-    comandi.forEach(btn => { btn.disabled = false; });
-    globalThis.document.querySelectorAll = selector => (selector === '.status-button' ? comandi : []);
+test('sotto l\'avviso di collegamento una lettura non riabilita gli interruttori', () => {
+    showLinkDown(true);
+    updateButtonsUI([luceCupola({ label: 'LABEL_OFF', is_disabled: false })]);
+    assert.equal(pulsanti['btn-dome-light'].disabled, true);
+});
 
-    disableCommandButtons();
-
-    assert.deepEqual(comandi.map(btn => btn.disabled), [true, true]);
+test('sotto l\'avviso di collegamento la risposta tardiva non riabilita la copertura', async () => {
+    updateCoverMirrorUI({ status: 'CLOSED', gui: { label: 'LABEL_CLOSE', is_disabled: false, metadata: 'OPEN_COVER_MIRROR' } });
+    globalThis.fetch = async () => {
+        showLinkDown(true);
+        return { ok: true, json: async () => ({ status: 'CLOSED', gui: { label: 'LABEL_CLOSE', is_disabled: false } }) };
+    };
+    await pulsanti['btn-cover-mirror'].click();
+    assert.equal(pulsanti['btn-cover-mirror'].disabled, true);
 });

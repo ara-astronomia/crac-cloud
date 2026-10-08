@@ -2,6 +2,7 @@ import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 import { initRoofControl, updateRoofUI } from '../../crac_cloud/static/js/roof_control.js';
+import { showLinkDown } from '../../crac_cloud/static/js/command_lock.js';
 
 const OPEN = 1;
 const CLOSE = 2;
@@ -21,7 +22,11 @@ let comandiInviati;
 
 beforeEach(() => {
     pulsante = fakeButton();
-    globalThis.document = { getElementById: () => pulsante };
+    globalThis.document = {
+        getElementById: () => pulsante,
+        querySelectorAll: () => [pulsante],
+        body: { classList: { toggle() {} } },
+    };
     comandiInviati = [];
     globalThis.fetch = async (url, options) => {
         comandiInviati.push(JSON.parse(options.body).action);
@@ -31,6 +36,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    showLinkDown(false);
     globalThis.fetch = fetchVera;
     delete globalThis.document;
 });
@@ -82,6 +88,17 @@ test('una lettura senza dati grafici non abilita e non ridipinge il pulsante', (
 test('una risposta al comando senza dati grafici non riabilita il pulsante', async () => {
     globalThis.fetch = async () => ({ ok: true, json: async () => ({ status: 'error', message: 'Azione non valida' }) });
     updateRoofUI({ status: 'ROOF_CLOSED', gui: { label: 'LABEL_CLOSE', metadata: OPEN, is_disabled: false } });
+    await pulsante.click();
+    assert.equal(pulsante.disabled, true);
+});
+
+test('sotto l\'avviso di collegamento la risposta tardiva al comando non riabilita il tetto', async () => {
+    const tettoChiuso = { status: 'ROOF_CLOSED', gui: { label: 'LABEL_CLOSE', metadata: OPEN, is_disabled: false } };
+    updateRoofUI(tettoChiuso);
+    globalThis.fetch = async () => {
+        showLinkDown(true);
+        return { ok: true, json: async () => tettoChiuso };
+    };
     await pulsante.click();
     assert.equal(pulsante.disabled, true);
 });

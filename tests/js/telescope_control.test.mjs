@@ -2,6 +2,7 @@ import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 import { initTelescopeControl, updateTelescopeUI } from '../../crac_cloud/static/js/telescope_control.js';
+import { showLinkDown } from '../../crac_cloud/static/js/command_lock.js';
 
 function fakeButton() {
     return {
@@ -23,13 +24,18 @@ beforeEach(() => {
         'btn-park': fakeButton(),
         'btn-flat': fakeButton(),
     };
-    globalThis.document = { getElementById: id => pulsanti[id] ?? null };
+    globalThis.document = {
+        getElementById: id => pulsanti[id] ?? null,
+        querySelectorAll: () => Object.values(pulsanti),
+        body: { classList: { toggle() {} } },
+    };
     rispostaAlComando = { error: 'crac-server unavailable' };
     globalThis.fetch = async () => ({ ok: true, json: async () => rispostaAlComando });
     initTelescopeControl();
 });
 
 afterEach(() => {
+    showLinkDown(false);
     globalThis.fetch = fetchVera;
     delete globalThis.document;
 });
@@ -98,4 +104,17 @@ test('un comando che fallisce non riabilita il pulsante: lo decide la lettura se
     assert.equal(pulsanti['btn-park'].disabled, true);
     await pulsanti['btn-flat'].click();
     assert.equal(pulsanti['btn-flat'].disabled, true);
+});
+
+test('sotto l\'avviso di collegamento la risposta tardiva al comando non riabilita i pulsanti', async () => {
+    updateTelescopeUI(telescopio('TRACKING'));
+    globalThis.fetch = async () => {
+        showLinkDown(true);
+        return { ok: true, json: async () => telescopio('TRACKING') };
+    };
+    await pulsanti['btn-park'].click();
+    assert.deepEqual(
+        ['btn-conn-telescopio', 'btn-park', 'btn-flat'].map(id => pulsanti[id].disabled),
+        [true, true, true],
+    );
 });

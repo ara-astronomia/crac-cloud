@@ -2,6 +2,7 @@
 
 import { buttonsApi, coverMirrorApi } from './api.js';
 import { labelText } from './gui_constants.js';
+import { enableCommand } from './command_lock.js';
 
 const BUTTON_IDS = ['btn-tele-switch', 'btn-ccd-switch', 'btn-flat-light', 'btn-dome-light'];
 
@@ -36,7 +37,7 @@ export function updateButtonsUI(buttons) {
         if (!gui || !gui.label) return;   // a known old value beats an invented one
         const label = labelText(gui.label);
         if (btn.textContent !== label) btn.textContent = label;
-        btn.disabled = gui.is_disabled || false;
+        enableCommand(btn, !gui.is_disabled);
 
         if (gui.button_color) {
             btn.style.setProperty('background-color', gui.button_color.background_color || '', 'important');
@@ -92,17 +93,11 @@ export function updateCoverMirrorUI(data) {
 
     const gui = data.gui;
     btn.textContent = labelText(gui.label);
-    btn.disabled = gui.is_disabled || false;
+    enableCommand(btn, !gui.is_disabled);
     btn.dataset.action = gui.metadata || '';
 
     if (gui.button_color) {
         btn.style.setProperty('background-color', gui.button_color.background_color || '', 'important');
         btn.style.setProperty('color', gui.button_color.text_color || '', 'important');
     }
-}
-
-/** With the link to crac-server down no command can reach it: every command
- *  button is disabled, and each comes back with its own next reading. */
-export function disableCommandButtons() {
-    document.querySelectorAll('.status-button').forEach(btn => { btn.disabled = true; });
 }
