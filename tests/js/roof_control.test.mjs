@@ -102,3 +102,10 @@ test('sotto l\'avviso di collegamento la risposta tardiva al comando non riabili
     await pulsante.click();
     assert.equal(pulsante.disabled, true);
 });
+
+test('una risposta al comando con un errore non riabilita il pulsante', async () => {
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ error: 'crac-server unavailable' }) });
+    updateRoofUI({ status: 'ROOF_CLOSED', gui: { label: 'LABEL_CLOSE', metadata: OPEN, is_disabled: false } });
+    await pulsante.click();
+    assert.equal(pulsante.disabled, true);
+});
