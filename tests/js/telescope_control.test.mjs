@@ -90,6 +90,14 @@ test('disconnesso, Park e Flat restano disabilitati anche se crac-server li abil
     assert.equal(pulsanti['btn-flat'].disabled, true);
 });
 
+test('dopo un movimento non riuscito i pulsanti restano usabili e Connetti scollega', () => {
+    updateTelescopeUI(telescopio('ERROR'));
+    assert.equal(pulsanti['btn-park'].disabled, false);
+    assert.equal(pulsanti['btn-flat'].disabled, false);
+    assert.equal(pulsanti['btn-conn-telescopio'].disabled, false);
+    assert.equal(pulsanti['btn-conn-telescopio'].textContent, 'Connesso');
+});
+
 test('senza il proprio dato grafico Park e Flat non si abilitano', () => {
     updateTelescopeUI({ ...telescopio('TRACKING'), buttons_gui: [] });
     assert.equal(pulsanti['btn-park'].disabled, true);

@@ -40,7 +40,7 @@ export function updateTelescopeUI(data) {
     const serverState = data.status || 'DISCONNECTED';
     const speed       = data.speed  || 'SPEED_NOT_TRACKING';
 
-    const isConnected = !['DISCONNECTED', 'ERROR', 'LOST'].includes(serverState);
+    const isConnected = !['DISCONNECTED', 'LOST'].includes(serverState);
 
     _updateConnButton(data.gui, isConnected);
     _updateParkFlatButton(parkButton, _findButtonGui(data, 'LABEL_PARK'), isConnected,
