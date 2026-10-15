@@ -45,7 +45,7 @@ afterEach(() => {
 const color = { background_color: 'white', text_color: 'black' };
 
 function telescopio(status, { conn = false, park = false, flat = false } = {}) {
-    const connLabel = status === 'DISCONNECTED' || status === 'LOST'
+    const connLabel = ['LOST', 'ERROR', 'DISCONNECTED'].includes(status)
         ? 'LABEL_TELESCOPE_DISCONNECTED' : 'LABEL_TELESCOPE_CONNECTED';
     return {
         status,
