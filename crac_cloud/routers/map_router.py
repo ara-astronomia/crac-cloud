@@ -59,7 +59,7 @@ async def _get_all_required_data() -> dict:
 
     tel_state = telescope_status.get("status", "DISCONNECTED")
 
-    if tel_state in ["DISCONNECTED", "ERROR", "CRITICAL_ERROR", "LOST"]:
+    if tel_state in ["DISCONNECTED", "CRITICAL_ERROR", "LOST"]:
         logger.debug("Telescope not connected: eq_coords = None")
         return {
             "geo_data": geo_data,

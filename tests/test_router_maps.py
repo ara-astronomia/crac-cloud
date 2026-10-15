@@ -294,3 +294,25 @@ async def _slew_then_track_scenario(tmp_path):
 
     assert generated == [3.0]
     assert [r.body for r in responses] == [b"previous pointing"] * 3 + [b"final pointing"]
+
+
+def test_after_a_failed_movement_the_sky_map_shows_where_the_telescope_is(tmp_path):
+    """ERROR comes from crac-server while the telescope is connected: its coordinates are still read."""
+    map_path = tmp_path / map_router.MAP1_FILENAME
+
+    def generation(geo, eq_coords, ccd):
+        map_path.write_bytes(b"map at the stop")
+        return (str(map_path), str(map_path))
+
+    async def scenario():
+        with patch.object(map_router.geo_client, "get_geographic_data", AsyncMock(return_value=_GEO)), \
+             patch.object(map_router.image_config_client, "get_ccd_image_data", AsyncMock(return_value=_CCD)), \
+             patch.object(map_router.telescope_client, "get_status", return_value={
+                 "status": "ERROR", "speed": "SPEED_NOT_TRACKING", "eq_coords": {"ra": 3.0, "dec": 40.0}}), \
+             patch.object(map_router, "generate_telescope_maps", generation), \
+             patch.object(map_router, "OUTPUT_DIR", str(tmp_path)), \
+             patch.object(map_router, "LAST_EQ_COORDS", None), \
+             patch.object(map_router, "MAP_GENERATION_LOCK", asyncio.Lock()):
+            return await map_router.get_fixed_sky_map()
+
+    assert asyncio.run(scenario()).body == b"map at the stop"
