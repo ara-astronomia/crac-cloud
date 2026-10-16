@@ -4,6 +4,7 @@
 export const SEVERITY = {
     ERROR: 'error',
     DANGER: 'danger',
+    INFO: 'info',
 };
 
 const HEALTHY = null;
@@ -23,6 +24,7 @@ const TEXT_BY_STATUS = {
     ROOF_DANGER: 'attenzione, posizione di pericolo',
     CURTAIN_DANGER: 'attenzione, posizione di pericolo',
     EMERGENCY_CLOSURE_BLOCKED: 'chiusura d\'emergenza bloccata',
+    EMERGENCY_CLOSURE_COMPLETED: 'tetto chiuso per una condizione critica',
 };
 
 // Emergency closure status constants from protobuf
@@ -85,6 +87,7 @@ function severityOf(status) {
     if (status === 'ERROR' || status === 'LOST' || status.endsWith('_ERROR') ||
         status === 'EMERGENCY_CLOSURE_BLOCKED') return SEVERITY.ERROR;
     if (status.endsWith('_DANGER')) return SEVERITY.DANGER;
+    if (status === 'EMERGENCY_CLOSURE_COMPLETED') return SEVERITY.INFO;
     return HEALTHY;
 }
 
@@ -163,7 +166,8 @@ export function telescopeSpeedToReport(status, speed) {
 }
 
 export function alertText({ component, status, emergencyClosureDetails }) {
-    if (status === 'EMERGENCY_CLOSURE_BLOCKED' && emergencyClosureDetails) {
+    if (emergencyClosureDetails && (status === 'EMERGENCY_CLOSURE_BLOCKED' ||
+                                    status === 'EMERGENCY_CLOSURE_COMPLETED')) {
         return `${component}: ${emergencyClosureDetails}`;
     }
     return `${component}: ${TEXT_BY_STATUS[status] || UNKNOWN_STATUS_TEXT}`;
@@ -171,6 +175,23 @@ export function alertText({ component, status, emergencyClosureDetails }) {
 
 export function noAlertText() {
     return NO_ALERT_TEXT;
+}
+
+/** Why the closure is running, in one readable phrase. */
+function triggerTextOf(emergencyClosure) {
+    const activeTriggers = (emergencyClosure.triggers || [])
+        .filter(trigger => trigger !== EMERGENCY_CLOSURE_TRIGGER.UNSPECIFIED && TRIGGER_TEXT[trigger])
+        .map(trigger => TRIGGER_TEXT[trigger]);
+    return activeTriggers.length > 0 ? activeTriggers.join(' e ') : 'una condizione critica';
+}
+
+/** Which alert status an emergency closure state maps to: blocked and
+ *  completed are worth telling, the others are not. */
+export function emergencyClosureStatusToReport(emergencyClosure) {
+    if (!emergencyClosure) return null;
+    if (emergencyClosure.status === EMERGENCY_CLOSURE_STATUS.BLOCKED) return 'EMERGENCY_CLOSURE_BLOCKED';
+    if (emergencyClosure.status === EMERGENCY_CLOSURE_STATUS.COMPLETED) return 'EMERGENCY_CLOSURE_COMPLETED';
+    return null;
 }
 
 /** Detail text for a blocked emergency closure: why the roof should close,
@@ -181,12 +202,19 @@ export function emergencyClosureAlertText(emergencyClosure) {
         return null;
     }
 
-    const activeTriggers = (emergencyClosure.triggers || [])
-        .filter(trigger => trigger !== EMERGENCY_CLOSURE_TRIGGER.UNSPECIFIED && TRIGGER_TEXT[trigger])
-        .map(trigger => TRIGGER_TEXT[trigger]);
-    const triggerText = activeTriggers.length > 0 ? activeTriggers.join(' e ') : 'una condizione critica';
+    const triggerText = triggerTextOf(emergencyClosure);
     const blockReason = BLOCK_REASON_TEXT[emergencyClosure.block_reason] || UNKNOWN_STATUS_TEXT;
     const actionText = BLOCK_REASON_ACTION_TEXT[emergencyClosure.block_reason] || 'verificare il sistema';
 
     return `bloccata: tetto andrebbe chiuso per ${triggerText}, ma ${blockReason}. Azione: ${actionText}`;
+}
+
+/** Detail text for a completed emergency closure: the roof stays closed
+ *  until the critical condition ends. Null when the closure is not completed. */
+export function emergencyClosureCompletedText(emergencyClosure) {
+    if (!emergencyClosure || emergencyClosure.status !== EMERGENCY_CLOSURE_STATUS.COMPLETED) {
+        return null;
+    }
+
+    return `completata: il tetto rimane chiuso per ${triggerTextOf(emergencyClosure)}`;
 }

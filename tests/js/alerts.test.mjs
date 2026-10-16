@@ -288,3 +288,87 @@ test('il rientro della chiusura bloccata chiude l\'avviso e lo mette in storico'
     assert.equal(registry.history().length, 1);
     assert.equal(registry.history()[0].status, 'EMERGENCY_CLOSURE_BLOCKED');
 });
+
+import {
+    emergencyClosureCompletedText,
+    emergencyClosureStatusToReport,
+} from '../../crac_cloud/static/js/alerts.js';
+
+test('chiusura completata per meteo: il tetto rimane chiuso', () => {
+    const text = emergencyClosureCompletedText({
+        status: EMERGENCY_CLOSURE_STATUS.COMPLETED,
+        triggers: [1],
+    });
+    assert.equal(text, 'completata: il tetto rimane chiuso per meteo');
+});
+
+test('chiusura completata per UPS nomina l\'UPS', () => {
+    const text = emergencyClosureCompletedText({
+        status: EMERGENCY_CLOSURE_STATUS.COMPLETED,
+        triggers: [2],
+    });
+    assert.equal(text, 'completata: il tetto rimane chiuso per UPS');
+});
+
+test('chiusura completata con piu\' trigger li legge in fila', () => {
+    const text = emergencyClosureCompletedText({
+        status: EMERGENCY_CLOSURE_STATUS.COMPLETED,
+        triggers: [1, 2],
+    });
+    assert.ok(text.includes('per meteo e UPS'));
+});
+
+test('chiusura completata senza trigger riconoscibili resta generica', () => {
+    const text = emergencyClosureCompletedText({
+        status: EMERGENCY_CLOSURE_STATUS.COMPLETED,
+        triggers: [0],
+    });
+    assert.equal(text, 'completata: il tetto rimane chiuso per una condizione critica');
+});
+
+test('la chiusura non completata non ha testo di completamento', () => {
+    assert.equal(emergencyClosureCompletedText(null), null);
+    assert.equal(emergencyClosureCompletedText({ status: EMERGENCY_CLOSURE_STATUS.IDLE, triggers: [] }), null);
+    assert.equal(emergencyClosureCompletedText({ status: EMERGENCY_CLOSURE_STATUS.BLOCKED, triggers: [1] }), null);
+});
+
+test('lo stato della chiusura diventa avviso solo per bloccata e completata', () => {
+    assert.equal(emergencyClosureStatusToReport(null), null);
+    assert.equal(emergencyClosureStatusToReport({ status: EMERGENCY_CLOSURE_STATUS.IDLE, triggers: [] }), null);
+    assert.equal(emergencyClosureStatusToReport({ status: EMERGENCY_CLOSURE_STATUS.IN_PROGRESS, triggers: [1] }), null);
+    assert.equal(emergencyClosureStatusToReport({ status: EMERGENCY_CLOSURE_STATUS.BLOCKED, triggers: [1] }), 'EMERGENCY_CLOSURE_BLOCKED');
+    assert.equal(emergencyClosureStatusToReport({ status: EMERGENCY_CLOSURE_STATUS.COMPLETED, triggers: [1] }), 'EMERGENCY_CLOSURE_COMPLETED');
+});
+
+test('l\'avviso di chiusura completata e\' informativo, non un errore', () => {
+    const registry = new AlertRegistry();
+    const details = emergencyClosureCompletedText({
+        status: EMERGENCY_CLOSURE_STATUS.COMPLETED,
+        triggers: [1],
+    });
+    registry.record(EC, 'EMERGENCY_CLOSURE_COMPLETED', 1000, details);
+    const [alert] = registry.current();
+    assert.equal(alert.severity, SEVERITY.INFO);
+    assert.equal(alertText(alert), `${EC}: completata: il tetto rimane chiuso per meteo`);
+});
+
+test('da bloccata a completata l\'errore rientra e resta visibile l\'informativo', () => {
+    const registry = new AlertRegistry();
+    registry.record(EC, 'EMERGENCY_CLOSURE_BLOCKED', 1000, 'bloccata: tetto andrebbe chiuso per meteo');
+    registry.record(EC, 'EMERGENCY_CLOSURE_COMPLETED', 2000, 'completata: il tetto rimane chiuso per meteo');
+    const current = registry.current();
+    assert.equal(current.length, 1);
+    assert.equal(current[0].status, 'EMERGENCY_CLOSURE_COMPLETED');
+    assert.equal(current[0].severity, SEVERITY.INFO);
+    const [resolved] = registry.history().filter(entry => entry.status === 'EMERGENCY_CLOSURE_BLOCKED');
+    assert.equal(resolved.resolvedAt, 2000);
+});
+
+test('il ritorno in IDLE chiude l\'avviso di chiusura completata', () => {
+    const registry = new AlertRegistry();
+    registry.record(EC, 'EMERGENCY_CLOSURE_COMPLETED', 1000, 'completata: il tetto rimane chiuso per meteo');
+    registry.record(EC, null, 2000);
+    assert.equal(registry.current().length, 0);
+    assert.equal(registry.history().length, 1);
+    assert.equal(registry.history()[0].status, 'EMERGENCY_CLOSURE_COMPLETED');
+});

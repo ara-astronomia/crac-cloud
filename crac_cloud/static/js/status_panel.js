@@ -6,6 +6,7 @@ import { alertText, noAlertText } from './alerts.js';
 const SEVERITY_CLASS = {
     error: 'status-label-failure',
     danger: 'status-label-warning',
+    info: 'status-label-info',
 };
 
 function formatTime(at) {
@@ -40,8 +41,11 @@ export function renderAlerts(registry) {
     summary.textContent = current.length === 0
         ? noAlertText()
         : `${current.length} ${current.length === 1 ? 'avviso attivo' : 'avvisi attivi'}`;
-    summary.classList.toggle('status-label-failure', current.some(a => a.severity === 'error'));
-    summary.classList.toggle('status-label-warning', current.length > 0 && !current.some(a => a.severity === 'error'));
+    const hasError = current.some(a => a.severity === 'error');
+    const hasDanger = current.some(a => a.severity === 'danger');
+    summary.classList.toggle('status-label-failure', hasError);
+    summary.classList.toggle('status-label-warning', !hasError && hasDanger);
+    summary.classList.toggle('status-label-info', !hasError && !hasDanger && current.length > 0);
 
     currentList.replaceChildren(...current.map(currentItem));
 

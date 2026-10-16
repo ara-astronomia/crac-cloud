@@ -11,7 +11,7 @@ import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
 import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi, isError, outcomeOf, healthApi } from './api.js';
-import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport, emergencyClosureAlertText, EMERGENCY_CLOSURE_STATUS } from './alerts.js';
+import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport, emergencyClosureAlertText, emergencyClosureCompletedText, emergencyClosureStatusToReport } from './alerts.js';
 import { ConnectionHealth, CLOUD, SERVER } from './connection.js';
 import { renderAlerts } from './status_panel.js';
 
@@ -96,12 +96,13 @@ function showConnectionAlert() {
  *  Called from pollWeather and pollUps whenever emergency_closure data is received. */
 function updateEmergencyClosureAlert() {
     const ec = state.lastEmergencyClosure;
-    const details = ec && ec.status === EMERGENCY_CLOSURE_STATUS.BLOCKED
-        ? emergencyClosureAlertText(ec)
-        : null;
+    const status = emergencyClosureStatusToReport(ec);
+    const details = status === 'EMERGENCY_CLOSURE_COMPLETED'
+        ? emergencyClosureCompletedText(ec)
+        : emergencyClosureAlertText(ec);
     alerts.record(
         COMPONENT.emergencyClosure,
-        details ? 'EMERGENCY_CLOSURE_BLOCKED' : null,
+        status,
         Date.now(),
         details,
     );
