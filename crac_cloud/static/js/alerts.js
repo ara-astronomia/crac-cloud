@@ -26,7 +26,7 @@ const TEXT_BY_STATUS = {
 };
 
 // Emergency closure status constants from protobuf
-const EMERGENCY_CLOSURE_STATUS = {
+export const EMERGENCY_CLOSURE_STATUS = {
     UNSPECIFIED: 0,
     IDLE: 1,
     IN_PROGRESS: 2,
@@ -99,14 +99,16 @@ export class AlertRegistry {
     }
 
     /** A status that does not change bumps the count instead of adding an
-     *  entry: a ten-minute fault would otherwise leave hundreds behind. */
-    record(component, status, at) {
+     *  entry: a ten-minute fault would otherwise leave hundreds behind.
+     *  `details` carries the long text of statuses that need one. */
+    record(component, status, at, details = null) {
         const open = this._openEntryFor(component);
         const severity = severityOf(status);
 
         if (open && open.status === status) {
             open.count += 1;
             open.lastSeenAt = at;
+            if (details) open.emergencyClosureDetails = details;
             return;
         }
         if (open) {
@@ -117,6 +119,7 @@ export class AlertRegistry {
             this.revision += 1;
             this._entries.push({
                 component, status, severity,
+                emergencyClosureDetails: details,
                 firstSeenAt: at, lastSeenAt: at,
                 count: 1, resolvedAt: null,
             });
@@ -163,7 +166,7 @@ export function telescopeSpeedToReport(status, speed) {
 
 export function alertText({ component, status, emergencyClosureDetails }) {
     if (status === 'EMERGENCY_CLOSURE_BLOCKED' && emergencyClosureDetails) {
-        return emergencyClosureDetails;
+        return `${component}: ${emergencyClosureDetails}`;
     }
     return `${component}: ${TEXT_BY_STATUS[status] || UNKNOWN_STATUS_TEXT}`;
 }
@@ -172,36 +175,24 @@ export function noAlertText() {
     return NO_ALERT_TEXT;
 }
 
-/** Generates alert text for emergency closure blocked state.
- *  Returns null if emergency_closure is not blocked, otherwise returns
- *  an object with component and status for alertText(). */
+/** Detail text for a blocked emergency closure: why the roof should close,
+ *  why crac-server does not, and what the operator can do. Null when the
+ *  closure is not blocked or no trigger is recognizable. */
 export function emergencyClosureAlertText(emergencyClosure) {
     if (!emergencyClosure || emergencyClosure.status !== EMERGENCY_CLOSURE_STATUS.BLOCKED) {
         return null;
     }
 
-    // Determine which triggers are active
-    const activeTriggers = [];
-    for (const trigger of emergencyClosure.triggers) {
-        if (trigger !== EMERGENCY_CLOSURE_TRIGGER.UNSPECIFIED && TRIGGER_TEXT[trigger]) {
-            activeTriggers.push(TRIGGER_TEXT[trigger]);
-        }
-    }
-
+    const activeTriggers = (emergencyClosure.triggers || [])
+        .filter(trigger => trigger !== EMERGENCY_CLOSURE_TRIGGER.UNSPECIFIED && TRIGGER_TEXT[trigger])
+        .map(trigger => TRIGGER_TEXT[trigger]);
     if (activeTriggers.length === 0) {
         return null;
     }
 
     const triggerText = activeTriggers.join(' e ');
     const blockReason = BLOCK_REASON_TEXT[emergencyClosure.block_reason] || UNKNOWN_STATUS_TEXT;
-    
-    // For the action, use the first trigger or a generic message
-    const firstTrigger = emergencyClosure.triggers[0];
-    const actionText = TRIGGER_ACTION_TEXT[firstTrigger] || 'verificare il sistema';
+    const actionText = TRIGGER_ACTION_TEXT[emergencyClosure.triggers[0]] || 'verificare il sistema';
 
-    // Build the full alert text
-    const component = 'Chiusura d\'emergenza';
-    const statusText = `bloccata: tetto andrebbe chiuso per ${triggerText}, ma ${blockReason}. Azione: ${actionText}`;
-
-    return { component, status: statusText };
+    return `bloccata: tetto andrebbe chiuso per ${triggerText}, ma ${blockReason}. Azione: ${actionText}`;
 }

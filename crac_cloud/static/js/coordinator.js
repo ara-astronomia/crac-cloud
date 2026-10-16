@@ -96,22 +96,15 @@ function showConnectionAlert() {
  *  Called from pollWeather and pollUps whenever emergency_closure data is received. */
 function updateEmergencyClosureAlert() {
     const ec = state.lastEmergencyClosure;
-
-    if (ec && ec.status === EMERGENCY_CLOSURE_STATUS.BLOCKED) {
-        // Generate full alert text for blocked emergency closure
-        const alertTextObj = emergencyClosureAlertText(ec);
-        if (alertTextObj) {
-            // Build a custom status string that includes all details
-            const fullStatusText = alertTextObj.status;
-            alerts.record(COMPONENT.emergencyClosure, fullStatusText, Date.now());
-        } else {
-            // Clear the alert if we can't generate text
-            alerts.record(COMPONENT.emergencyClosure, null, Date.now());
-        }
-    } else {
-        // No emergency_closure data or not blocked, clear the alert
-        alerts.record(COMPONENT.emergencyClosure, null, Date.now());
-    }
+    const details = ec && ec.status === EMERGENCY_CLOSURE_STATUS.BLOCKED
+        ? emergencyClosureAlertText(ec)
+        : null;
+    alerts.record(
+        COMPONENT.emergencyClosure,
+        details ? 'EMERGENCY_CLOSURE_BLOCKED' : null,
+        Date.now(),
+        details,
+    );
     renderAlerts(alerts);
 }
 

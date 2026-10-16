@@ -229,3 +229,61 @@ test('il collegamento col servizio perso ha un testo suo, che non nomina crac-se
     assert.equal(alertText({ component: CLOUD_LINK, status: 'CLOUD_ERROR' }),
                  `${CLOUD_LINK}: la pagina non riesce a parlare col servizio, i valori a schermo sono fermi`);
 });
+
+import { emergencyClosureAlertText, EMERGENCY_CLOSURE_STATUS } from '../../crac_cloud/static/js/alerts.js';
+
+const EC = 'Chiusura d\'emergenza';
+
+test('chiusura bloccata per meteo: testo con causa, blocco e azione', () => {
+    const text = emergencyClosureAlertText({
+        status: EMERGENCY_CLOSURE_STATUS.BLOCKED,
+        triggers: [1],  // WEATHER
+        block_reason: 1,  // TELESCOPE_UNKNOWN
+        status_since: 1000,
+    });
+    assert.equal(text, 'bloccata: tetto andrebbe chiuso per meteo, ma posizione del telescopio sconosciuta. Azione: collegare il telescopio o risolvere il problema meteo');
+});
+
+test('chiusura non bloccata non ha testo', () => {
+    assert.equal(emergencyClosureAlertText(null), null);
+    assert.equal(emergencyClosureAlertText({ status: EMERGENCY_CLOSURE_STATUS.IDLE, triggers: [], block_reason: 0 }), null);
+    assert.equal(emergencyClosureAlertText({ status: EMERGENCY_CLOSURE_STATUS.COMPLETED, triggers: [1], block_reason: 0 }), null);
+});
+
+test('piu\' trigger si leggono in fila e il primo guida l\'azione', () => {
+    const text = emergencyClosureAlertText({
+        status: EMERGENCY_CLOSURE_STATUS.BLOCKED,
+        triggers: [1, 2],  // WEATHER + UPS
+        block_reason: 2,  // PARK_NOT_REACHED
+    });
+    assert.ok(text.includes('per meteo e UPS'));
+    assert.ok(text.includes('park non raggiunto'));
+    assert.ok(text.includes('Azione: collegare il telescopio o risolvere il problema meteo'));
+});
+
+test('senza trigger riconoscibili non c\'e\' nulla da riportare', () => {
+    assert.equal(emergencyClosureAlertText({ status: EMERGENCY_CLOSURE_STATUS.BLOCKED, triggers: [0], block_reason: 1 }), null);
+    assert.equal(emergencyClosureAlertText({ status: EMERGENCY_CLOSURE_STATUS.BLOCKED, triggers: [], block_reason: 1 }), null);
+});
+
+test('l\'avviso di chiusura bloccata e\' un errore col testo completo', () => {
+    const registry = new AlertRegistry();
+    const details = emergencyClosureAlertText({
+        status: EMERGENCY_CLOSURE_STATUS.BLOCKED,
+        triggers: [1],
+        block_reason: 1,
+    });
+    registry.record(EC, 'EMERGENCY_CLOSURE_BLOCKED', 1000, details);
+    const [alert] = registry.current();
+    assert.equal(alert.severity, SEVERITY.ERROR);
+    assert.equal(alertText(alert), `${EC}: bloccata: tetto andrebbe chiuso per meteo, ma posizione del telescopio sconosciuta. Azione: collegare il telescopio o risolvere il problema meteo`);
+});
+
+test('il rientro della chiusura bloccata chiude l\'avviso e lo mette in storico', () => {
+    const registry = new AlertRegistry();
+    registry.record(EC, 'EMERGENCY_CLOSURE_BLOCKED', 1000, 'bloccata: tetto andrebbe chiuso per meteo');
+    registry.record(EC, null, 2000);
+    assert.equal(registry.current().length, 0);
+    assert.equal(registry.history().length, 1);
+    assert.equal(registry.history()[0].status, 'EMERGENCY_CLOSURE_BLOCKED');
+});
