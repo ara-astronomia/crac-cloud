@@ -70,12 +70,10 @@ const BLOCK_REASON_TEXT = {
     5: 'errore interno',
 };
 
-// Map trigger to action text for operator
-const TRIGGER_ACTION_TEXT = {
-    1: 'collegare il telescopio o risolvere il problema meteo',
-    2: 'collegare il telescopio o risolvere il problema UPS',
-    3: 'attendere il ripristino della connessione meteo',
-    4: 'attendere il ripristino della connessione UPS',
+// Map block reason to the action the operator can take
+const BLOCK_REASON_ACTION_TEXT = {
+    1: 'collegare il telescopio',
+    2: 'portare il telescopio in park a mano',
 };
 
 const UNKNOWN_STATUS_TEXT = 'stato anomalo';
@@ -84,7 +82,7 @@ const DEFAULT_HISTORY_LIMIT = 50;
 
 function severityOf(status) {
     if (!status) return HEALTHY;
-    if (status === 'ERROR' || status === 'LOST' || status.endsWith('_ERROR') || 
+    if (status === 'ERROR' || status === 'LOST' || status.endsWith('_ERROR') ||
         status === 'EMERGENCY_CLOSURE_BLOCKED') return SEVERITY.ERROR;
     if (status.endsWith('_DANGER')) return SEVERITY.DANGER;
     return HEALTHY;
@@ -177,7 +175,7 @@ export function noAlertText() {
 
 /** Detail text for a blocked emergency closure: why the roof should close,
  *  why crac-server does not, and what the operator can do. Null when the
- *  closure is not blocked or no trigger is recognizable. */
+ *  closure is not blocked. */
 export function emergencyClosureAlertText(emergencyClosure) {
     if (!emergencyClosure || emergencyClosure.status !== EMERGENCY_CLOSURE_STATUS.BLOCKED) {
         return null;
@@ -186,13 +184,9 @@ export function emergencyClosureAlertText(emergencyClosure) {
     const activeTriggers = (emergencyClosure.triggers || [])
         .filter(trigger => trigger !== EMERGENCY_CLOSURE_TRIGGER.UNSPECIFIED && TRIGGER_TEXT[trigger])
         .map(trigger => TRIGGER_TEXT[trigger]);
-    if (activeTriggers.length === 0) {
-        return null;
-    }
-
-    const triggerText = activeTriggers.join(' e ');
+    const triggerText = activeTriggers.length > 0 ? activeTriggers.join(' e ') : 'una condizione critica';
     const blockReason = BLOCK_REASON_TEXT[emergencyClosure.block_reason] || UNKNOWN_STATUS_TEXT;
-    const actionText = TRIGGER_ACTION_TEXT[emergencyClosure.triggers[0]] || 'verificare il sistema';
+    const actionText = BLOCK_REASON_ACTION_TEXT[emergencyClosure.block_reason] || 'verificare il sistema';
 
     return `bloccata: tetto andrebbe chiuso per ${triggerText}, ma ${blockReason}. Azione: ${actionText}`;
 }

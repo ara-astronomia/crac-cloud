@@ -43,7 +43,7 @@ const state = {
     telescopePowerStatus: undefined,
     skyMapNeedsRefresh: false,
     isInitialized: false,
-    lastEmergencyClosure: null,  // Track the most recent emergency_closure from weather or UPS
+    lastEmergencyClosure: null,
 };
 
 const alerts = new AlertRegistry();
@@ -192,7 +192,6 @@ async function pollUps() {
     const data = await upsApi.getStatus();
     if (received('ups', data)) {
         updateUpsUI(data);
-        // Check for emergency_closure and track the most recent
         if (data.emergency_closure) {
             state.lastEmergencyClosure = data.emergency_closure;
             updateEmergencyClosureAlert();
@@ -204,7 +203,6 @@ async function pollWeather() {
     const data = await weatherApi.getStatus();
     if (received('charts', data) && data.charts) {
         updateGaugesUI(data);
-        // Check for emergency_closure and track the most recent
         if (data.emergency_closure) {
             state.lastEmergencyClosure = data.emergency_closure;
             updateEmergencyClosureAlert();

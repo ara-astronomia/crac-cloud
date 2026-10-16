@@ -63,12 +63,10 @@ class ChartClient:
             weather_status_name = chart_pb2.WeatherStatus.Name(response.status)
             translated_status = WEATHER_STATUS_TRANSLATIONS.get(weather_status_name, weather_status_name)
 
-            # Extract emergency_closure if present (added in crac-protobuf 0.1.23)
             emergency_closure_data = None
             if hasattr(response, 'emergency_closure'):
                 ec = response.emergency_closure
-                # Check if emergency_closure has actual data by checking if status is set
-                if ec.status != 0:  # EMERGENCY_CLOSURE_STATUS_UNSPECIFIED = 0
+                if ec.status != 0:
                     emergency_closure_data = {
                         "status": ec.status,
                         "triggers": list(ec.triggers),

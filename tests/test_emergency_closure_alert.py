@@ -1,39 +1,5 @@
-"""Tests for emergency closure blocked alert (issue #45).
-
-## Test plan manuale (frontend)
-
-1. **Prerequisiti**: crac-server con versione >= 1.3.3 che popola emergency_closure,
-   crac-protobuf >= 0.1.23 con il campo EmergencyClosure.
-
-2. **Setup**: Avviare lo stack di test con crac-server e crac-cloud.
-
-3. **Simulare chiusura bloccata per meteo**:
-   - Azione: Simulare condizioni meteo critiche con telescopio disconnesso
-   - Atteso: Avviso ERROR in "Stato di CRaC" con testo:
-     "Chiusura d'emergenza: bloccata: tetto andrebbe chiuso per meteo, ma posizione del telescopio sconosciuta. Azione: collegare il telescopio o risolvere il problema meteo"
-
-4. **Simulare chiusura bloccata per UPS**:
-   - Azione: Simulare allarme UPS critico con telescopio disconnesso
-   - Atteso: Avviso ERROR in "Stato di CRaC" con testo:
-     "Chiusura d'emergenza: bloccata: tetto andrebbe chiuso per UPS, ma posizione del telescopio sconosciuta. Azione: collegare il telescopio o risolvere il problema UPS"
-
-5. **Simulare multi-trigger**:
-   - Azione: Simulare sia meteo che UPS critici con telescopio disconnesso
-   - Atteso: Avviso ERROR in "Stato di CRaC" con testo:
-     "Chiusura d'emergenza: bloccata: tetto andrebbe chiuso per meteo e UPS, ma posizione del telescopio sconosciuta. Azione: ..."
-
-6. **Risolvere il blocco**:
-   - Azione: Connettere il telescopio e portarlo in park
-   - Atteso: Avviso scompare da "Stato di CRaC" e passa allo storico
-
-7. **Chiusura completata**:
-   - Azione: Con condizioni critiche e tetto chiuso correttamente
-   - Atteso: Nessun avviso di chiusura bloccata (stato è COMPLETED, non BLOCKED)
-
-8. **Dati meteo non disponibili**:
-   - Azione: Simulare timeout lettura meteo
-   - Atteso: Avviso con testo: "Chiusura d'emergenza: bloccata: tetto andrebbe chiuso per dati meteo non disponibili, ..."
-"""
+"""Tests for the emergency closure blocked alert. The manual frontend test
+plan lives in the pull request description."""
 from unittest.mock import MagicMock, patch
 from crac_cloud.grpc_cloud.chart_cloud import ChartClient
 from crac_cloud.grpc_cloud.ups_cloud import UpsClient
@@ -76,21 +42,19 @@ class TestEmergencyClosureAlert:
         assert result["emergency_closure"]["status_since"] == 1234567800
 
     def test_get_status_handles_missing_emergency_closure(self):
-        """If emergency_closure is not set, do not fail."""
+        """A response without the emergency_closure field yields no key."""
         client = ChartClient(host="localhost", port=50051)
 
-        mock_response = MagicMock()
+        mock_response = MagicMock(spec=["updated_at", "charts", "status", "interval"])
         mock_response.updated_at = 1234567890
         mock_response.charts = []
         mock_response.status = 0
         mock_response.interval = 60
-        # No emergency_closure field
 
         with patch.object(client.stub, "GetStatus", return_value=mock_response):
             result = client.get_status()
 
-        # Should not crash, emergency_closure should be None or absent
-        assert "error" not in result or result.get("emergency_closure") is None
+        assert "emergency_closure" not in result
 
     def test_get_status_emergency_closure_idle(self):
         """When emergency_closure status is IDLE, no alert should be triggered."""
@@ -187,18 +151,17 @@ class TestUpsEmergencyClosureAlert:
         assert result["emergency_closure"]["triggers"] == [2]
 
     def test_ups_get_status_handles_missing_emergency_closure(self):
-        """If emergency_closure is not set in UPS response, do not fail."""
+        """A UPS response without the emergency_closure field yields no key."""
         client = UpsClient(host="localhost", port=50051)
 
-        mock_response = MagicMock()
+        mock_response = MagicMock(spec=["updated_at", "charts", "status", "interval", "devices"])
         mock_response.updated_at = 1234567890
         mock_response.charts = []
         mock_response.status = 0
         mock_response.interval = 60
         mock_response.devices = []
-        mock_response.device_states = []
 
         with patch.object(client.stub, "GetStatus", return_value=mock_response):
             result = client.get_status()
 
-        assert "error" not in result or result.get("emergency_closure") is None
+        assert "emergency_closure" not in result
