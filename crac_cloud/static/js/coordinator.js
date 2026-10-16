@@ -11,7 +11,7 @@ import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
 import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi, isError, outcomeOf, healthApi } from './api.js';
-import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport } from './alerts.js';
+import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport, emergencyClosureAlertText, EMERGENCY_CLOSURE_STATUS } from './alerts.js';
 import { ConnectionHealth, CLOUD, SERVER } from './connection.js';
 import { renderAlerts } from './status_panel.js';
 
@@ -43,6 +43,7 @@ const state = {
     telescopePowerStatus: undefined,
     skyMapNeedsRefresh: false,
     isInitialized: false,
+    lastEmergencyClosure: null,  // Track the most recent emergency_closure from weather or UPS
 };
 
 const alerts = new AlertRegistry();
@@ -65,6 +66,7 @@ const COMPONENT = {
         ups: 'Lettura UPS',
         charts: 'Lettura meteo',
     },
+    emergencyClosure: 'Chiusura d\'emergenza',
 };
 
 function recordAlert(component, status) {
@@ -88,6 +90,29 @@ function showConnectionAlert() {
     recordAlert(COMPONENT.cloudLink, culprit === CLOUD ? 'CLOUD_ERROR' : null);
     recordAlert(COMPONENT.serverLink, culprit === SERVER ? 'SERVER_ERROR' : null);
     showLinkDown(culprit !== null);
+}
+
+/** Updates the emergency closure alert based on the most recent emergency_closure state.
+ *  Called from pollWeather and pollUps whenever emergency_closure data is received. */
+function updateEmergencyClosureAlert() {
+    const ec = state.lastEmergencyClosure;
+
+    if (ec && ec.status === EMERGENCY_CLOSURE_STATUS.BLOCKED) {
+        // Generate full alert text for blocked emergency closure
+        const alertTextObj = emergencyClosureAlertText(ec);
+        if (alertTextObj) {
+            // Build a custom status string that includes all details
+            const fullStatusText = alertTextObj.status;
+            alerts.record(COMPONENT.emergencyClosure, fullStatusText, Date.now());
+        } else {
+            // Clear the alert if we can't generate text
+            alerts.record(COMPONENT.emergencyClosure, null, Date.now());
+        }
+    } else {
+        // No emergency_closure data or not blocked, clear the alert
+        alerts.record(COMPONENT.emergencyClosure, null, Date.now());
+    }
+    renderAlerts(alerts);
 }
 
 /** The browser knows it lost the network for certain, and knows it before any
@@ -174,6 +199,11 @@ async function pollUps() {
     const data = await upsApi.getStatus();
     if (received('ups', data)) {
         updateUpsUI(data);
+        // Check for emergency_closure and track the most recent
+        if (data.emergency_closure) {
+            state.lastEmergencyClosure = data.emergency_closure;
+            updateEmergencyClosureAlert();
+        }
     }
 }
 
@@ -181,6 +211,11 @@ async function pollWeather() {
     const data = await weatherApi.getStatus();
     if (received('charts', data) && data.charts) {
         updateGaugesUI(data);
+        // Check for emergency_closure and track the most recent
+        if (data.emergency_closure) {
+            state.lastEmergencyClosure = data.emergency_closure;
+            updateEmergencyClosureAlert();
+        }
     }
 }
 

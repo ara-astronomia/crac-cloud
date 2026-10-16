@@ -22,6 +22,60 @@ const TEXT_BY_STATUS = {
     CLOUD_ERROR: 'la pagina non riesce a parlare col servizio, i valori a schermo sono fermi',
     ROOF_DANGER: 'attenzione, posizione di pericolo',
     CURTAIN_DANGER: 'attenzione, posizione di pericolo',
+    EMERGENCY_CLOSURE_BLOCKED: 'chiusura d\'emergenza bloccata',
+};
+
+// Emergency closure status constants from protobuf
+const EMERGENCY_CLOSURE_STATUS = {
+    UNSPECIFIED: 0,
+    IDLE: 1,
+    IN_PROGRESS: 2,
+    COMPLETED: 3,
+    BLOCKED: 4,
+};
+
+// Emergency closure block reason constants from protobuf
+const EMERGENCY_CLOSURE_BLOCK_REASON = {
+    UNSPECIFIED: 0,
+    TELESCOPE_UNKNOWN: 1,
+    PARK_NOT_REACHED: 2,
+    CURTAINS_NOT_DISABLED: 3,
+    ROOF_NOT_CLOSED: 4,
+    INTERNAL_ERROR: 5,
+};
+
+// Emergency closure trigger constants from protobuf
+const EMERGENCY_CLOSURE_TRIGGER = {
+    UNSPECIFIED: 0,
+    WEATHER: 1,
+    UPS: 2,
+    WEATHER_UNAVAILABLE: 3,
+    UPS_UNAVAILABLE: 4,
+};
+
+// Map trigger enum to human-readable text
+const TRIGGER_TEXT = {
+    1: 'meteo',
+    2: 'UPS',
+    3: 'dati meteo non disponibili',
+    4: 'dati UPS non disponibili',
+};
+
+// Map block reason enum to human-readable text
+const BLOCK_REASON_TEXT = {
+    1: 'posizione del telescopio sconosciuta',
+    2: 'park non raggiunto',
+    3: 'tende non disattivate',
+    4: 'tetto non chiuso',
+    5: 'errore interno',
+};
+
+// Map trigger to action text for operator
+const TRIGGER_ACTION_TEXT = {
+    1: 'collegare il telescopio o risolvere il problema meteo',
+    2: 'collegare il telescopio o risolvere il problema UPS',
+    3: 'attendere il ripristino della connessione meteo',
+    4: 'attendere il ripristino della connessione UPS',
 };
 
 const UNKNOWN_STATUS_TEXT = 'stato anomalo';
@@ -30,7 +84,8 @@ const DEFAULT_HISTORY_LIMIT = 50;
 
 function severityOf(status) {
     if (!status) return HEALTHY;
-    if (status === 'ERROR' || status === 'LOST' || status.endsWith('_ERROR')) return SEVERITY.ERROR;
+    if (status === 'ERROR' || status === 'LOST' || status.endsWith('_ERROR') || 
+        status === 'EMERGENCY_CLOSURE_BLOCKED') return SEVERITY.ERROR;
     if (status.endsWith('_DANGER')) return SEVERITY.DANGER;
     return HEALTHY;
 }
@@ -106,10 +161,47 @@ export function telescopeSpeedToReport(status, speed) {
     return speed;
 }
 
-export function alertText({ component, status }) {
+export function alertText({ component, status, emergencyClosureDetails }) {
+    if (status === 'EMERGENCY_CLOSURE_BLOCKED' && emergencyClosureDetails) {
+        return emergencyClosureDetails;
+    }
     return `${component}: ${TEXT_BY_STATUS[status] || UNKNOWN_STATUS_TEXT}`;
 }
 
 export function noAlertText() {
     return NO_ALERT_TEXT;
+}
+
+/** Generates alert text for emergency closure blocked state.
+ *  Returns null if emergency_closure is not blocked, otherwise returns
+ *  an object with component and status for alertText(). */
+export function emergencyClosureAlertText(emergencyClosure) {
+    if (!emergencyClosure || emergencyClosure.status !== EMERGENCY_CLOSURE_STATUS.BLOCKED) {
+        return null;
+    }
+
+    // Determine which triggers are active
+    const activeTriggers = [];
+    for (const trigger of emergencyClosure.triggers) {
+        if (trigger !== EMERGENCY_CLOSURE_TRIGGER.UNSPECIFIED && TRIGGER_TEXT[trigger]) {
+            activeTriggers.push(TRIGGER_TEXT[trigger]);
+        }
+    }
+
+    if (activeTriggers.length === 0) {
+        return null;
+    }
+
+    const triggerText = activeTriggers.join(' e ');
+    const blockReason = BLOCK_REASON_TEXT[emergencyClosure.block_reason] || UNKNOWN_STATUS_TEXT;
+    
+    // For the action, use the first trigger or a generic message
+    const firstTrigger = emergencyClosure.triggers[0];
+    const actionText = TRIGGER_ACTION_TEXT[firstTrigger] || 'verificare il sistema';
+
+    // Build the full alert text
+    const component = 'Chiusura d\'emergenza';
+    const statusText = `bloccata: tetto andrebbe chiuso per ${triggerText}, ma ${blockReason}. Azione: ${actionText}`;
+
+    return { component, status: statusText };
 }

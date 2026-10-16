@@ -38,13 +38,29 @@ class UpsClient:
                     "battery_statuses": battery_statuses_list
                 })
 
-            return {
+            # Extract emergency_closure if present (added in crac-protobuf 0.1.23)
+            emergency_closure_data = None
+            if hasattr(response, 'emergency_closure'):
+                ec = response.emergency_closure
+                if ec.status != 0:  # EMERGENCY_CLOSURE_STATUS_UNSPECIFIED = 0
+                    emergency_closure_data = {
+                        "status": ec.status,
+                        "triggers": list(ec.triggers),
+                        "block_reason": ec.block_reason,
+                        "status_since": ec.status_since,
+                    }
+
+            result = {
                 "updated_at": response.updated_at,
                 "charts": charts_list,
                 "status": ups_pb2.UpsStatus.Name(response.status),
                 "interval": response.interval,
                 "devices": list(response.devices)
             }
+            if emergency_closure_data is not None:
+                result["emergency_closure"] = emergency_closure_data
+
+            return result
         except grpc.RpcError as e:
             logger.error(f"❌ gRPC error: the UPS service did not answer. Details: {e.details()}")
             return {"error": str(e.details())}
