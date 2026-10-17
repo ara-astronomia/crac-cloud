@@ -261,6 +261,16 @@ test('piu\' trigger si leggono in fila e il block reason guida l\'azione', () =>
     assert.ok(text.includes('Azione: portare il telescopio in park a mano'));
 });
 
+test('chiusura bloccata per le tende consiglia di abbassarle a mano', () => {
+    const text = emergencyClosureAlertText({
+        status: EMERGENCY_CLOSURE_STATUS.BLOCKED,
+        triggers: [1],  // WEATHER
+        block_reason: 3,  // CURTAINS_NOT_DISABLED
+    });
+    assert.ok(text.includes('tende non disattivate'));
+    assert.ok(text.includes('Azione: abbassare le tende a mano'));
+});
+
 test('senza trigger riconoscibili l\'avviso resta visibile con causa generica', () => {
     const text = emergencyClosureAlertText({ status: EMERGENCY_CLOSURE_STATUS.BLOCKED, triggers: [0], block_reason: 1 });
     assert.equal(text, 'bloccata: tetto andrebbe chiuso per una condizione critica, ma posizione del telescopio sconosciuta. Azione: collegare il telescopio');

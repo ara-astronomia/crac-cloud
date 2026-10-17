@@ -57,25 +57,26 @@ const EMERGENCY_CLOSURE_TRIGGER = {
 
 // Map trigger enum to human-readable text
 const TRIGGER_TEXT = {
-    1: 'meteo',
-    2: 'UPS',
-    3: 'dati meteo non disponibili',
-    4: 'dati UPS non disponibili',
+    [EMERGENCY_CLOSURE_TRIGGER.WEATHER]: 'meteo',
+    [EMERGENCY_CLOSURE_TRIGGER.UPS]: 'UPS',
+    [EMERGENCY_CLOSURE_TRIGGER.WEATHER_UNAVAILABLE]: 'dati meteo non disponibili',
+    [EMERGENCY_CLOSURE_TRIGGER.UPS_UNAVAILABLE]: 'dati UPS non disponibili',
 };
 
 // Map block reason enum to human-readable text
 const BLOCK_REASON_TEXT = {
-    1: 'posizione del telescopio sconosciuta',
-    2: 'park non raggiunto',
-    3: 'tende non disattivate',
-    4: 'tetto non chiuso',
-    5: 'errore interno',
+    [EMERGENCY_CLOSURE_BLOCK_REASON.TELESCOPE_UNKNOWN]: 'posizione del telescopio sconosciuta',
+    [EMERGENCY_CLOSURE_BLOCK_REASON.PARK_NOT_REACHED]: 'park non raggiunto',
+    [EMERGENCY_CLOSURE_BLOCK_REASON.CURTAINS_NOT_DISABLED]: 'tende non disattivate',
+    [EMERGENCY_CLOSURE_BLOCK_REASON.ROOF_NOT_CLOSED]: 'tetto non chiuso',
+    [EMERGENCY_CLOSURE_BLOCK_REASON.INTERNAL_ERROR]: 'errore interno',
 };
 
 // Map block reason to the action the operator can take
 const BLOCK_REASON_ACTION_TEXT = {
-    1: 'collegare il telescopio',
-    2: 'portare il telescopio in park a mano',
+    [EMERGENCY_CLOSURE_BLOCK_REASON.TELESCOPE_UNKNOWN]: 'collegare il telescopio',
+    [EMERGENCY_CLOSURE_BLOCK_REASON.PARK_NOT_REACHED]: 'portare il telescopio in park a mano',
+    [EMERGENCY_CLOSURE_BLOCK_REASON.CURTAINS_NOT_DISABLED]: 'abbassare le tende a mano',
 };
 
 const UNKNOWN_STATUS_TEXT = 'stato anomalo';
