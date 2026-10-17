@@ -230,7 +230,12 @@ test('il collegamento col servizio perso ha un testo suo, che non nomina crac-se
                  `${CLOUD_LINK}: la pagina non riesce a parlare col servizio, i valori a schermo sono fermi`);
 });
 
-import { emergencyClosureAlertText, EMERGENCY_CLOSURE_STATUS } from '../../crac_cloud/static/js/alerts.js';
+import {
+    emergencyClosureAlertText,
+    EMERGENCY_CLOSURE_BLOCK_REASON,
+    EMERGENCY_CLOSURE_STATUS,
+    EMERGENCY_CLOSURE_TRIGGER,
+} from '../../crac_cloud/static/js/alerts.js';
 
 const EC = 'Chiusura d\'emergenza';
 
@@ -264,8 +269,8 @@ test('piu\' trigger si leggono in fila e il block reason guida l\'azione', () =>
 test('chiusura bloccata per le tende consiglia di abbassarle a mano', () => {
     const text = emergencyClosureAlertText({
         status: EMERGENCY_CLOSURE_STATUS.BLOCKED,
-        triggers: [1],  // WEATHER
-        block_reason: 3,  // CURTAINS_NOT_DISABLED
+        triggers: [EMERGENCY_CLOSURE_TRIGGER.WEATHER],
+        block_reason: EMERGENCY_CLOSURE_BLOCK_REASON.CURTAINS_NOT_DISABLED,
     });
     assert.ok(text.includes('tende non disattivate'));
     assert.ok(text.includes('Azione: abbassare le tende a mano'));

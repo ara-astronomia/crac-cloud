@@ -25,8 +25,13 @@ def js_enum(name):
 
 
 def js_named_keys(name):
-    """Parse a `const NAME = { [CONST.KEY]: 'text', ... };` block, returning the keys."""
-    return set(re.findall(r"\[\w+\.(\w+)\]", _js_block(name)))
+    """Parse a `const NAME = { [CONST.KEY]: 'text', ... };` block, returning the keys.
+
+    Raw numeric keys are rejected: they would bypass the check against the proto names.
+    """
+    block = _js_block(name)
+    assert not re.search(r"^\s*\d+\s*:", block, re.M), f"{name} has a raw numeric key"
+    return set(re.findall(r"\[\w+\.(\w+)\]", block))
 
 
 def proto_enum(enum, prefix):

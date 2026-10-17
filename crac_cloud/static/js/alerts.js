@@ -37,7 +37,7 @@ export const EMERGENCY_CLOSURE_STATUS = {
 };
 
 // Emergency closure block reason constants from protobuf
-const EMERGENCY_CLOSURE_BLOCK_REASON = {
+export const EMERGENCY_CLOSURE_BLOCK_REASON = {
     UNSPECIFIED: 0,
     TELESCOPE_UNKNOWN: 1,
     PARK_NOT_REACHED: 2,
@@ -47,7 +47,7 @@ const EMERGENCY_CLOSURE_BLOCK_REASON = {
 };
 
 // Emergency closure trigger constants from protobuf
-const EMERGENCY_CLOSURE_TRIGGER = {
+export const EMERGENCY_CLOSURE_TRIGGER = {
     UNSPECIFIED: 0,
     WEATHER: 1,
     UPS: 2,
