@@ -346,6 +346,12 @@ label[for="Autolight"] {
   border-color: rgba(240,192,96,0.35) !important;
 }
 
+.status-label-info {
+  background: rgba(74,158,255,0.15) !important;
+  color: var(--obs-accent) !important;
+  border-color: rgba(74,158,255,0.35) !important;
+}
+
 .alerts-current,
 .alerts-history {
   list-style: none;

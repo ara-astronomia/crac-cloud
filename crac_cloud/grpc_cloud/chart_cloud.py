@@ -63,12 +63,27 @@ class ChartClient:
             weather_status_name = chart_pb2.WeatherStatus.Name(response.status)
             translated_status = WEATHER_STATUS_TRANSLATIONS.get(weather_status_name, weather_status_name)
 
-            return {
+            emergency_closure_data = None
+            if hasattr(response, 'emergency_closure'):
+                ec = response.emergency_closure
+                if ec.status != 0:
+                    emergency_closure_data = {
+                        "status": ec.status,
+                        "triggers": list(ec.triggers),
+                        "block_reason": ec.block_reason,
+                        "status_since": ec.status_since,
+                    }
+
+            result = {
                 "updated_at": response.updated_at,
                 "charts": charts_list,
                 "status": translated_status,
-                "interval": response.interval
+                "interval": response.interval,
             }
+            if emergency_closure_data is not None:
+                result["emergency_closure"] = emergency_closure_data
+
+            return result
         except grpc.RpcError as e:
             logger.error(f" ❌ RPC error (ChartStatus): {e.details()}")
             return {"error": str(e.details()), "status": "SCONOSCIUTO"}

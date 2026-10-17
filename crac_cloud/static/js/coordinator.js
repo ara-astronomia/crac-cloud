@@ -11,7 +11,7 @@ import { initGauges, updateGaugesUI }                 from './gauges.js';
 import { initMaps, refreshTrackingChart, refreshSkyMap, setSkyMapZoomable } from './maps.js';
 
 import { roofApi, curtainsApi, telescopeApi, buttonsApi, upsApi, weatherApi, mapsApi, coverMirrorApi, isError, outcomeOf, healthApi } from './api.js';
-import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport } from './alerts.js';
+import { AlertRegistry, telescopeSpeedToReport, telescopeStatusToReport, emergencyClosureAlertText, emergencyClosureCompletedText, emergencyClosureStatusToReport } from './alerts.js';
 import { ConnectionHealth, CLOUD, SERVER } from './connection.js';
 import { renderAlerts } from './status_panel.js';
 
@@ -43,6 +43,7 @@ const state = {
     telescopePowerStatus: undefined,
     skyMapNeedsRefresh: false,
     isInitialized: false,
+    lastEmergencyClosure: null,
 };
 
 const alerts = new AlertRegistry();
@@ -65,6 +66,7 @@ const COMPONENT = {
         ups: 'Lettura UPS',
         charts: 'Lettura meteo',
     },
+    emergencyClosure: 'Chiusura d\'emergenza',
 };
 
 function recordAlert(component, status) {
@@ -88,6 +90,23 @@ function showConnectionAlert() {
     recordAlert(COMPONENT.cloudLink, culprit === CLOUD ? 'CLOUD_ERROR' : null);
     recordAlert(COMPONENT.serverLink, culprit === SERVER ? 'SERVER_ERROR' : null);
     showLinkDown(culprit !== null);
+}
+
+/** Updates the emergency closure alert based on the most recent emergency_closure state.
+ *  Called from pollWeather and pollUps whenever emergency_closure data is received. */
+function updateEmergencyClosureAlert() {
+    const ec = state.lastEmergencyClosure;
+    const status = emergencyClosureStatusToReport(ec);
+    const details = status === 'EMERGENCY_CLOSURE_COMPLETED'
+        ? emergencyClosureCompletedText(ec)
+        : emergencyClosureAlertText(ec);
+    alerts.record(
+        COMPONENT.emergencyClosure,
+        status,
+        Date.now(),
+        details,
+    );
+    renderAlerts(alerts);
 }
 
 /** The browser knows it lost the network for certain, and knows it before any
@@ -174,6 +193,10 @@ async function pollUps() {
     const data = await upsApi.getStatus();
     if (received('ups', data)) {
         updateUpsUI(data);
+        if (data.emergency_closure) {
+            state.lastEmergencyClosure = data.emergency_closure;
+            updateEmergencyClosureAlert();
+        }
     }
 }
 
@@ -181,6 +204,10 @@ async function pollWeather() {
     const data = await weatherApi.getStatus();
     if (received('charts', data) && data.charts) {
         updateGaugesUI(data);
+        if (data.emergency_closure) {
+            state.lastEmergencyClosure = data.emergency_closure;
+            updateEmergencyClosureAlert();
+        }
     }
 }
 
