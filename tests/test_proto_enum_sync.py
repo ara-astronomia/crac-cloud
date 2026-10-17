@@ -24,13 +24,22 @@ def js_enum(name):
     return {key: int(value) for key, value in re.findall(r"(\w+):\s*(\d+)", _js_block(name))}
 
 
-def js_text_keys(name):
-    """Parse a `const NAME = { number: 'text', ... };` block, returning the keys."""
-    return {int(key) for key in re.findall(r"(\d+):\s*'", _js_block(name))}
+def js_named_keys(name):
+    """Parse a `const NAME = { [CONST.KEY]: 'text', ... };` block, returning the keys.
+
+    Raw numeric keys are rejected: they would bypass the check against the proto names.
+    """
+    block = _js_block(name)
+    assert not re.search(r"^\s*\d+\s*:", block, re.M), f"{name} has a raw numeric key"
+    return set(re.findall(r"\[\w+\.(\w+)\]", block))
 
 
 def proto_enum(enum, prefix):
     return {name.removeprefix(prefix): value for name, value in enum.items()}
+
+
+def proto_names(enum, prefix):
+    return {name.removeprefix(prefix) for name, value in enum.items() if value != 0}
 
 
 class TestProtoEnumSync:
@@ -51,13 +60,17 @@ class TestProtoEnumSync:
         )
 
     def test_trigger_text_covers_every_trigger(self):
-        expected = {value for _, value in EmergencyClosureTrigger.items() if value != 0}
-        assert js_text_keys("TRIGGER_TEXT") == expected
+        assert js_named_keys("TRIGGER_TEXT") == proto_names(
+            EmergencyClosureTrigger, "EMERGENCY_CLOSURE_TRIGGER_",
+        )
 
     def test_block_reason_text_covers_every_reason(self):
-        expected = {value for _, value in EmergencyClosureBlockReason.items() if value != 0}
-        assert js_text_keys("BLOCK_REASON_TEXT") == expected
+        assert js_named_keys("BLOCK_REASON_TEXT") == proto_names(
+            EmergencyClosureBlockReason, "EMERGENCY_CLOSURE_BLOCK_REASON_",
+        )
 
-    def test_block_reason_action_covers_a_subset_of_reasons(self):
-        known = {value for _, value in EmergencyClosureBlockReason.items() if value != 0}
-        assert js_text_keys("BLOCK_REASON_ACTION_TEXT") <= known
+    def test_block_reason_action_covers_the_reasons_with_a_known_action(self):
+        known = proto_names(EmergencyClosureBlockReason, "EMERGENCY_CLOSURE_BLOCK_REASON_")
+        keys = js_named_keys("BLOCK_REASON_ACTION_TEXT")
+        assert keys <= known
+        assert {"TELESCOPE_UNKNOWN", "PARK_NOT_REACHED", "CURTAINS_NOT_DISABLED"} <= keys
