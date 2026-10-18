@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 WEATHER_STATUS_TRANSLATIONS = {
     "WEATHER_STATUS_NORMAL": "CONDIZIONI METEO ADEGUATE",
     "WEATHER_STATUS_WARNING": "ATTENZIONE CONDIZIONI METEO POCO IDONEE",
-    "WEATHER_STATUS_ERROR": "CONDIZIONI METEO AVVERSE",
-    "UNKNOWN": "SCONOSCIUTO"
+    "WEATHER_STATUS_DANGER": "CONDIZIONI METEO AVVERSE",
+    "WEATHER_STATUS_UNSPECIFIED": "SCONOSCIUTO"
 }
 
 class ChartClient:
@@ -48,13 +48,13 @@ class ChartClient:
                 }
                 for threshold in chart.thresholds:
                     threshold_type_name = chart_pb2.ThresholdType.Name(threshold.threshold_type)
-                    if threshold_type_name in ["THRESHOLD_TYPE_WARNING", "WARNING"]:
+                    if threshold_type_name == "THRESHOLD_TYPE_WARNING":
                         if chart_data["warning"] is None:
                             chart_data["warning"] = threshold.lower_bound
-                    elif threshold_type_name in ["THRESHOLD_TYPE_NORMAL", "NORMAL"] and "barometer" in chart.urn:
+                    elif threshold_type_name == "THRESHOLD_TYPE_NORMAL" and "barometer" in chart.urn:
                         if chart_data["error"] is None:
                             chart_data["error"] = threshold.lower_bound
-                    elif threshold_type_name in ["THRESHOLD_TYPE_ERROR", "ERROR", "THRESHOLD_TYPE_DANGER"]:
+                    elif threshold_type_name == "THRESHOLD_TYPE_DANGER":
                         if chart_data["error"] is None:
                             chart_data["error"] = threshold.lower_bound
 
