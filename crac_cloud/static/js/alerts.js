@@ -23,6 +23,8 @@ const TEXT_BY_STATUS = {
     CLOUD_ERROR: 'la pagina non riesce a parlare col servizio, i valori a schermo sono fermi',
     ROOF_DANGER: 'attenzione, posizione di pericolo',
     CURTAIN_DANGER: 'attenzione, posizione di pericolo',
+    UPS_STATUS_DANGER: 'UPS in condizione critica',
+    UPS_STATUS_UNSPECIFIED: 'UPS non leggibile o con dati mancanti',
     EMERGENCY_CLOSURE_BLOCKED: 'chiusura d\'emergenza bloccata',
     EMERGENCY_CLOSURE_COMPLETED: 'tetto chiuso per una condizione critica',
 };
@@ -86,6 +88,7 @@ const DEFAULT_HISTORY_LIMIT = 50;
 function severityOf(status) {
     if (!status) return HEALTHY;
     if (status === 'ERROR' || status === 'LOST' || status.endsWith('_ERROR') ||
+        status === 'UPS_STATUS_UNSPECIFIED' ||
         status === 'EMERGENCY_CLOSURE_BLOCKED') return SEVERITY.ERROR;
     if (status.endsWith('_DANGER')) return SEVERITY.DANGER;
     if (status === 'EMERGENCY_CLOSURE_COMPLETED') return SEVERITY.INFO;
