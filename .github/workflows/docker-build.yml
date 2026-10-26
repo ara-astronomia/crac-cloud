@@ -1,8 +1,9 @@
 name: CI
 
 # I test girano a ogni push, su qualunque branch, cosi' il check e' verde (o
-# rosso) prima del merge e non dopo. L'immagine invece si costruisce solo
-# dove serve davvero: main, tag v*, o una PR con la label build-docker.
+# rosso) prima del merge e non dopo. Anche l'immagine si costruisce a ogni
+# push: come dry-run sui branch, e per davvero solo dove serve - main,
+# tag v*, o una PR con la label build-docker.
 on:
   push:
   pull_request:
@@ -30,6 +31,11 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --extra dev
+
+      # La cache calda puo' nascondere un interprete che gira per caso: il
+      # repo dice quale vuole, e questo lo pretende anche a cache spenta.
+      - name: The interpreter is the one the repository pins
+        run: test -s .python-version && uv run python -c "import sys; sys.exit(0 if sys.version.startswith(open('.python-version').read().strip()) else 1)"
 
       - name: Run Python tests
         run: uv run pytest
@@ -83,6 +89,34 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  docker-dry-run:
+    needs: test
+    runs-on: ubuntu-latest
+    # L'immagine si costruisce anche sui branch: cosi' un Dockerfile rotto
+    # o una dipendenza che non si installa nel container si vedono rosso
+    # sulla PR, non al merge. Nessun push: senza credenziali, senza login.
+    if: |
+      github.event_name == 'push' &&
+      github.ref != 'refs/heads/main' &&
+      !startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the image without pushing it
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
