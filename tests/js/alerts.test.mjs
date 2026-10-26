@@ -387,3 +387,28 @@ test('il ritorno in IDLE chiude l\'avviso di chiusura completata', () => {
     assert.equal(registry.history().length, 1);
     assert.equal(registry.history()[0].status, 'EMERGENCY_CLOSURE_COMPLETED');
 });
+
+const UPS = 'UPS';
+
+test('un UPS non leggibile apre un avviso di errore', () => {
+    const registry = new AlertRegistry();
+    registry.record(UPS, 'UPS_STATUS_UNSPECIFIED', 1000);
+    const [alert] = registry.current();
+    assert.equal(alert.status, 'UPS_STATUS_UNSPECIFIED');
+    assert.equal(alert.severity, SEVERITY.ERROR);
+    assert.equal(alertText(alert), `${UPS}: UPS non leggibile o con dati mancanti`);
+});
+
+test('un UPS in condizione critica apre un avviso di pericolo', () => {
+    const registry = new AlertRegistry();
+    registry.record(UPS, 'UPS_STATUS_DANGER', 1000);
+    const [alert] = registry.current();
+    assert.equal(alert.severity, SEVERITY.DANGER);
+    assert.equal(alertText(alert), `${UPS}: UPS in condizione critica`);
+});
+
+test('un UPS normale non apre avvisi', () => {
+    const registry = new AlertRegistry();
+    registry.record(UPS, 'UPS_STATUS_NORMAL', 1000);
+    assert.equal(registry.current().length, 0);
+});

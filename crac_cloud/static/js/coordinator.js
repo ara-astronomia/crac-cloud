@@ -55,6 +55,7 @@ const COMPONENT = {
     telescope: 'Telescopio',
     telescopeSpeed: 'Velocita\' telescopio',
     roof: 'Tetto',
+    ups: 'UPS',
     coverMirror: 'Copertura specchio',
     curtain: { CURTAIN_EAST: 'Tenda est', CURTAIN_WEST: 'Tenda ovest' },
     read: {
@@ -193,6 +194,7 @@ async function pollUps() {
     const data = await upsApi.getStatus();
     if (received('ups', data)) {
         updateUpsUI(data);
+        recordAlert(COMPONENT.ups, data.status);
         if (data.emergency_closure) {
             state.lastEmergencyClosure = data.emergency_closure;
             updateEmergencyClosureAlert();
