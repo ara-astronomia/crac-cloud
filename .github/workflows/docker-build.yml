@@ -35,7 +35,7 @@ jobs:
       # La cache calda puo' nascondere un interprete che gira per caso: il
       # repo dice quale vuole, e questo lo pretende anche a cache spenta.
       - name: The interpreter is the one the repository pins
-        run: test -s .python-version && uv python find | grep -q "$(cat .python-version)"
+        run: test -s .python-version && uv run python -c "import sys; sys.exit(0 if sys.version.startswith(open('.python-version').read().strip()) else 1)"
 
       - name: Run Python tests
         run: uv run pytest
