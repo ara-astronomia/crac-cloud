@@ -106,6 +106,12 @@ Generated astronomical maps (sky charts, airmass plots, field images) are writte
 - Verify `git config user.email` before committing, if relevant.
 - Only commit if `uv run pytest` and `node --test tests/js/*.test.mjs` pass, plus a manual check against `../crac-test-stack` for anything the suites cannot reach (real gRPC traffic, browser behaviour).
 - Prefer small, descriptive commits over one large catch-all commit.
+- **After any story that changes what the operator sees, update the manual**:
+  the GitHub wiki (`ara-astronomia/crac-cloud.wiki.git`, nine pages plus
+  `Home`) is the operator's manual, and it lives in a repository of its own.
+  A story that touches the interface is done when the wiki page covering the
+  changed panel is updated too — in the same story, the same way `AGENTS.md`
+  is. A story with no user-facing change has nothing to update.
 - Never stage/commit config files (`config.ini`, `.env`) unless the change is a structural key addition/removal explicitly requested by the user.
 
 ## Repo correlati
